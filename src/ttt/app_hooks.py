@@ -613,7 +613,7 @@ def on_ask(
 
 
 def on_chat(
-    command_name: str, model: Optional[str], session: Optional[str], tools: bool, markdown: bool, **kwargs
+    command_name: str, model: Optional[str], session: Optional[str], tools: bool, **kwargs
 ) -> None:
     """Hook for 'chat' command.
 
@@ -624,7 +624,6 @@ def on_chat(
         model: AI model to use for the chat session
         session: Existing session ID to resume, or None for new session
         tools: Whether to enable tool usage in the chat
-        markdown: Whether to format output with markdown (currently unused)
 
     Note:
         Creates an interactive loop that continues until user types /exit
@@ -828,7 +827,7 @@ def on_chat(
 
 
 def on_list(
-    command_name: str, resource: Optional[str] = None, format: str = "table", verbose: bool = False, **kwargs
+    command_name: str, resource: Optional[str] = None, format: str = "table", **kwargs
 ) -> None:
     """Hook for 'list' command.
 
@@ -839,7 +838,6 @@ def on_list(
     Args:
         resource: Type of resource to list ('models', 'sessions', 'tools'), or None for summary
         format: Output format ('table', 'json')
-        verbose: Whether to show additional details (currently unused)
     """
     if resource is None:
         # No resource specified, show summary of all resources

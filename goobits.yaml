@@ -162,10 +162,6 @@ cli:
           type: "bool"
           desc: "Enable tool usage in chat"
           default: false
-        - name: "markdown"
-          type: "bool"
-          desc: "Render markdown in responses"
-          default: true
 
     list:
       desc: "See available resources"
@@ -182,11 +178,6 @@ cli:
           desc: "Output format"
           choices: ["table", "json", "yaml"]
           default: "table"
-        - name: "verbose"
-          short: "v"
-          type: "bool"
-          desc: "Show detailed information"
-          default: false
 
     status:
       desc: "Verify system and API health"

@@ -1044,8 +1044,7 @@ def ask(ctx, prompt, model, temperature, max_tokens, tools, session, system, str
 @click.option("-m", "--model", type=str, help="LLM model to use")
 @click.option("-s", "--session", type=str, help="Session ID to resume or create")
 @click.option("--tools", type=bool, default=False, help="Enable tool usage in chat")
-@click.option("--markdown", type=bool, default=True, help="Render markdown in responses")
-def chat(ctx, model, session, tools, markdown):
+def chat(ctx, model, session, tools):
     """💬 Chat interactively with AI"""
 
     # Check for built-in commands first
@@ -1091,8 +1090,7 @@ def chat(ctx, model, session, tools, markdown):
 @click.pass_context
 @click.argument("RESOURCE", required=False, default=None, type=click.Choice(["models", "sessions", "tools"]))
 @click.option("-f", "--format", type=click.Choice(["table", "json", "yaml"]), default="table", help="Output format")
-@click.option("-v", "--verbose", type=bool, default=False, help="Show detailed information")
-def list(ctx, resource, format, verbose):
+def list(ctx, resource, format):
     """📜 See available resources"""
 
     # Check for built-in commands first
