@@ -19,7 +19,8 @@ text = "MIT"
 
 [project.optional-dependencies]
 local = [ "httpx>=0.24.0",]
-dev = [ "pytest>=7.0", "pytest-asyncio", "pytest-cov", "pytest-timeout", "black", "ruff", "mypy", "types-PyYAML", "build", "twine",]
+dev = [ "pytest>=7.0", "pytest-asyncio", "pytest-cov", "pytest-timeout", "pytest-xdist>=3.0.0", "pytest-sugar>=0.9.0", "pytest-clarity>=1.0.0", "pytest-html>=3.0.0", "pytest-json-report>=1.5.0", "black", "ruff", "mypy", "types-PyYAML",]
+publish = [ "build", "twine",]
 
 [project.scripts]
 ttt = "ttt.cli:cli_entry"
