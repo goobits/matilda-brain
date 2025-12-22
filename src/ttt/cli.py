@@ -1088,6 +1088,69 @@ def chat(ctx, model, session, tools):
 
 @main.command()
 @click.pass_context
+@click.argument("MESSAGE", nargs=-1)
+@click.option("--system", type=str, default=None, help="System prompt to set context")
+@click.option("--history", type=str, default=None, help="Path to JSON file with conversation history")
+@click.option("--tools", type=str, default=None, help="Comma-separated tool names to enable")
+@click.option("-m", "--model", type=str, default=None, help="LLM model to use")
+@click.option("-t", "--temperature", type=float, default=0.7, help="Sampling temperature (0.0-2.0)")
+@click.option("--max-tokens", type=int, default=2048, help="Maximum response length")
+def stateless(ctx, message, system, history, tools, model, temperature, max_tokens):
+    """⚡ Execute stateless AI request without session"""
+
+    # Check for built-in commands first
+
+    # Standard command - use the existing hook pattern
+    hook_name = "on_stateless"
+    if app_hooks and hasattr(app_hooks, hook_name):
+        # Call the hook with all parameters
+        hook_func = getattr(app_hooks, hook_name)
+
+        # Prepare arguments including global options
+        kwargs = {}
+        kwargs["command_name"] = "stateless"  # Pass command name for all commands
+
+        kwargs["message"] = message
+
+        kwargs["system"] = system
+
+        kwargs["history"] = history
+
+        kwargs["tools"] = tools
+
+        kwargs["model"] = model
+
+        kwargs["temperature"] = temperature
+
+        kwargs["max_tokens"] = max_tokens
+
+        # Add global options from context
+        if ctx and ctx.obj:
+            kwargs["debug"] = ctx.obj.get("debug", False)
+
+        result = hook_func(**kwargs)
+        return result
+    else:
+        # Default placeholder behavior
+        click.echo("Executing stateless command...")
+
+        click.echo(f"  message: {message}")
+
+        click.echo(f"  system: {system}")
+
+        click.echo(f"  history: {history}")
+
+        click.echo(f"  tools: {tools}")
+
+        click.echo(f"  model: {model}")
+
+        click.echo(f"  temperature: {temperature}")
+
+        click.echo(f"  max_tokens: {max_tokens}")
+
+
+@main.command()
+@click.pass_context
 @click.argument("RESOURCE", required=False, default=None, type=click.Choice(["models", "sessions", "tools"]))
 @click.option("-f", "--format", type=click.Choice(["table", "json", "yaml"]), default="table", help="Output format")
 def list(ctx, resource, format):

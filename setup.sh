@@ -438,8 +438,11 @@ detect_system() {
             PYTHON_VERSION=""
         fi
         
-        # Detect pipx
-        if command -v pipx >/dev/null 2>&1; then
+        # Detect pipx (allow override to force pip path)
+        if [[ "$FORCE_PIP_INSTALL" == "1" ]]; then
+            PIPX_AVAILABLE="false"
+            PIPX_PATH=""
+        elif command -v pipx >/dev/null 2>&1; then
             PIPX_AVAILABLE="true"
             PIPX_PATH="$(command -v pipx)"
         else
@@ -724,7 +727,12 @@ install_with_pip() {
     if [[ "$install_dev" == "true" ]]; then
         tree_sub_node "progress" "Installing in development mode with pip..."
         
-        (cd "$PROJECT_DIR" && python3 -m pip install --editable "$DEVELOPMENT_PATH[local]" --user) &
+        # If we're inside a venv, avoid --user to install into that venv
+        if [[ -n "$VIRTUAL_ENV" ]]; then
+            (cd "$PROJECT_DIR" && python3 -m pip install --editable "$DEVELOPMENT_PATH[local]") &
+        else
+            (cd "$PROJECT_DIR" && python3 -m pip install --editable "$DEVELOPMENT_PATH[local]" --user) &
+        fi
         
         show_spinner $!
         wait $!
@@ -741,7 +749,11 @@ install_with_pip() {
     else
         tree_sub_node "progress" "Installing from PyPI with pip..."
         
-        python3 -m pip install "$PYPI_NAME[local]" --user &
+        if [[ -n "$VIRTUAL_ENV" ]]; then
+            python3 -m pip install "$PYPI_NAME[local]" &
+        else
+            python3 -m pip install "$PYPI_NAME[local]" --user &
+        fi
         
         show_spinner $!
         wait $!

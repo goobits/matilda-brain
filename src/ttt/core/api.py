@@ -385,3 +385,75 @@ async def achat(
         yield session
     finally:
         pass
+
+
+def stateless(
+    message: str,
+    *,
+    system: Optional[str] = None,
+    history: Optional[List[dict]] = None,
+    tools: Optional[List[str]] = None,
+    model: Optional[str] = None,
+    temperature: float = 0.7,
+    max_tokens: int = 2048,
+    **kwargs: Any,
+):
+    """
+    Execute a stateless AI request without creating a session.
+
+    This is a wrapper around the execute_stateless function that provides
+    a clean API-level interface. No session files are created or modified.
+
+    Examples:
+        >>> from ttt.core.api import stateless
+        >>> response = stateless("What is Python?")
+        >>> print(response.content)
+
+        >>> # With system prompt
+        >>> response = stateless(
+        ...     "Explain quantum computing",
+        ...     system="You are a physics professor"
+        ... )
+
+        >>> # With conversation history
+        >>> response = stateless(
+        ...     "What was my first question?",
+        ...     history=[
+        ...         {"role": "user", "content": "Hello"},
+        ...         {"role": "assistant", "content": "Hi! How can I help?"}
+        ...     ]
+        ... )
+
+        >>> # With tools
+        >>> response = stateless(
+        ...     "What's the weather in NYC?",
+        ...     tools=["web_search"]
+        ... )
+
+    Args:
+        message: The user's message/question
+        system: System prompt to set context (optional)
+        history: Previous conversation messages (optional)
+        tools: List of tool names to enable (optional)
+        model: Specific model to use (optional)
+        temperature: Sampling temperature 0-2 (default: 0.7)
+        max_tokens: Maximum tokens to generate (default: 2048)
+        **kwargs: Additional backend-specific parameters
+
+    Returns:
+        StatelessResponse with content, tool_calls, finish_reason, usage, model
+    """
+    from ..stateless import StatelessRequest, execute_stateless
+
+    request = StatelessRequest(
+        message=message,
+        system=system,
+        history=history or [],
+        tools=tools,
+        model=model,
+        temperature=temperature,
+        max_tokens=max_tokens,
+        **kwargs,
+    )
+
+    return execute_stateless(request)

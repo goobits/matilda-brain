@@ -1399,3 +1399,143 @@ def on_info(command_name: str, model: Optional[str] = None, json: bool = False, 
         on_models(command_name="models", json=json)
     else:
         show_model_info(model, json_output=json)
+
+
+def on_stateless(
+    command_name: str,
+    message: Tuple[str, ...],
+    system: Optional[str],
+    history: Optional[str],
+    tools: Optional[str],
+    model: Optional[str],
+    temperature: float,
+    max_tokens: int,
+    **kwargs,
+) -> None:
+    """Hook for 'stateless' command.
+
+    Execute a stateless AI request without creating any session files.
+    Accepts message, system prompt, conversation history, and tools.
+
+    Args:
+        command_name: Name of the command (stateless)
+        message: Tuple of message arguments to join
+        system: System prompt to set context
+        history: Path to JSON file containing conversation history
+        tools: Comma-separated list of tool names
+        model: AI model to use (can be alias like @fast)
+        temperature: Sampling temperature for response generation
+        max_tokens: Maximum tokens in response
+        **kwargs: Additional parameters
+    """
+    import json as json_module
+
+    from ttt.core.api import stateless as ttt_stateless
+
+    # Setup logging
+    setup_logging_level()
+
+    # Join message tuple into a single string
+    message_text = " ".join(message) if message else None
+
+    # Handle missing message
+    if not message_text:
+        console.print("[red]Error: Missing argument 'message'[/red]", err=True)
+        sys.exit(1)
+
+    # Resolve model alias if needed
+    if model:
+        model = resolve_model_alias(model)
+
+    # Load history from JSON file if provided
+    history_messages = []
+    if history:
+        try:
+            history_path = Path(history)
+            if not history_path.exists():
+                console.print(f"[red]Error: History file not found: {history}[/red]", err=True)
+                sys.exit(1)
+
+            with open(history_path) as f:
+                history_data = json_module.load(f)
+
+            # Support multiple formats
+            if isinstance(history_data, list):
+                # Direct list of messages
+                history_messages = history_data
+            elif isinstance(history_data, dict) and "messages" in history_data:
+                # Wrapped in messages key
+                history_messages = history_data["messages"]
+            else:
+                console.print(
+                    "[red]Error: History file must contain a list of messages or dict with 'messages' key[/red]",
+                    err=True,
+                )
+                sys.exit(1)
+
+            # Validate message format
+            for msg in history_messages:
+                if not isinstance(msg, dict) or "role" not in msg or "content" not in msg:
+                    console.print(
+                        "[red]Error: Each message must be a dict with 'role' and 'content' keys[/red]",
+                        err=True,
+                    )
+                    sys.exit(1)
+
+        except json_module.JSONDecodeError as e:
+            console.print(f"[red]Error: Invalid JSON in history file: {e}[/red]", err=True)
+            sys.exit(1)
+        except Exception as e:
+            console.print(f"[red]Error loading history: {e}[/red]", err=True)
+            sys.exit(1)
+
+    # Parse tools if provided
+    tools_list = None
+    if tools:
+        # Expand tool categories
+        tools_expanded = parse_tools_arg(tools)
+        if tools_expanded and tools_expanded != "all":
+            tools_list = tools_expanded.split(",")
+        elif tools_expanded == "all":
+            # Import all available tools
+            from ttt.tools import list_tools
+
+            available_tools = list_tools()
+            tools_list = [tool.name for tool in available_tools]
+
+    # Execute stateless request
+    try:
+        response = ttt_stateless(
+            message=message_text,
+            system=system,
+            history=history_messages,
+            tools=tools_list,
+            model=model,
+            temperature=temperature,
+            max_tokens=max_tokens,
+        )
+
+        # Output response as JSON
+        output = {
+            "content": response.content,
+            "finish_reason": response.finish_reason,
+        }
+
+        if response.tool_calls:
+            output["tool_calls"] = response.tool_calls
+
+        if response.usage:
+            output["usage"] = response.usage
+
+        if response.model:
+            output["model"] = response.model
+
+        console.print(json_module.dumps(output, indent=2))
+
+    except Exception as e:
+        console.print(f"[red]Error: {e}[/red]", err=True)
+        if is_verbose_mode():
+            import traceback
+
+            traceback.print_exc()
+        sys.exit(1)

@@ -97,7 +97,7 @@ cli:
 
   command_groups:
     - name: "Core Commands"
-      commands: ["ask", "chat", "list", "status"]
+      commands: ["ask", "chat", "stateless", "list", "status"]
     - name: "Model Management"
       commands: ["models", "info"]
     - name: "Configuration"
@@ -162,6 +162,37 @@ cli:
           type: "bool"
           desc: "Enable tool usage in chat"
           default: false
+
+    stateless:
+      desc: "Execute stateless AI request without session"
+      icon: "⚡"
+      args:
+        - name: "message"
+          desc: "The message or question to send"
+          nargs: "*"
+      options:
+        - name: "system"
+          type: "str"
+          desc: "System prompt to set context"
+        - name: "history"
+          type: "str"
+          desc: "Path to JSON file with conversation history"
+        - name: "tools"
+          type: "str"
+          desc: "Comma-separated tool names to enable"
+        - name: "model"
+          short: "m"
+          type: "str"
+          desc: "LLM model to use"
+        - name: "temperature"
+          short: "t"
+          type: "float"
+          desc: "Sampling temperature (0.0-2.0)"
+          default: 0.7
+        - name: "max-tokens"
+          type: "int"
+          desc: "Maximum response length"
+          default: 2048
 
     list:
       desc: "See available resources"
