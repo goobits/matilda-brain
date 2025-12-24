@@ -1,3 +1,6 @@
+# Unified artifacts
+.artifacts/
+
 # Python
 __pycache__/
 *.py[cod]
@@ -5,93 +8,53 @@ __pycache__/
 *.so
 .Python
 build/
-develop-eggs/
 dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-share/python-wheels/
 *.egg-info/
-.installed.cfg
 *.egg
-MANIFEST
 
 # Virtual environments
+.venv/
 venv/
 env/
-ENV/
-.venv/
-env.bak/
-venv.bak/
-.dev_venv/
 
-# IDEs
+# Tool caches (legacy - prefer .artifacts/)
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.temp/
+.cache/
+.tox/
+
+# IDE & OS
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
-
-# OS
 .DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
 Thumbs.db
 
-# Logs
+# Logs & temp
 *.log
-logs/*.txt
-logs/*.log
+logs/
+*.tmp
+*.bak
 
-# Test artifacts
-.pytest_cache/
-.coverage
-htmlcov/
-test-results/
-.tox/
-.nox/
-
-# Environment variables
+# Environment
 .env
 .env.local
-.env.*.local
-
-# MyPy
-.mypy_cache/
-.dmypy.json
-dmypy.json
-
-# Ruff cache
-.ruff_cache/
-
-# Temporary files and unified temp directory
-*.tmp
-*.temp
-.tmp/
-temp/
-tmp/
-.temp/
 
 # AI/LLM data
 data/
 *.jsonl
 
-# Root-level generated files (should not be committed)
+# Generated files
 /cli.py
 tests/generated_cli.py
-*.bak
 
-# Project specific - TTT
+# Project specific
 setup-config.yaml
 sync-framework.sh
-# Symbolic links directory
 .links
