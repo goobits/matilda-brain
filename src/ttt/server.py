@@ -1,0 +1,249 @@
+"""
+Simple HTTP server for TTT (Text-to-Text) API.
+
+Exposes TTT functionality over HTTP for browser-based clients.
+Supports both one-shot requests and streaming responses with conversation memory.
+
+Usage:
+    ttt serve --port 3213
+
+    # Or directly:
+    python -m ttt.server --port 3213
+"""
+
+import argparse
+import asyncio
+import json
+import sys
+from typing import Any, Dict, List, Optional
+
+from aiohttp import web
+from aiohttp.web import Request, Response, StreamResponse
+
+from .core.api import ask_async, stream_async
+from .session.chat import PersistentChatSession
+from .utils import get_logger
+
+logger = get_logger(__name__)
+
+# CORS headers for browser access
+CORS_HEADERS = {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+}
+
+
+def add_cors_headers(response: Response) -> Response:
+    """Add CORS headers to response."""
+    for key, value in CORS_HEADERS.items():
+        response.headers[key] = value
+    return response
+
+
+async def handle_options(request: Request) -> Response:
+    """Handle CORS preflight requests."""
+    return add_cors_headers(Response(status=200))
+
+
+async def handle_health(request: Request) -> Response:
+    """Health check endpoint."""
+    return add_cors_headers(web.json_response({"status": "ok", "service": "ttt"}))
+
+
+async def handle_ask(request: Request) -> Response:
+    """
+    Handle AI request with optional conversation history.
+
+    POST /ask
+    {
+        "prompt": "What is Python?",
+        "model": "gpt-4",           // optional
+        "system": "Be concise",     // optional
+        "temperature": 0.7,         // optional
+        "max_tokens": 2048,         // optional
+        "messages": [               // optional - conversation history
+            {"role": "user", "content": "My favorite color is purple"},
+            {"role": "assistant", "content": "Nice! Purple is a great color."}
+        ]
+    }
+
+    Response:
+    {
+        "text": "Python is a programming language...",
+        "model": "gpt-4",
+        "tokens": {"prompt": 10, "completion": 50}
+    }
+    """
+    try:
+        data = await request.json()
+    except json.JSONDecodeError:
+        return add_cors_headers(web.json_response(
+            {"error": "Invalid JSON"}, status=400
+        ))
+
+    prompt = data.get("prompt")
+    if not prompt:
+        return add_cors_headers(web.json_response(
+            {"error": "Missing 'prompt' field"}, status=400
+        ))
+
+    messages = data.get("messages", [])
+    model = data.get("model")
+    system = data.get("system")
+    temperature = data.get("temperature")
+    max_tokens = data.get("max_tokens")
+
+    try:
+        # If we have message history, use a chat session
+        if messages:
+            session = PersistentChatSession(
+                model=model,
+                system=system,
+            )
+            # Restore conversation history
+            session.history = messages.copy()
+            if system and not any(m.get("role") == "system" for m in session.history):
+                session.history.insert(0, {"role": "system", "content": system})
+
+            # Ask with context
+            response = await session.aask(
+                prompt,
+                temperature=temperature,
+                max_tokens=max_tokens,
+            )
+        else:
+            # Simple one-shot request
+            response = await ask_async(
+                prompt,
+                model=model,
+                system=system,
+                temperature=temperature,
+                max_tokens=max_tokens,
+            )
+
+        result = {
+            "text": str(response),
+            "model": getattr(response, "model", None),
+        }
+
+        # Add token usage if available
+        if hasattr(response, "usage") and response.usage:
+            result["tokens"] = {
+                "prompt": getattr(response.usage, "prompt_tokens", 0),
+                "completion": getattr(response.usage, "completion_tokens", 0),
+            }
+
+        return add_cors_headers(web.json_response(result))
+
+    except Exception as e:
+        logger.error(f"Error processing request: {e}")
+        return add_cors_headers(web.json_response(
+            {"error": str(e)}, status=500
+        ))
+
+
+async def handle_stream(request: Request) -> StreamResponse:
+    """
+    Handle streaming AI request.
+
+    POST /stream
+    {
+        "prompt": "Tell me a story",
+        "model": "gpt-4",           // optional
+        "system": "Be creative",    // optional
+        "temperature": 0.9          // optional
+    }
+
+    Response: Server-Sent Events (SSE)
+    data: {"chunk": "Once"}
+    data: {"chunk": " upon"}
+    data: {"chunk": " a time..."}
+    data: {"done": true}
+    """
+    try:
+        data = await request.json()
+    except json.JSONDecodeError:
+        return add_cors_headers(web.json_response(
+            {"error": "Invalid JSON"}, status=400
+        ))
+
+    prompt = data.get("prompt")
+    if not prompt:
+        return add_cors_headers(web.json_response(
+            {"error": "Missing 'prompt' field"}, status=400
+        ))
+
+    response = StreamResponse(
+        status=200,
+        headers={
+            "Content-Type": "text/event-stream",
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            **CORS_HEADERS,
+        }
+    )
+    await response.prepare(request)
+
+    try:
+        async for chunk in stream_async(
+            prompt,
+            model=data.get("model"),
+            system=data.get("system"),
+            temperature=data.get("temperature"),
+            max_tokens=data.get("max_tokens"),
+        ):
+            event_data = json.dumps({"chunk": chunk})
+            await response.write(f"data: {event_data}\n\n".encode())
+
+        # Send done event
+        await response.write(b"data: {\"done\": true}\n\n")
+
+    except Exception as e:
+        logger.error(f"Error during streaming: {e}")
+        error_data = json.dumps({"error": str(e)})
+        await response.write(f"data: {error_data}\n\n".encode())
+
+    await response.write_eof()
+    return response
+
+
+def create_app() -> web.Application:
+    """Create the aiohttp application."""
+    app = web.Application()
+
+    # Routes
+    app.router.add_route("OPTIONS", "/{path:.*}", handle_options)
+    app.router.add_get("/health", handle_health)
+    app.router.add_get("/", handle_health)
+    app.router.add_post("/ask", handle_ask)
+    app.router.add_post("/stream", handle_stream)
+
+    return app
+
+
+def run_server(host: str = "0.0.0.0", port: int = 3213):
+    """Run the HTTP server."""
+    app = create_app()
+
+    print(f"Starting TTT server on http://{host}:{port}")
+    print(f"  POST /ask    - One-shot AI request")
+    print(f"  POST /stream - Streaming AI request (SSE)")
+    print(f"  GET  /health - Health check")
+    print()
+
+    web.run_app(app, host=host, port=port, print=None)
+
+
+def main():
+    """CLI entry point."""
+    parser = argparse.ArgumentParser(description="TTT HTTP Server")
+    parser.add_argument("--host", default="0.0.0.0", help="Host to bind to")
+    parser.add_argument("--port", "-p", type=int, default=3213, help="Port to listen on")
+    args = parser.parse_args()
+
+    run_server(host=args.host, port=args.port)
+
+
+if __name__ == "__main__":
+    main()

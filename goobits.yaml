@@ -104,6 +104,8 @@ cli:
       commands: ["config", "tools"]
     - name: "Data Management"
       commands: ["export"]
+    - name: "Server"
+      commands: ["serve"]
 
   commands:
     ask:
@@ -306,6 +308,20 @@ cli:
               type: "bool"
               desc: "Include disabled tools"
               default: false
+
+    serve:
+      desc: "Start TTT HTTP server for browser clients"
+      icon: "🌐"
+      options:
+        - name: "host"
+          type: "str"
+          desc: "Host address to bind to"
+          default: "0.0.0.0"
+        - name: "port"
+          short: "p"
+          type: "int"
+          desc: "Port to listen on"
+          default: 3213
 
   config:
     rich_help_panel: true

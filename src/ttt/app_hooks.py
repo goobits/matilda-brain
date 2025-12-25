@@ -1525,3 +1525,23 @@ def on_stateless(
         }
         print(json_module.dumps(error))
         sys.exit(1)
+
+
+def on_serve(
+    command_name: str,
+    host: str = "0.0.0.0",
+    port: int = 3213,
+    **kwargs,
+) -> None:
+    """Hook for 'serve' command.
+
+    Starts the TTT HTTP server for browser-based clients.
+    Exposes TTT functionality over HTTP with CORS support.
+
+    Args:
+        host: Host address to bind to (default: 0.0.0.0)
+        port: Port to listen on (default: 3213)
+    """
+    from ttt.server import run_server
+
+    run_server(host=host, port=port)
