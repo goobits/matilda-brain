@@ -1429,18 +1429,24 @@ def on_stateless(
         **kwargs: Additional parameters
     """
     import json as json_module
+    from ttt.stateless import execute_stateless, StatelessRequest
 
-    from ttt.core.api import stateless as ttt_stateless
-
-    # Setup logging
-    setup_logging_level()
+    # Setup logging (JSON mode to avoid noise)
+    setup_logging_level(json_output=True)
 
     # Join message tuple into a single string
     message_text = " ".join(message) if message else None
 
     # Handle missing message
     if not message_text:
-        console.print("[red]Error: Missing argument 'message'[/red]", err=True)
+        # Instead of printing error, return Protocol Error
+        error = {
+            "version": "v1",
+            "kind": "error",
+            "code": "missing_message",
+            "message": "Missing argument 'message'"
+        }
+        print(json_module.dumps(error))
         sys.exit(1)
 
     # Resolve model alias if needed
@@ -1453,89 +1459,69 @@ def on_stateless(
         try:
             history_path = Path(history)
             if not history_path.exists():
-                console.print(f"[red]Error: History file not found: {history}[/red]", err=True)
+                # We can't use console.print because we must output valid JSON for the Switchboard
+                error = {
+                    "version": "v1",
+                    "kind": "error", 
+                    "code": "history_not_found",
+                    "message": f"History file not found: {history}"
+                }
+                print(json_module.dumps(error))
                 sys.exit(1)
 
             with open(history_path) as f:
                 history_data = json_module.load(f)
-
+            
             # Support multiple formats
             if isinstance(history_data, list):
-                # Direct list of messages
                 history_messages = history_data
             elif isinstance(history_data, dict) and "messages" in history_data:
-                # Wrapped in messages key
                 history_messages = history_data["messages"]
-            else:
-                console.print(
-                    "[red]Error: History file must contain a list of messages or dict with 'messages' key[/red]",
-                    err=True,
-                )
-                sys.exit(1)
-
-            # Validate message format
-            for msg in history_messages:
-                if not isinstance(msg, dict) or "role" not in msg or "content" not in msg:
-                    console.print(
-                        "[red]Error: Each message must be a dict with 'role' and 'content' keys[/red]",
-                        err=True,
-                    )
-                    sys.exit(1)
-
-        except json_module.JSONDecodeError as e:
-            console.print(f"[red]Error: Invalid JSON in history file: {e}[/red]", err=True)
-            sys.exit(1)
+            
         except Exception as e:
-            console.print(f"[red]Error loading history: {e}[/red]", err=True)
+            error = {
+                "version": "v1",
+                "kind": "error",
+                "code": "history_error",
+                "message": str(e)
+            }
+            print(json_module.dumps(error))
             sys.exit(1)
 
     # Parse tools if provided
     tools_list = None
     if tools:
-        # Expand tool categories
         tools_expanded = parse_tools_arg(tools)
         if tools_expanded and tools_expanded != "all":
             tools_list = tools_expanded.split(",")
         elif tools_expanded == "all":
-            # Import all available tools
             from ttt.tools import list_tools
-
             available_tools = list_tools()
             tools_list = [tool.name for tool in available_tools]
 
+    # Build request
+    req = StatelessRequest(
+        message=message_text,
+        system=system,
+        history=history_messages,
+        tools=tools_list,
+        model=model,
+        temperature=temperature,
+        max_tokens=max_tokens,
+    )
+
     # Execute stateless request
     try:
-        response = ttt_stateless(
-            message=message_text,
-            system=system,
-            history=history_messages,
-            tools=tools_list,
-            model=model,
-            temperature=temperature,
-            max_tokens=max_tokens,
-        )
-
-        # Output response as JSON
-        output = {
-            "content": response.content,
-            "finish_reason": response.finish_reason,
-        }
-
-        if response.tool_calls:
-            output["tool_calls"] = response.tool_calls
-
-        if response.usage:
-            output["usage"] = response.usage
-
-        if response.model:
-            output["model"] = response.model
-
-        console.print(json_module.dumps(output, indent=2))
+        # Returns JSON string (Matilda Protocol)
+        result_json = execute_stateless(req)
+        print(result_json)
 
     except Exception as e:
-        console.print(f"[red]Error: {e}[/red]", err=True)
-        if is_verbose_mode():
-            import traceback
-
-            traceback.print_exc()
+        error = {
+            "version": "v1",
+            "kind": "error",
+            "code": "execution_failed",
+            "message": str(e)
+        }
+        print(json_module.dumps(error))
         sys.exit(1)

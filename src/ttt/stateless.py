@@ -2,11 +2,13 @@
 
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
+import json
 
 from .backends import BaseBackend
 from .core.models import AIResponse
 from .core.routing import router
 from .utils import get_logger, run_async
+from .protocol import Message, Proposal, Role, RiskLevel
 
 logger = get_logger(__name__)
 
@@ -36,27 +38,8 @@ class StatelessRequest:
     timeout: int = 30
 
 
-@dataclass
-class StatelessResponse:
-    """Response from stateless TTT execution.
-
-    Attributes:
-        content: The assistant's response text
-        tool_calls: List of tool calls made (if any)
-        finish_reason: Reason for completion (stop, length, tool_calls, etc.)
-        usage: Token usage information (if available)
-        model: Model that generated the response
-    """
-
-    content: str
-    tool_calls: Optional[List[Dict[str, Any]]] = None
-    finish_reason: str = "stop"
-    usage: Optional[Dict[str, Any]] = None
-    model: Optional[str] = None
-
-
-def execute_stateless(req: StatelessRequest) -> StatelessResponse:
-    """Execute a stateless TTT request.
+def execute_stateless(req: StatelessRequest) -> str:
+    """Execute a stateless TTT request and return Matilda Protocol JSON.
 
     This function processes a single request without creating or persisting
     any session state. It builds messages from system prompt, history, and
@@ -66,25 +49,7 @@ def execute_stateless(req: StatelessRequest) -> StatelessResponse:
         req: StatelessRequest with all parameters
 
     Returns:
-        StatelessResponse with the assistant's reply
-
-    Examples:
-        >>> req = StatelessRequest(
-        ...     message="What is Python?",
-        ...     system="You are a helpful assistant"
-        ... )
-        >>> response = execute_stateless(req)
-        >>> print(response.content)
-
-        >>> # With history
-        >>> req = StatelessRequest(
-        ...     message="What was my first question?",
-        ...     history=[
-        ...         {"role": "user", "content": "Hello"},
-        ...         {"role": "assistant", "content": "Hi! How can I help?"}
-        ...     ]
-        ... )
-        >>> response = execute_stateless(req)
+        JSON string complying with Matilda Protocol (v1)
     """
     logger.debug(
         f"Stateless request: message={req.message[:50]}..., "
@@ -112,12 +77,8 @@ def execute_stateless(req: StatelessRequest) -> StatelessResponse:
     # Add new user message
     messages.append({"role": "user", "content": req.message})
 
-    # Convert messages to prompt format for backend
-    # For backends that use prompt-based API, we need to extract the last user message
-    # But we'll pass full messages via kwargs for backends that support it
     async def _execute() -> AIResponse:
         # Call backend with full context
-        # The backend's ask() method handles conversation context
         result = await backend_instance.ask(
             req.message,
             model=resolved_model,
@@ -130,18 +91,51 @@ def execute_stateless(req: StatelessRequest) -> StatelessResponse:
         )
         return result
 
-    # Execute the request
-    ai_response = run_async(_execute())
+    try:
+        # Execute the request
+        ai_response = run_async(_execute())
+        
+        # Convert to Matilda Protocol Message
+        if ai_response.tool_calls:
+            # Handle tool call as Proposal
+            # For simplicity, we take the first tool call
+            tool_call = ai_response.tool_calls[0]
+            
+            # Function/Tool name usually in 'function' key or 'name'
+            tool_name = tool_call.get("name") or tool_call.get("function", {}).get("name", "unknown")
+            args = tool_call.get("arguments") or tool_call.get("function", {}).get("arguments", "{}")
+            
+            if isinstance(args, str):
+                try:
+                    args = json.loads(args)
+                except json.JSONDecodeError:
+                    args = {"raw": args}
+            
+            proposal = Proposal(
+                tool_name="system", # Grouping under 'system' capability for now
+                action_name=tool_name,
+                params=args,
+                risk_level=RiskLevel.MEDIUM, # Default to Medium
+                reasoning="Agent requested this action."
+            )
+            
+            msg = Message.proposal_msg(proposal)
+            msg.metadata["model"] = resolved_model
+            return msg.to_protocol_json()
+            
+        else:
+            # Standard Text Response
+            msg = Message.assistant(str(ai_response.content))
+            msg.metadata["model"] = resolved_model
+            return msg.to_protocol_json()
 
-    # Convert AIResponse to StatelessResponse
-    response = StatelessResponse(
-        content=str(ai_response.content),
-        tool_calls=ai_response.tool_calls if hasattr(ai_response, "tool_calls") else None,
-        finish_reason=ai_response.finish_reason if hasattr(ai_response, "finish_reason") else "stop",
-        usage=ai_response.usage if hasattr(ai_response, "usage") else None,
-        model=ai_response.model if hasattr(ai_response, "model") else resolved_model,
-    )
-
-    logger.debug(f"Stateless response: content_len={len(response.content)}, finish={response.finish_reason}")
-
-    return response
+    except Exception as e:
+        logger.error(f"Error during stateless execution: {e}")
+        # Return Protocol Error
+        error_msg = Message(
+            role=Role.SYSTEM,
+            kind="error",
+            code="execution_failed",
+            message=str(e)
+        )
+        return error_msg.to_protocol_json()
