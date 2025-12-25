@@ -95,32 +95,29 @@ async def handle_ask(request: Request) -> Response:
     max_tokens = data.get("max_tokens")
 
     try:
-        # If we have message history, use a chat session
-        if messages:
-            session = PersistentChatSession(
-                model=model,
-                system=system,
-            )
-            # Restore conversation history
-            session.history = messages.copy()
-            if system and not any(m.get("role") == "system" for m in session.history):
-                session.history.insert(0, {"role": "system", "content": system})
+        # Build messages list for the API
+        all_messages = []
 
-            # Ask with context
-            response = await session.aask(
-                prompt,
-                temperature=temperature,
-                max_tokens=max_tokens,
-            )
-        else:
-            # Simple one-shot request
-            response = await ask_async(
-                prompt,
-                model=model,
-                system=system,
-                temperature=temperature,
-                max_tokens=max_tokens,
-            )
+        # Add system prompt if provided
+        if system:
+            all_messages.append({"role": "system", "content": system})
+
+        # Add conversation history
+        if messages:
+            all_messages.extend(messages)
+
+        # Add current prompt
+        all_messages.append({"role": "user", "content": prompt})
+
+        # Make the request with full message history
+        response = await ask_async(
+            prompt,
+            model=model,
+            system=system if not messages else None,  # Only use system if no history
+            temperature=temperature,
+            max_tokens=max_tokens,
+            messages=all_messages if messages else None,  # Pass messages to backend
+        )
 
         result = {
             "text": str(response),
