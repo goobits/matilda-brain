@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Information
 
-**Package**: `goobits-ttt` | **Command**: `ttt` | **Python**: 3.8+
+**Package**: `goobits-matilda-brain` | **Command**: `brain` | **Python**: 3.8+
 
 A professional CLI and Python library for interacting with multiple AI providers (OpenRouter, OpenAI, Anthropic, Google, Ollama).
 
@@ -17,7 +17,7 @@ pytest -m unit                   # Unit tests (fast, no API calls)
 pytest -m integration --fast     # Integration tests without delays
 ruff check src/ tests/           # Lint code
 black src/ tests/                # Format code
-mypy src/ttt/                    # Type check
+mypy src/matilda_brain/                    # Type check
 pytest tests/path/to/test.py::test_name -v  # Run single test
 ```
 
@@ -27,22 +27,22 @@ pytest tests/path/to/test.py::test_name -v  # Run single test
 
 ### Key Components
 
-1. **API** (`src/ttt/core/api.py`): Core functions `ask()`, `stream()`, `chat()` with async variants
-2. **Backends** (`src/ttt/backends/`):
+1. **API** (`src/matilda_brain/core/api.py`): Core functions `ask()`, `stream()`, `chat()` with async variants
+2. **Backends** (`src/matilda_brain/backends/`):
    - `CloudBackend`: LiteLLM integration for cloud providers
    - `LocalBackend`: Ollama integration for local models
    - Selected automatically by model name patterns
-3. **Router** (`src/ttt/core/routing.py`): Manages backend selection and fallbacks
-4. **Tools** (`src/ttt/tools/`): `@tool` decorator enables function calling
-5. **Config** (`src/ttt/config/`): Hierarchical configuration (defaults → file → env → runtime)
-6. **CLI** (`src/ttt/cli.py`): Generated CLI interface (1,492 lines) - **DO NOT EDIT DIRECTLY**
-7. **Hooks** (`src/ttt/cli_handlers.py`): Business logic implementation (1,396 lines)
+3. **Router** (`src/matilda_brain/core/routing.py`): Manages backend selection and fallbacks
+4. **Tools** (`src/matilda_brain/tools/`): `@tool` decorator enables function calling
+5. **Config** (`src/matilda_brain/config/`): Hierarchical configuration (defaults → file → env → runtime)
+6. **CLI** (`src/matilda_brain/cli.py`): Generated CLI interface (1,492 lines) - **DO NOT EDIT DIRECTLY**
+7. **Hooks** (`src/matilda_brain/cli_handlers.py`): Business logic implementation (1,396 lines)
 
 ### Self-Hosting Pattern
 
 TTT uses `goobits.yaml` to generate its own CLI infrastructure:
 ```bash
-goobits build  # Regenerates src/ttt/cli.py and setup.sh
+goobits build  # Regenerates src/matilda_brain/cli.py and setup.sh
 ```
 
 ### Critical Patterns

@@ -1,10 +1,10 @@
-# 🤖 Goobits TTT
+# 🧠 Matilda Brain
 
 Professional command-line interface and Python library for interacting with multiple AI providers including OpenRouter, OpenAI, Anthropic, Google, and local models via Ollama.
 
 ## ✨ Key Features
 
-- **🎯 Simple CLI** - Just `ttt "your question"` - works instantly
+- **🎯 Simple CLI** - Just `brain "your question"` - works instantly
 - **🔧 Function Calling** - AI can call your Python functions and tools
 - **🌐 Multi-Provider** - OpenRouter (100+ models), OpenAI, Anthropic, Google
 - **🤖 Local Support** - Ollama integration for privacy
@@ -24,13 +24,13 @@ export OPENROUTER_API_KEY=sk-or-your-key-here
 # Or add to .env file
 
 # Start using
-ttt "What is Python?"
+brain "What is Python?"
 echo "print('Hello world')" | ttt "Explain this code"
 echo "Hello world" | ttt
 
 # Use tools
-ttt "What time is it in Tokyo?" --tools "get_current_time"
-ttt "Search for Python tutorials" --tools "web_search"
+brain "What time is it in Tokyo?" --tools "get_current_time"
+brain "Search for Python tutorials" --tools "web_search"
 ```
 
 ## 📚 Python Library
@@ -77,16 +77,16 @@ response = ask("What's the weather in NYC?", tools=[get_weather])
 
 ```bash
 # View settings
-ttt config list
+brain config list
 
 # Set configuration
-ttt config set models.default gpt-4
-ttt config set api.openai_key sk-...
+brain config set models.default gpt-4
+brain config set api.openai_key sk-...
 
 # Use model aliases
-ttt -m @fast "Quick question"    # gpt-3.5-turbo
-ttt -m @best "Complex analysis"   # gpt-4
-ttt -m @claude "Explain this"     # claude-3-sonnet
+brain -m @fast "Quick question"    # gpt-3.5-turbo
+brain -m @best "Complex analysis"   # gpt-4
+brain -m @claude "Explain this"     # claude-3-sonnet
 ```
 
 ## 📖 Documentation
@@ -101,8 +101,8 @@ ttt -m @claude "Explain this"     # claude-3-sonnet
 ## 🔗 Related Projects
 
 - **[Matilda](https://github.com/goobits/matilda)** - AI assistant
-- **[Goobits STT](https://github.com/goobits/stt)** - Speech-to-Text
-- **[Goobits TTS](https://github.com/goobits/tts)** - Text-to-Speech
+- **[Matilda Ears](https://github.com/goobits/matilda-ears)** - Speech-to-Text
+- **[Matilda Voice](https://github.com/goobits/matilda-voice)** - Text-to-Speech
 
 ## 🧪 Development
 
