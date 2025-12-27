@@ -18,7 +18,7 @@ class ConfigManager:
 
     def __init__(self) -> None:
         """Initialize the config manager."""
-        self.user_config_path = Path.home() / ".config" / "ttt" / "config.yaml"
+        self.user_config_path = Path.home() / ".config" / "brain" / "config.yaml"
 
         # Try multiple locations for default config
         possible_config_paths = [

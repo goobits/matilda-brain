@@ -48,7 +48,7 @@ async def handle_options(request: Request) -> Response:
 
 async def handle_health(request: Request) -> Response:
     """Health check endpoint."""
-    return add_cors_headers(web.json_response({"status": "ok", "service": "ttt"}))
+    return add_cors_headers(web.json_response({"status": "ok", "service": "brain"}))
 
 
 async def handle_ask(request: Request) -> Response:
