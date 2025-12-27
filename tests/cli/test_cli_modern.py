@@ -11,7 +11,7 @@ from unittest.mock import Mock, patch
 import pytest
 from click.testing import CliRunner
 
-from ttt.cli import main
+from matilda_brain.cli import main
 from .conftest import IntegrationTestBase
 
 
@@ -120,7 +120,7 @@ class TestConfigCommand(IntegrationTestBase):
     def test_config_get_demonstrates_configuration_access(self):
         """Test config get subcommand - demonstrates TTT's configuration inspection capabilities."""
         # Test configuration value retrieval with proper validation
-        with patch("ttt.config.manager.ConfigManager.show_value") as mock_show:
+        with patch("matilda_brain.config.manager.ConfigManager.show_value") as mock_show:
             # Mock realistic config output
             mock_show.return_value = "gpt-4"
 
@@ -143,7 +143,7 @@ class TestConfigCommand(IntegrationTestBase):
     def test_config_set_demonstrates_configuration_management(self):
         """Test config set subcommand - demonstrates TTT's configuration modification capabilities."""
         # Test configuration value setting with proper validation
-        with patch("ttt.config.manager.ConfigManager.set_value") as mock_set:
+        with patch("matilda_brain.config.manager.ConfigManager.set_value") as mock_set:
             mock_set.return_value = True  # Indicate successful setting
 
             result = self.runner.invoke(main, ["config", "set", "models.default", "gpt-4"])
@@ -164,7 +164,7 @@ class TestConfigCommand(IntegrationTestBase):
     def test_config_list_demonstrates_comprehensive_configuration_view(self):
         """Test config list subcommand - demonstrates TTT's complete configuration overview capabilities."""
         # Test complete configuration display with realistic data
-        with patch("ttt.config.manager.ConfigManager.get_merged_config") as mock_get:
+        with patch("matilda_brain.config.manager.ConfigManager.get_merged_config") as mock_get:
             # Mock realistic TTT configuration structure
             mock_config = {
                 "models": {"default": "gpt-4", "aliases": {"fast": "gpt-3.5-turbo", "smart": "gpt-4"}},
@@ -202,7 +202,7 @@ class TestConfigCommand(IntegrationTestBase):
     def test_config_list_with_secrets(self):
         """Test config list with show-secrets option."""
         # Mock the config manager to return sample config with secrets
-        with patch("ttt.config.manager.ConfigManager.get_merged_config") as mock_get:
+        with patch("matilda_brain.config.manager.ConfigManager.get_merged_config") as mock_get:
             mock_get.return_value = {"model": "gpt-4", "api_key": "secret-key"}
 
             result = self.runner.invoke(main, ["config", "list", "--show-secrets", "true"])
@@ -218,8 +218,8 @@ class TestModernToolsCommand(IntegrationTestBase):
     def test_tools_enable_demonstrates_tool_management(self):
         """Test tools enable subcommand - demonstrates TTT's tool activation and management capabilities."""
         # Test tool enablement with realistic tool management scenario
-        with patch("ttt.config.manager.ConfigManager.get_merged_config") as mock_get, patch(
-            "ttt.config.manager.ConfigManager.set_value"
+        with patch("matilda_brain.config.manager.ConfigManager.get_merged_config") as mock_get, patch(
+            "matilda_brain.config.manager.ConfigManager.set_value"
         ) as mock_set:
             # Mock current state with web_search disabled
             mock_get.return_value = {"tools": {"disabled": ["web_search"], "enabled": ["calculator", "file_reader"]}}
@@ -248,8 +248,8 @@ class TestModernToolsCommand(IntegrationTestBase):
     def test_tools_disable(self):
         """Test tools disable subcommand."""
         # Mock the config manager methods that tools enable/disable uses
-        with patch("ttt.config.manager.ConfigManager.get_merged_config") as mock_get, patch(
-            "ttt.config.manager.ConfigManager.set_value"
+        with patch("matilda_brain.config.manager.ConfigManager.get_merged_config") as mock_get, patch(
+            "matilda_brain.config.manager.ConfigManager.set_value"
         ) as mock_set:
             mock_get.return_value = {"tools": {"disabled": []}}
             mock_set.return_value = None
@@ -268,8 +268,8 @@ class TestModernToolsCommand(IntegrationTestBase):
         mock_tool.name = "web_search"
         mock_tool.description = "Web search tool"
 
-        with patch("ttt.tools.list_tools") as mock_list, patch(
-            "ttt.config.manager.ConfigManager.get_merged_config"
+        with patch("matilda_brain.tools.list_tools") as mock_list, patch(
+            "matilda_brain.config.manager.ConfigManager.get_merged_config"
         ) as mock_get:
             mock_list.return_value = [mock_tool]
             mock_get.return_value = {"tools": {"disabled": []}}
@@ -288,7 +288,7 @@ class TestExportCommand(IntegrationTestBase):
     def test_export_with_options(self):
         """Test export with various options."""
         # Mock the session manager methods used by export command
-        with patch("ttt.session.manager.ChatSessionManager.load_session") as mock_load, patch(
+        with patch("matilda_brain.session.manager.ChatSessionManager.load_session") as mock_load, patch(
             "pathlib.Path.write_text"
         ) as mock_write:
             mock_session = Mock()
@@ -324,7 +324,7 @@ class TestExportCommand(IntegrationTestBase):
     def test_export_nonexistent_session(self):
         """Test export with nonexistent session."""
         # Mock the session manager to return None for nonexistent session
-        with patch("ttt.session.manager.ChatSessionManager.load_session") as mock_load:
+        with patch("matilda_brain.session.manager.ChatSessionManager.load_session") as mock_load:
             mock_load.return_value = None
 
             result = self.runner.invoke(main, ["export", "nonexistent"])
@@ -344,7 +344,7 @@ class TestCLIErrorHandling:
     def test_hook_exception_handling(self):
         """Test that exceptions from hooks are handled gracefully."""
         # Make the underlying API call fail to test exception handling
-        with patch("ttt.core.api.ask", side_effect=Exception("Test error")):
+        with patch("matilda_brain.core.api.ask", side_effect=Exception("Test error")):
             result = self.runner.invoke(main, ["ask", "test"])
 
             # Should handle exception gracefully - exact behavior depends on implementation

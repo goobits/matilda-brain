@@ -9,7 +9,7 @@ from unittest.mock import Mock, patch
 import pytest
 from click.testing import CliRunner
 
-from ttt.cli import main
+from matilda_brain.cli import main
 from .conftest import IntegrationTestBase
 
 
@@ -70,7 +70,7 @@ class TestJSONOutputValidation(IntegrationTestBase):
         """Test that all commands with JSON output produce valid, structured JSON with expected content."""
         # Set up appropriate mocks based on command type
         if "status" in command_args:
-            with patch("ttt.backends.local.LocalBackend") as mock_local, patch("os.getenv") as mock_getenv:
+            with patch("matilda_brain.backends.local.LocalBackend") as mock_local, patch("os.getenv") as mock_getenv:
                 # Mock realistic backend status
                 mock_local_instance = Mock()
                 mock_local_instance.is_available = False
@@ -91,7 +91,7 @@ class TestJSONOutputValidation(IntegrationTestBase):
                 result = self.runner.invoke(main, command_args)
 
         elif "models" in command_args or "info" in command_args:
-            with patch("ttt.config.schema.get_model_registry") as mock_registry:
+            with patch("matilda_brain.config.schema.get_model_registry") as mock_registry:
                 # Mock model data for models/info commands
                 mock_model = Mock()
                 mock_model.name = "gpt-4"
@@ -201,13 +201,13 @@ class TestJSONOutputValidation(IntegrationTestBase):
 
         # Apply mocking for commands that need it
         if "status" in command_base:
-            with patch("ttt.backends.local.LocalBackend") as mock_local, patch("os.getenv"):
+            with patch("matilda_brain.backends.local.LocalBackend") as mock_local, patch("os.getenv"):
                 mock_local_instance = Mock()
                 mock_local_instance.is_available = False
                 mock_local.return_value = mock_local_instance
                 result = self.runner.invoke(main, args)
         elif "models" in command_base or "info" in command_base:
-            with patch("ttt.config.schema.get_model_registry") as mock_registry:
+            with patch("matilda_brain.config.schema.get_model_registry") as mock_registry:
                 mock_model = Mock()
                 mock_model.name = "gpt-4"
                 mock_model.provider = "openai"
@@ -237,7 +237,7 @@ class TestJSONOutputValidation(IntegrationTestBase):
         for regular_cmd, json_cmd in commands_to_test:
             # Apply appropriate mocking
             if "status" in regular_cmd:
-                with patch("ttt.backends.local.LocalBackend") as mock_local, patch("os.getenv"):
+                with patch("matilda_brain.backends.local.LocalBackend") as mock_local, patch("os.getenv"):
                     mock_local_instance = Mock()
                     mock_local_instance.is_available = False
                     mock_local.return_value = mock_local_instance
@@ -246,7 +246,7 @@ class TestJSONOutputValidation(IntegrationTestBase):
                     json_result = self.runner.invoke(main, json_cmd)
 
             elif "models" in regular_cmd or "info" in regular_cmd:
-                with patch("ttt.config.schema.get_model_registry") as mock_registry:
+                with patch("matilda_brain.config.schema.get_model_registry") as mock_registry:
                     mock_model = Mock()
                     mock_model.name = "gpt-4"
                     mock_model.provider = "openai"

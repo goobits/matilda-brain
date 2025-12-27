@@ -2,7 +2,7 @@
 
 import pytest
 
-from ttt.session.chat import PersistentChatSession
+from matilda_brain.session.chat import PersistentChatSession
 from tests.utils import MockBackend
 
 

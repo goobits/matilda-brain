@@ -8,8 +8,8 @@ import asyncio
 import time
 from typing import Any, AsyncIterator, Dict, List, Optional
 
-from ttt.backends import BaseBackend
-from ttt.models import AIResponse
+from matilda_brain.backends import BaseBackend
+from matilda_brain.models import AIResponse
 
 
 class EchoBackend(BaseBackend):

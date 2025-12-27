@@ -4,7 +4,7 @@ from datetime import datetime
 
 import pytest
 
-from ttt import AIResponse, ConfigModel, ModelInfo
+from matilda_brain import AIResponse, ConfigModel, ModelInfo
 
 
 class TestAIResponse:

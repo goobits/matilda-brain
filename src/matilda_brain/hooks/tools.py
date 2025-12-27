@@ -12,7 +12,7 @@ from rich.console import Console
 
 console = Console()
 
-from ttt.config.manager import ConfigManager
+from matilda_brain.config.manager import ConfigManager
 from .utils import setup_logging_level
 
 def on_tools_enable(command_name: str, tool_name: str, **kwargs) -> None:
@@ -65,7 +65,7 @@ def on_tools_list(command_name: str, show_disabled: bool, **kwargs) -> None:
     Args:
         show_disabled: Whether to include disabled tools in the output
     """
-    from ttt.tools import list_tools
+    from matilda_brain.tools import list_tools
 
     config_manager = ConfigManager()
     merged_config = config_manager.get_merged_config()

@@ -12,11 +12,11 @@ from rich.console import Console
 
 console = Console()
 
-import ttt
-from ttt.config.manager import ConfigManager
-from ttt.core.api import ask as ttt_ask
-from ttt.core.api import stream as ttt_stream
-from ttt.session.manager import ChatSessionManager
+import matilda_brain
+from matilda_brain.config.manager import ConfigManager
+from matilda_brain.core.api import ask as ttt_ask
+from matilda_brain.core.api import stream as ttt_stream
+from matilda_brain.session.manager import ChatSessionManager
 from .utils import (
     is_verbose_mode,
     setup_logging_level,
@@ -131,7 +131,7 @@ def on_ask(
 
     # Get configured default model if not specified via CLI
     if not model:
-        from ttt.config.schema import get_config
+        from matilda_brain.config.schema import get_config
         config = get_config()
         if config.model:
             model = config.model
@@ -182,7 +182,7 @@ def on_ask(
             click.echo(str(response).strip())
     except Exception as e:
         # Import exception types for better error handling
-        from ttt.core.exceptions import (
+        from matilda_brain.core.exceptions import (
             APIKeyError,
             BackendConnectionError,
             BackendTimeoutError,
@@ -190,7 +190,7 @@ def on_ask(
             RateLimitError,
             QuotaExceededError,
         )
-        from ttt.utils.smart_suggestions import (
+        from matilda_brain.utils.smart_suggestions import (
             suggest_model_alternatives,
             suggest_provider_alternatives,
             suggest_troubleshooting_steps,
@@ -337,7 +337,7 @@ def on_chat(
         Creates an interactive loop that continues until user types /exit
         or interrupts with Ctrl+C. Session state is automatically saved.
     """
-    from ttt.session.manager import ChatSessionManager
+    from matilda_brain.session.manager import ChatSessionManager
 
     # Setup logging
     setup_logging_level()
@@ -464,7 +464,7 @@ def on_chat(
 
                 except Exception as e:
                     # Import exception types for better error handling
-                    from ttt.core.exceptions import (
+                    from matilda_brain.core.exceptions import (
                         APIKeyError,
                         BackendConnectionError,
                         BackendTimeoutError,
@@ -472,7 +472,7 @@ def on_chat(
                         RateLimitError,
                         QuotaExceededError,
                     )
-                    from ttt.utils.smart_suggestions import suggest_provider_alternatives
+                    from matilda_brain.utils.smart_suggestions import suggest_provider_alternatives
 
                     # Format error messages with smart suggestions for chat
                     if isinstance(e, APIKeyError):

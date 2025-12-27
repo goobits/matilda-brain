@@ -10,7 +10,7 @@ from unittest.mock import patch
 import pytest
 from click.testing import CliRunner
 
-from ttt.cli import main
+from matilda_brain.cli import main
 from .conftest import IntegrationTestBase
 
 
@@ -98,7 +98,7 @@ class TestCLIParameterValidation(IntegrationTestBase):
     )
     def test_click_type_conversions(self, data_type, param_args, expected_type, expected_value):
         """Test Click type conversions work correctly for all parameter types."""
-        with patch("ttt.cli_handlers.on_ask") as mock_ask:
+        with patch("matilda_brain.cli_handlers.on_ask") as mock_ask:
             mock_ask.return_value = None
 
             result = self.runner.invoke(main, param_args)
@@ -272,7 +272,7 @@ class TestCLIParameterValidation(IntegrationTestBase):
     @pytest.mark.integration
     def test_mocked_ask_parameter_validation(self):
         """Test ask command parameter conversion with mocked hooks to verify exact parameter passing."""
-        with patch("ttt.cli_handlers.on_ask") as mock_ask:
+        with patch("matilda_brain.cli_handlers.on_ask") as mock_ask:
             mock_ask.return_value = None
 
             result = self.runner.invoke(

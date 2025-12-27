@@ -15,7 +15,7 @@ import json
 import pytest
 from click.testing import CliRunner
 
-from ttt.cli import main
+from matilda_brain.cli import main
 
 
 def run_ttt_command(args, input_text=None, timeout=10):

@@ -16,8 +16,8 @@ import asyncio
 import logging
 from rich.logging import RichHandler
 
-import ttt
-from ttt.config.manager import ConfigManager
+import matilda_brain
+from matilda_brain.config.manager import ConfigManager
 
 def is_verbose_mode() -> bool:
     """Check if verbose mode is enabled via environment variables or click context."""
@@ -135,7 +135,7 @@ def resolve_model_alias(model: str) -> str:
                         return str(model_name)
 
             # Use smart suggestions for unknown aliases
-            from ttt.utils.smart_suggestions import suggest_alias_fixes
+            from matilda_brain.utils.smart_suggestions import suggest_alias_fixes
 
             console.print(f"[red]Error: Unknown model alias '@{alias}'[/red]")
 
@@ -224,7 +224,7 @@ def parse_tools_arg(tools: Optional[str]) -> Optional[str]:
     if tools == "":
         return "all"
 
-    from ttt.tools.builtins import TOOL_CATEGORIES
+    from matilda_brain.tools.builtins import TOOL_CATEGORIES
 
     expanded_tools = []
     for item in tools.split(","):
@@ -259,7 +259,7 @@ def resolve_tools(tool_specs: List[str]) -> List[Any]:
     tools: List[Any] = []
 
     try:
-        from ttt.tools import get_tool, list_tools
+        from matilda_brain.tools import get_tool, list_tools
 
         for spec in tool_specs:
             if ":" in spec:

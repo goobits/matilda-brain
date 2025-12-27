@@ -10,8 +10,8 @@ import asyncio
 
 from ai import ask, chat
 
-from ttt.tools import get_tool, list_tools, tool
-from ttt.tools.builtins import (
+from matilda_brain.tools import get_tool, list_tools, tool
+from matilda_brain.tools.builtins import (
     calculate,
     get_current_time,
     http_request,

@@ -5,8 +5,8 @@ from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 
-from ttt import AIResponse, ImageInput, ask, stream
-from ttt.backends import CloudBackend, LocalBackend
+from matilda_brain import AIResponse, ImageInput, ask, stream
+from matilda_brain.backends import CloudBackend, LocalBackend
 
 
 class TestImageInput:
@@ -87,7 +87,7 @@ class TestMultiModalAPI:
         )
         mock_backend.name = "mock"
 
-        with patch("ttt.core.routing.router.smart_route") as mock_route:
+        with patch("matilda_brain.core.routing.router.smart_route") as mock_route:
             mock_route.return_value = (mock_backend, "gpt-4-vision-preview")
 
             # Test with image
@@ -116,7 +116,7 @@ class TestMultiModalAPI:
 
         mock_backend.astream = mock_astream
 
-        with patch("ttt.core.routing.router.smart_route") as mock_route:
+        with patch("matilda_brain.core.routing.router.smart_route") as mock_route:
             mock_route.return_value = (mock_backend, "gpt-4-vision-preview")
 
             # Test streaming with image
@@ -215,7 +215,7 @@ class TestLocalBackendMultiModal:
     @pytest.mark.asyncio
     async def test_local_backend_rejects_images(self):
         """Test local backend properly rejects image inputs."""
-        from ttt import MultiModalError
+        from matilda_brain import MultiModalError
 
         backend = LocalBackend()
 
@@ -259,7 +259,7 @@ class TestRoutingMultiModal:
 
     def test_routing_detects_images(self):
         """Test router detects images and switches to cloud."""
-        from ttt.core.routing import Router
+        from matilda_brain.core.routing import Router
 
         router = Router()
 
@@ -277,7 +277,7 @@ class TestRoutingMultiModal:
 
     def test_routing_respects_explicit_vision_model(self):
         """Test routing respects explicit vision model selection."""
-        from ttt.core.routing import Router
+        from matilda_brain.core.routing import Router
 
         router = Router()
 

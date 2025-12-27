@@ -4,10 +4,10 @@ from unittest.mock import patch
 
 import pytest
 
-from ttt import AIResponse, BackendNotAvailableError, ModelInfo
-from ttt.config import model_registry
-from ttt.core.routing import Router
-from ttt.plugins import plugin_registry
+from matilda_brain import AIResponse, BackendNotAvailableError, ModelInfo
+from matilda_brain.config import model_registry
+from matilda_brain.core.routing import Router
+from matilda_brain.plugins import plugin_registry
 from tests.utils import MockBackend
 
 

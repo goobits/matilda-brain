@@ -186,7 +186,7 @@ def delayed_ask(rate_limit_delay):
     Usage in tests:
         response = delayed_ask("Hello", model="gpt-3.5-turbo")
     """
-    from ttt import ask
+    from matilda_brain import ask
 
     def _delayed_ask(*args, **kwargs):
         # Extract model to determine provider
@@ -216,7 +216,7 @@ def delayed_stream(rate_limit_delay):
         for chunk in delayed_stream("Hello", model="gpt-3.5-turbo"):
             print(chunk)
     """
-    from ttt import stream
+    from matilda_brain import stream
 
     def _delayed_stream(*args, **kwargs):
         # Extract model to determine provider
@@ -246,7 +246,7 @@ def delayed_chat(rate_limit_delay):
         with delayed_chat(model="gpt-3.5-turbo") as session:
             response = session.ask("Hello")
     """
-    from ttt import chat
+    from matilda_brain import chat
 
     class DelayedChatSession:
         def __init__(self, session, delay_func, model):

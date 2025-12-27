@@ -12,9 +12,9 @@ This script demonstrates advanced chat session functionality including:
 
 from pathlib import Path
 
-import ttt
-from ttt import PersistentChatSession, chat
-from ttt.tools import tool
+import matilda_brain
+from matilda_brain import PersistentChatSession, chat
+from matilda_brain.tools import tool
 
 
 def basic_chat_examples():

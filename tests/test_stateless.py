@@ -5,9 +5,9 @@ import pytest
 from pathlib import Path
 from unittest.mock import Mock, patch, MagicMock
 
-from ttt.stateless import StatelessRequest, StatelessResponse, execute_stateless
-from ttt.core.api import stateless
-from ttt.core.models import AIResponse
+from matilda_brain.stateless import StatelessRequest, StatelessResponse, execute_stateless
+from matilda_brain.core.api import stateless
+from matilda_brain.core.models import AIResponse
 
 
 class TestStatelessRequest:
@@ -110,7 +110,7 @@ class TestExecuteStateless:
         """Test basic stateless request."""
         backend, ai_response = mock_backend
 
-        with patch("ttt.stateless.router") as mock_router:
+        with patch("matilda_brain.stateless.router") as mock_router:
             mock_router.smart_route.return_value = (backend, "test-model")
 
             req = StatelessRequest(message="Hello")
@@ -126,7 +126,7 @@ class TestExecuteStateless:
         """Test request with system prompt."""
         backend, ai_response = mock_backend
 
-        with patch("ttt.stateless.router") as mock_router:
+        with patch("matilda_brain.stateless.router") as mock_router:
             mock_router.smart_route.return_value = (backend, "test-model")
 
             req = StatelessRequest(
@@ -141,7 +141,7 @@ class TestExecuteStateless:
         """Test request with conversation history."""
         backend, ai_response = mock_backend
 
-        with patch("ttt.stateless.router") as mock_router:
+        with patch("matilda_brain.stateless.router") as mock_router:
             mock_router.smart_route.return_value = (backend, "test-model")
 
             history = [
@@ -160,7 +160,7 @@ class TestExecuteStateless:
         """Test request with tools enabled."""
         backend, ai_response = mock_backend
 
-        with patch("ttt.stateless.router") as mock_router:
+        with patch("matilda_brain.stateless.router") as mock_router:
             mock_router.smart_route.return_value = (backend, "test-model")
 
             req = StatelessRequest(
@@ -175,7 +175,7 @@ class TestExecuteStateless:
         """Test request with custom temperature and max_tokens."""
         backend, ai_response = mock_backend
 
-        with patch("ttt.stateless.router") as mock_router:
+        with patch("matilda_brain.stateless.router") as mock_router:
             mock_router.smart_route.return_value = (backend, "test-model")
 
             req = StatelessRequest(
@@ -193,7 +193,7 @@ class TestStatelessAPI:
     def mock_execute(self):
         """Mock execute_stateless."""
         # Patch the import in the stateless module where it's actually used
-        with patch("ttt.stateless.execute_stateless") as mock:
+        with patch("matilda_brain.stateless.execute_stateless") as mock:
             mock.return_value = StatelessResponse(
                 content="API test response",
                 finish_reason="stop",
@@ -278,7 +278,7 @@ class TestStatelessCLI:
     @pytest.mark.unit
     def test_cli_hook_exists(self):
         """Test that on_stateless hook exists."""
-        from ttt.app_hooks import on_stateless
+        from matilda_brain.app_hooks import on_stateless
 
         assert callable(on_stateless)
 
@@ -344,7 +344,7 @@ class TestNoSessionFiles:
 
         backend.ask = mock_ask
 
-        with patch("ttt.stateless.router") as mock_router:
+        with patch("matilda_brain.stateless.router") as mock_router:
             mock_router.smart_route.return_value = (backend, "test-model")
 
             # Execute stateless request

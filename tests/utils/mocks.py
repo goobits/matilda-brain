@@ -1,8 +1,8 @@
 """Shared mock objects for testing."""
 
 from typing import AsyncIterator, Dict, List, Optional, Any, Union
-from ttt import AIResponse
-from ttt.backends import BaseBackend
+from matilda_brain import AIResponse
+from matilda_brain.backends import BaseBackend
 
 
 class MockBackend(BaseBackend):

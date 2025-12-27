@@ -9,8 +9,8 @@ import difflib
 import os
 from typing import Dict, List, Optional, Union
 
-from ttt.config.manager import ConfigManager
-from ttt.config.schema import get_model_registry
+from matilda_brain.config.manager import ConfigManager
+from matilda_brain.config.schema import get_model_registry
 
 
 def calculate_similarity(input_str: str, target_str: str) -> float:

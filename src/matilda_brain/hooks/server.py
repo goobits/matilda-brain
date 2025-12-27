@@ -12,9 +12,9 @@ from rich.console import Console
 
 console = Console()
 
-import ttt
-from ttt.config.manager import ConfigManager
-from ttt.core.api import ask as ttt_ask
+import matilda_brain
+from matilda_brain.config.manager import ConfigManager
+from matilda_brain.core.api import ask as ttt_ask
 from .utils import setup_logging_level, resolve_model_alias
 
 def on_stateless(
@@ -45,7 +45,7 @@ def on_stateless(
         **kwargs: Additional parameters
     """
     import json as json_module
-    from ttt.stateless import execute_stateless, StatelessRequest
+    from matilda_brain.stateless import execute_stateless, StatelessRequest
 
     # Setup logging (JSON mode to avoid noise)
     setup_logging_level(json_output=True)
@@ -111,7 +111,7 @@ def on_stateless(
         if tools_expanded and tools_expanded != "all":
             tools_list = tools_expanded.split(",")
         elif tools_expanded == "all":
-            from ttt.tools import list_tools
+            from matilda_brain.tools import list_tools
             available_tools = list_tools()
             tools_list = [tool.name for tool in available_tools]
 
@@ -159,6 +159,6 @@ def on_serve(
         host: Host address to bind to (default: 0.0.0.0)
         port: Port to listen on (default: 3213)
     """
-    from ttt.server import run_server
+    from matilda_brain.server import run_server
 
     run_server(host=host, port=port)

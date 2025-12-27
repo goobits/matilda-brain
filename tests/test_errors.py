@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 
-from ttt import (
+from matilda_brain import (
     AIError,
     APIKeyError,
     BackendConnectionError,
@@ -24,9 +24,9 @@ from ttt import (
     SessionLoadError,
     SessionSaveError,
 )
-from ttt.tools.base import ToolCall
-from ttt.tools.executor import ExecutionConfig, ToolExecutor
-from ttt.tools.recovery import (
+from matilda_brain.tools.base import ToolCall
+from matilda_brain.tools.executor import ExecutionConfig, ToolExecutor
+from matilda_brain.tools.recovery import (
     ErrorPattern,
     ErrorRecoverySystem,
     ErrorType,
@@ -92,12 +92,12 @@ class TestExceptionHierarchy:
 class TestBackendExceptions:
     """Test backend-related exceptions in actual usage."""
 
-    @patch("ttt.backends.local.httpx.AsyncClient")
+    @patch("matilda_brain.backends.local.httpx.AsyncClient")
     def test_local_backend_connection_error(self, mock_client):
         """Test that connection errors raise BackendConnectionError."""
         import httpx
 
-        from ttt.backends.local import LocalBackend
+        from matilda_brain.backends.local import LocalBackend
 
         # Mock connection error
         mock_client.return_value.__aenter__.return_value.post = AsyncMock(
@@ -119,12 +119,12 @@ class TestBackendExceptions:
         assert "local" in str(exc_info.value)
         assert exc_info.value.details["backend"] == "local"
 
-    @patch("ttt.backends.local.httpx.AsyncClient")
+    @patch("matilda_brain.backends.local.httpx.AsyncClient")
     def test_local_backend_timeout(self, mock_client):
         """Test that timeouts raise BackendTimeoutError."""
         import httpx
 
-        from ttt.backends.local import LocalBackend
+        from matilda_brain.backends.local import LocalBackend
 
         # Mock timeout
         mock_client.return_value.__aenter__.return_value.post = AsyncMock(
@@ -148,8 +148,8 @@ class TestBackendExceptions:
 
     def test_local_backend_multimodal_error(self):
         """Test that multi-modal input raises MultiModalError."""
-        from ttt import ImageInput
-        from ttt.backends.local import LocalBackend
+        from matilda_brain import ImageInput
+        from matilda_brain.backends.local import LocalBackend
 
         backend = LocalBackend()
 
@@ -166,12 +166,12 @@ class TestBackendExceptions:
         assert "Ollama" in str(exc_info.value)
         assert "vision" in str(exc_info.value)
 
-    @patch("ttt.backends.local.httpx.AsyncClient")
+    @patch("matilda_brain.backends.local.httpx.AsyncClient")
     def test_model_not_found(self, mock_client):
         """Test that 404 errors for models raise ModelNotFoundError."""
         import httpx
 
-        from ttt.backends.local import LocalBackend
+        from matilda_brain.backends.local import LocalBackend
 
         # Mock 404 response
         mock_response = Mock()
@@ -204,7 +204,7 @@ class TestCloudBackendExceptions:
     def test_litellm_not_installed(self):
         """Test that missing LiteLLM raises BackendNotAvailableError."""
         with patch.dict("sys.modules", {"litellm": None}):
-            from ttt.backends.cloud import CloudBackend
+            from matilda_brain.backends.cloud import CloudBackend
 
             with pytest.raises(BackendNotAvailableError) as exc_info:
                 CloudBackend()
@@ -214,7 +214,7 @@ class TestCloudBackendExceptions:
 
     def test_api_key_error(self):
         """Test that authentication errors raise APIKeyError."""
-        from ttt.backends.cloud import CloudBackend
+        from matilda_brain.backends.cloud import CloudBackend
 
         backend = CloudBackend()
 
@@ -236,7 +236,7 @@ class TestCloudBackendExceptions:
 
     def test_rate_limit_error(self):
         """Test that rate limit errors are handled properly."""
-        from ttt.backends.cloud import CloudBackend
+        from matilda_brain.backends.cloud import CloudBackend
 
         backend = CloudBackend()
 
@@ -499,8 +499,8 @@ class TestToolExecutor:
     def test_tool_not_found_error(self, executor):
         """Test helpful error when tool is not found."""
         # Mock the tool registry to return None
-        with patch("ttt.tools.executor.get_tool", return_value=None):
-            with patch("ttt.tools.executor.list_tools", return_value=[]):
+        with patch("matilda_brain.tools.executor.get_tool", return_value=None):
+            with patch("matilda_brain.tools.executor.list_tools", return_value=[]):
                 result = asyncio.run(executor.execute_tool("nonexistent_tool", {}))
 
                 assert not result.succeeded
@@ -515,7 +515,7 @@ class TestToolExecutor:
         mock_tool.name = "test_tool"
         mock_tool.function = Mock(return_value="success")
 
-        with patch("ttt.tools.executor.get_tool", return_value=mock_tool):
+        with patch("matilda_brain.tools.executor.get_tool", return_value=mock_tool):
             result = await executor.execute_tool(
                 "test_tool",
                 {
@@ -541,7 +541,7 @@ class TestToolExecutor:
         mock_tool.name = "slow_tool"
         mock_tool.function = slow_tool
 
-        with patch("ttt.tools.executor.get_tool", return_value=mock_tool):
+        with patch("matilda_brain.tools.executor.get_tool", return_value=mock_tool):
             result = await executor.execute_tool("slow_tool", {}, timeout=1.0)
 
             assert not result.succeeded
@@ -566,7 +566,7 @@ class TestToolExecutor:
             {"name": "quick_tool", "arguments": {"id": "tool3"}},
         ]
 
-        with patch("ttt.tools.executor.get_tool", return_value=mock_tool):
+        with patch("matilda_brain.tools.executor.get_tool", return_value=mock_tool):
             result = await executor.execute_tools(tool_calls, parallel=True)
 
             assert len(result.calls) == 3
@@ -605,7 +605,7 @@ class TestConfigExceptions:
 
     def test_invalid_yaml_config(self, tmp_path):
         """Test that invalid YAML raises ConfigFileError."""
-        from ttt.config import load_config
+        from matilda_brain.config import load_config
 
         # Create invalid YAML
         config_file = tmp_path / "invalid.yaml"
@@ -619,7 +619,7 @@ class TestConfigExceptions:
 
     def test_unsupported_config_format(self, tmp_path):
         """Test that unsupported formats raise ConfigFileError."""
-        from ttt.config import load_config
+        from matilda_brain.config import load_config
 
         # Create config with unsupported extension
         config_file = tmp_path / "config.json"
@@ -641,7 +641,7 @@ class TestSessionExceptions:
 
     def test_session_load_not_found(self):
         """Test loading non-existent session raises SessionLoadError."""
-        from ttt.session.chat import PersistentChatSession
+        from matilda_brain.session.chat import PersistentChatSession
 
         with pytest.raises(SessionLoadError) as exc_info:
             PersistentChatSession.load("nonexistent.json")
@@ -651,7 +651,7 @@ class TestSessionExceptions:
 
     def test_session_load_invalid_json(self, tmp_path):
         """Test loading invalid JSON raises SessionLoadError."""
-        from ttt.session.chat import PersistentChatSession
+        from matilda_brain.session.chat import PersistentChatSession
 
         # Create invalid JSON
         session_file = tmp_path / "invalid.json"
@@ -664,7 +664,7 @@ class TestSessionExceptions:
 
     def test_session_save_invalid_format(self):
         """Test saving with invalid format raises InvalidParameterError."""
-        from ttt.session.chat import PersistentChatSession
+        from matilda_brain.session.chat import PersistentChatSession
 
         session = PersistentChatSession()
 
@@ -677,7 +677,7 @@ class TestSessionExceptions:
 
     def test_session_save_permission_error(self, tmp_path):
         """Test saving to protected location raises SessionSaveError."""
-        from ttt.session.chat import PersistentChatSession
+        from matilda_brain.session.chat import PersistentChatSession
 
         session = PersistentChatSession()
 
@@ -709,7 +709,7 @@ class TestPluginExceptions:
 
     def test_plugin_load_error(self, tmp_path):
         """Test that plugin load errors are handled properly."""
-        from ttt.plugins import PluginRegistry
+        from matilda_brain.plugins import PluginRegistry
 
         # Create a plugin with syntax error
         plugin_file = tmp_path / "bad_plugin.py"
@@ -724,7 +724,7 @@ class TestPluginExceptions:
 
     def test_plugin_validation_error(self, tmp_path):
         """Test that plugins without register_plugin raise PluginValidationError."""
-        from ttt.plugins import PluginRegistry
+        from matilda_brain.plugins import PluginRegistry
 
         # Create a plugin without register_plugin
         plugin_file = tmp_path / "invalid_plugin.py"
@@ -748,7 +748,7 @@ class TestRoutingExceptions:
 
     def test_unknown_backend(self):
         """Test that unknown backends raise BackendNotAvailableError."""
-        from ttt.core.routing import Router
+        from matilda_brain.core.routing import Router
 
         router = Router()
 
@@ -804,7 +804,7 @@ class TestIntegration:
         mock_tool.name = "web_search"
         mock_tool.function = mock_web_search
 
-        with patch("ttt.tools.executor.get_tool", return_value=mock_tool):
+        with patch("matilda_brain.tools.executor.get_tool", return_value=mock_tool):
             # Patch the recovery system to handle the error correctly
             with patch.object(
                 executor.recovery_system,

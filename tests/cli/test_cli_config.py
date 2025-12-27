@@ -2,7 +2,7 @@
 
 from unittest.mock import patch
 
-from ttt.cli import main
+from matilda_brain.cli import main
 from tests.cli.conftest import IntegrationTestBase
 
 
@@ -32,7 +32,7 @@ class TestConfigCommand(IntegrationTestBase):
     def test_config_get(self):
         """Test config get subcommand."""
         # Mock the config manager methods to avoid real file operations
-        with patch("ttt.config.manager.ConfigManager.show_value") as mock_show:
+        with patch("matilda_brain.config.manager.ConfigManager.show_value") as mock_show:
             mock_show.return_value = None
 
             result = self.runner.invoke(main, ["config", "get", "model"])
@@ -43,7 +43,7 @@ class TestConfigCommand(IntegrationTestBase):
     def test_config_set(self):
         """Test config set subcommand."""
         # Mock the config manager methods to avoid real file operations
-        with patch("ttt.config.manager.ConfigManager.set_value") as mock_set:
+        with patch("matilda_brain.config.manager.ConfigManager.set_value") as mock_set:
             mock_set.return_value = None
 
             result = self.runner.invoke(main, ["config", "set", "model", "gpt-4"])
@@ -54,7 +54,7 @@ class TestConfigCommand(IntegrationTestBase):
     def test_config_list(self):
         """Test config list subcommand."""
         # Mock the config manager to return sample config
-        with patch("ttt.config.manager.ConfigManager.get_merged_config") as mock_get:
+        with patch("matilda_brain.config.manager.ConfigManager.get_merged_config") as mock_get:
             mock_get.return_value = {"model": "gpt-4", "temperature": 0.7}
 
             result = self.runner.invoke(main, ["config", "list"])
@@ -66,7 +66,7 @@ class TestConfigCommand(IntegrationTestBase):
     def test_config_list_with_secrets(self):
         """Test config list with show-secrets option."""
         # Mock the config manager to return sample config with secrets
-        with patch("ttt.config.manager.ConfigManager.get_merged_config") as mock_get:
+        with patch("matilda_brain.config.manager.ConfigManager.get_merged_config") as mock_get:
             mock_get.return_value = {"model": "gpt-4", "api_key": "secret-key"}
 
             result = self.runner.invoke(main, ["config", "list", "--show-secrets", "true"])

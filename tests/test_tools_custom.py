@@ -6,16 +6,16 @@ from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 
-from ttt import AIResponse, ask
-from ttt.backends.cloud import CloudBackend
-from ttt.tools import (
+from matilda_brain import AIResponse, ask
+from matilda_brain.backends.cloud import CloudBackend
+from matilda_brain.tools import (
     ToolCall,
     ToolResult,
     execute_tool,
     execute_tools,
     tool,
 )
-from ttt.tools.registry import ToolRegistry, resolve_tools
+from matilda_brain.tools.registry import ToolRegistry, resolve_tools
 
 
 class TestToolDecorator:
@@ -29,7 +29,7 @@ class TestToolDecorator:
             """Test function description."""
             return f"{x}: {y}"
 
-        from ttt.tools import get_tool_definition, is_tool
+        from matilda_brain.tools import get_tool_definition, is_tool
 
         assert is_tool(test_function)
         tool_def = get_tool_definition(test_function)
@@ -56,7 +56,7 @@ class TestToolDecorator:
             """Original description."""
             pass
 
-        from ttt.tools import get_tool_definition
+        from matilda_brain.tools import get_tool_definition
 
         tool_def = get_tool_definition(some_function)
         assert tool_def.name == "custom_name"
@@ -70,7 +70,7 @@ class TestToolDecorator:
             """Function with complex types."""
             return {"items": items, "count": count}
 
-        from ttt.tools import get_tool_definition
+        from matilda_brain.tools import get_tool_definition
 
         tool_def = get_tool_definition(complex_function)
         params = {p.name: p for p in tool_def.parameters}
@@ -99,7 +99,7 @@ class TestToolExecution:
     @pytest.mark.asyncio
     async def test_execute_single_async_calls_tool_and_returns_result(self):
         """Test successful single tool execution."""
-        from ttt.tools.registry import register_tool, unregister_tool
+        from matilda_brain.tools.registry import register_tool, unregister_tool
 
         @tool(register=False)
         def add_numbers(x: int, y: int) -> int:
@@ -126,7 +126,7 @@ class TestToolExecution:
     @pytest.mark.asyncio
     async def test_execute_single_async_error(self):
         """Test tool execution with error."""
-        from ttt.tools.registry import register_tool, unregister_tool
+        from matilda_brain.tools.registry import register_tool, unregister_tool
 
         @tool(register=False)
         def divide_numbers(x: int, y: int) -> float:
@@ -163,7 +163,7 @@ class TestToolExecution:
     @pytest.mark.asyncio
     async def test_execute_multiple_async(self):
         """Test multiple tool execution."""
-        from ttt.tools.registry import register_tool, unregister_tool
+        from matilda_brain.tools.registry import register_tool, unregister_tool
 
         @tool(register=False)
         def multiply(x: int, y: int) -> int:
@@ -243,13 +243,13 @@ class TestToolRegistry:
             pass
 
         # Register one tool globally
-        from ttt.tools.registry import get_registry
+        from matilda_brain.tools.registry import get_registry
 
         registry = get_registry()
         registry.register(tool1)
 
         # Mix of tool names, functions, and definitions
-        from ttt.tools import get_tool_definition
+        from matilda_brain.tools import get_tool_definition
 
         tools_input = ["tool1", tool2, get_tool_definition(tool2)]
 
@@ -285,7 +285,7 @@ class TestToolIntegration:
             return 0
 
         # Register tools temporarily for the test
-        from ttt.tools.registry import register_tool, unregister_tool
+        from matilda_brain.tools.registry import register_tool, unregister_tool
 
         register_tool(get_weather, "get_weather", "Get weather for a city", "test")
         register_tool(test_calculate, "test_calculate", "Perform calculation", "test")
@@ -352,7 +352,7 @@ class TestToolIntegration:
             return f"Tool received: {message}"
 
         # Mock the router where it's actually used in ttt.core.api
-        with patch("ttt.core.api.router") as mock_router:
+        with patch("matilda_brain.core.api.router") as mock_router:
             mock_backend = Mock()
             # Create AIResponse with tool_result in the constructor
             tool_call = ToolCall(
@@ -392,7 +392,7 @@ class TestToolErrorHandling:
             await asyncio.sleep(1.0)  # Sleep for 1 second
             return "This should timeout"
 
-        from ttt.tools import (
+        from matilda_brain.tools import (
             ExecutionConfig,
             ToolExecutor,
             register_tool,
@@ -424,7 +424,7 @@ class TestToolErrorHandling:
     @pytest.mark.asyncio
     async def test_invalid_tool_arguments(self):
         """Test handling of invalid tool arguments."""
-        from ttt.tools.registry import register_tool, unregister_tool
+        from matilda_brain.tools.registry import register_tool, unregister_tool
 
         @tool(register=False)
         def strict_tool(required_param: int) -> str:
@@ -463,7 +463,7 @@ class TestToolErrorHandling:
             pass
 
         # Check that it still creates a tool but with generic type
-        from ttt.tools import get_tool_definition
+        from matilda_brain.tools import get_tool_definition
 
         tool_def = get_tool_definition(bad_tool)
         assert tool_def is not None
@@ -490,7 +490,7 @@ class TestToolSchemas:
             """
             return {"processed": text}
 
-        from ttt.tools import get_tool_definition
+        from matilda_brain.tools import get_tool_definition
 
         tool_def = get_tool_definition(example_tool)
         schema = tool_def.to_openai_schema()
@@ -518,7 +518,7 @@ class TestToolSchemas:
             """Tool for Anthropic testing."""
             return f"Query: {query}, Limit: {limit}"
 
-        from ttt.tools import get_tool_definition
+        from matilda_brain.tools import get_tool_definition
 
         tool_def = get_tool_definition(anthropic_tool)
         schema = tool_def.to_anthropic_schema()

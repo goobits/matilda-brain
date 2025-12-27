@@ -2,8 +2,8 @@
 
 import yaml
 
-from ttt import ConfigModel, ModelInfo
-from ttt.config import configure, get_config, load_config, model_registry, save_config
+from matilda_brain import ConfigModel, ModelInfo
+from matilda_brain.config import configure, get_config, load_config, model_registry, save_config
 
 
 class TestConfigManagement:
@@ -12,7 +12,7 @@ class TestConfigManagement:
     def test_default_values(self):
         """Test default configuration values from loaded config."""
         # Get config with defaults loaded from config.yaml
-        from ttt.config import get_config
+        from matilda_brain.config import get_config
 
         config = get_config()
 
@@ -35,7 +35,7 @@ class TestConfigManagement:
         monkeypatch.setenv("OLLAMA_BASE_URL", "http://custom:8080")
         monkeypatch.setenv("OPENAI_API_KEY", "test-key")
 
-        from ttt.config import load_config
+        from matilda_brain.config import load_config
 
         config = load_config()
 
@@ -188,9 +188,9 @@ class TestProgrammaticConfiguration:
     def test_configure_updates_global_config(self):
         """Test that configure() updates the global configuration."""
         # Reset global config
-        import ttt.config
+        import matilda_brain.config
 
-        ttt.config._config = None
+        matilda_brain.config._config = None
 
         configure(default_backend="local", timeout=120)
 
@@ -201,9 +201,9 @@ class TestProgrammaticConfiguration:
     def test_configure_partial_update(self):
         """Test that configure() does partial updates."""
         # Reset global config
-        import ttt.config
+        import matilda_brain.config
 
-        ttt.config._config = None
+        matilda_brain.config._config = None
 
         # First configuration
         configure(default_backend="cloud", timeout=60)

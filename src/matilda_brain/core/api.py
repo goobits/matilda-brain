@@ -213,7 +213,7 @@ def chat(
         ...     session.save("alice_chat.json")
 
         >>> # Resume a saved session
-        >>> from ttt.session.chat import PersistentChatSession
+        >>> from matilda_brain.session.chat import PersistentChatSession
         >>> session = PersistentChatSession.load("alice_chat.json")
         >>> session.ask("What's my name?")  # Will remember it's Alice
 
@@ -405,7 +405,7 @@ def stateless(
     a clean API-level interface. No session files are created or modified.
 
     Examples:
-        >>> from ttt.core.api import stateless
+        >>> from matilda_brain.core.api import stateless
         >>> response = stateless("What is Python?")
         >>> print(response.content)
 

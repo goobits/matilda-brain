@@ -1,15 +1,15 @@
-# Goobits configuration for TTT (Terminal Tools for Thoughts)
+# Goobits configuration for Matilda Brain (Terminal Tools for Thoughts)
 # This file replaces the old setup-config.yaml and defines everything needed for the build command
 
 # Setup fields for setup.sh
-package_name: "goobits-ttt"
-command_name: "ttt"
-display_name: "TTT - Text to Text"
+package_name: "goobits-matilda-brain"
+command_name: "brain"
+display_name: "Matilda Brain - Text to Text"
 description: "A powerful AI assistant for your terminal"
 
 # CLI generation configuration
-cli_output_path: "src/ttt/cli.py"
-hooks_path: "src/ttt/app_hooks.py"
+cli_output_path: "src/matilda_brain/cli.py"
+hooks_path: "src/matilda_brain/app_hooks.py"
 
 python:
   minimum_version: "3.8"
@@ -21,7 +21,7 @@ dependencies:
   development: []
 
 installation:
-  pypi_name: "goobits-ttt"
+  pypi_name: "goobits-matilda-brain"
   development_path: "."
   extras:
     python: ["local"]  # For local backend with httpx
@@ -29,7 +29,7 @@ installation:
 
 shell_integration:
   enabled: false
-  alias: "ttt"
+  alias: "brain"
 
 validation:
   check_api_keys: false
@@ -38,38 +38,38 @@ validation:
 
 messages:
   install_success: |
-    TTT has been installed successfully!
-    You can now use 'ttt' or 't' (if shell integration is enabled) from your terminal.
+    Matilda Brain has been installed successfully!
+    You can now use 'brain' from your terminal.
 
     Quick start:
-      ttt "Hello, how can I help you today?"
-      ttt status
-      ttt models
+      brain "Hello, how can I help you today?"
+      brain status
+      brain models
 
   install_dev_success: |
-    TTT has been installed in development mode!
+    Matilda Brain has been installed in development mode!
     ✅ Your local changes will be reflected immediately - no reinstalling needed!
 
     Development workflow:
-      - Edit code in src/ttt/ directory
-      - Test immediately with: ttt --stream "test"
+      - Edit code in src/matilda_brain/ directory
+      - Test immediately with: brain --stream "test"
       - Run tests with: ./test.sh
-      - Format code with: ruff format src/ttt/
-      - Check types with: mypy src/ttt/
+      - Format code with: ruff format src/matilda_brain/
+      - Check types with: mypy src/matilda_brain/
 
     💡 No need to run ./setup.sh upgrade after code changes!
 
   upgrade_success: |
-    TTT has been upgraded successfully!
-    Check out the latest features with: ttt --version
+    Matilda Brain has been upgraded successfully!
+    Check out the latest features with: brain --version
 
   uninstall_success: |
-    TTT has been uninstalled.
-    Thank you for using TTT!
+    Matilda Brain has been uninstalled.
+    Thank you for using Matilda Brain!
 
 # CLI fields for cli.py generation
 cli:
-  name: "GOOBITS TTT CLI"
+  name: "GOOBITS MATILDA BRAIN CLI"
   display_version: true
   tagline: "Talk to Transformer"
   description: "AI-powered conversations, straight from your command line"

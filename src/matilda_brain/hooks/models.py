@@ -12,8 +12,8 @@ from rich.console import Console
 
 console = Console()
 
-import ttt
-from ttt.config.manager import ConfigManager
+import matilda_brain
+from matilda_brain.config.manager import ConfigManager
 from .utils import setup_logging_level
 
 def show_models_list(json_output: bool = False) -> None:
@@ -30,7 +30,7 @@ def show_models_list(json_output: bool = False) -> None:
         >>> show_models_list(json_output=True)
         [{"name": "gpt-4", "provider": "openai", ...}]
     """
-    from ttt.config.schema import get_model_registry
+    from matilda_brain.config.schema import get_model_registry
 
     try:
         model_registry = get_model_registry()
@@ -105,7 +105,7 @@ def show_model_info(model_name: str, json_output: bool = False) -> None:
         Provider: openai
         ...
     """
-    from ttt.config.schema import get_model_registry
+    from matilda_brain.config.schema import get_model_registry
 
     try:
         model_registry = get_model_registry()
@@ -175,7 +175,7 @@ def show_backend_status(json_output: bool = False) -> None:
 
     # Check local backend
     try:
-        import ttt.backends.local as local_module
+        import matilda_brain.backends.local as local_module
 
         local = local_module.LocalBackend()
         local_status = {

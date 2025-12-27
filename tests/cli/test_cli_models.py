@@ -2,7 +2,7 @@
 
 from unittest.mock import Mock, patch
 
-from ttt.cli import main
+from matilda_brain.cli import main
 from tests.cli.conftest import IntegrationTestBase
 
 
@@ -78,7 +78,7 @@ class TestCLIStatusCommand(IntegrationTestBase):
     def test_status_command_reports_backend_and_api_key_availability(self):
         """Test basic status command."""
         # Mock the backend components used by status check
-        with patch("ttt.backends.local.LocalBackend") as mock_local, patch("os.getenv") as mock_getenv:
+        with patch("matilda_brain.backends.local.LocalBackend") as mock_local, patch("os.getenv") as mock_getenv:
             # Mock local backend
             mock_local_instance = Mock()
             mock_local_instance.is_available = True
@@ -122,7 +122,7 @@ class TestModelsCommand(IntegrationTestBase):
     def test_models_command_lists_available_models_from_registry(self):
         """Test basic models command."""
         # Mock the model registry used by models command
-        with patch("ttt.config.schema.get_model_registry") as mock_registry:
+        with patch("matilda_brain.config.schema.get_model_registry") as mock_registry:
             mock_model = Mock()
             mock_model.name = "gpt-4"
             mock_model.provider = "openai"
@@ -167,7 +167,7 @@ class TestInfoCommand(IntegrationTestBase):
     def test_info_command_displays_detailed_model_information(self):
         """Test basic info command."""
         # Mock the model registry used by info command
-        with patch("ttt.config.schema.get_model_registry") as mock_registry:
+        with patch("matilda_brain.config.schema.get_model_registry") as mock_registry:
             mock_model = Mock()
             mock_model.name = "gpt-4"
             mock_model.provider = "openai"
@@ -227,7 +227,7 @@ class TestExportCommand(IntegrationTestBase):
     def test_export_command_loads_and_outputs_session_data(self):
         """Test basic export command."""
         # Mock the session manager methods used by export command
-        with patch("ttt.session.manager.ChatSessionManager.load_session") as mock_load:
+        with patch("matilda_brain.session.manager.ChatSessionManager.load_session") as mock_load:
             mock_session = Mock()
             mock_session.id = "session-1"
             mock_session.messages = []
@@ -244,7 +244,7 @@ class TestExportCommand(IntegrationTestBase):
     def test_export_with_options(self):
         """Test export with various options."""
         # Mock the session manager methods used by export command
-        with patch("ttt.session.manager.ChatSessionManager.load_session") as mock_load, patch(
+        with patch("matilda_brain.session.manager.ChatSessionManager.load_session") as mock_load, patch(
             "pathlib.Path.write_text"
         ) as mock_write:
             mock_session = Mock()
@@ -288,7 +288,7 @@ class TestExportCommand(IntegrationTestBase):
     def test_export_nonexistent_session(self):
         """Test export with nonexistent session."""
         # Mock the session manager to return None for nonexistent session
-        with patch("ttt.session.manager.ChatSessionManager.load_session") as mock_load:
+        with patch("matilda_brain.session.manager.ChatSessionManager.load_session") as mock_load:
             mock_load.return_value = None
 
             result = self.runner.invoke(main, ["export", "nonexistent"])

@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union, cast
 from pydantic import BaseModel, ConfigDict, Field
 
 if TYPE_CHECKING:
-    from ttt.tools.base import ToolResult
+    from matilda_brain.tools.base import ToolResult
 
 
 class AIResponse(str):

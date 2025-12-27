@@ -4,7 +4,7 @@ from unittest.mock import patch
 
 import pytest
 
-from ttt import (
+from matilda_brain import (
     BackendNotAvailableError,
     ImageInput,
     achat,
@@ -13,7 +13,7 @@ from ttt import (
     stream,
     stream_async,
 )
-from ttt.session.chat import PersistentChatSession as ChatSession
+from matilda_brain.session.chat import PersistentChatSession as ChatSession
 from tests.utils import MockBackend
 
 
@@ -26,7 +26,7 @@ def mock_backend():
 @pytest.fixture
 def mock_router(mock_backend):
     """Mock the router to return our mock backend."""
-    with patch("ttt.core.routing.router") as mock:
+    with patch("matilda_brain.core.routing.router") as mock:
         mock.smart_route.return_value = (mock_backend, "mock-model")
         yield mock
 
@@ -37,7 +37,7 @@ class TestAskFunction:
     def test_ask_routes_to_backend_and_returns_response_with_metadata(self):
         """Test basic ask functionality."""
         mock_backend = MockBackend()
-        with patch("ttt.core.routing.router.smart_route") as mock_route:
+        with patch("matilda_brain.core.routing.router.smart_route") as mock_route:
             mock_route.return_value = (mock_backend, "mock-model")
 
             response = ask("Test prompt")
@@ -54,7 +54,7 @@ class TestAskFunction:
     def test_ask_with_all_parameters(self):
         """Test ask with all parameters."""
         mock_backend = MockBackend()
-        with patch("ttt.core.routing.router.smart_route") as mock_route:
+        with patch("matilda_brain.core.routing.router.smart_route") as mock_route:
             mock_route.return_value = (mock_backend, "specific-model")
 
             ask(
@@ -81,7 +81,7 @@ class TestAskFunction:
     def test_ask_with_images(self):
         """Test ask with image inputs."""
         mock_backend = MockBackend()
-        with patch("ttt.core.routing.router.smart_route") as mock_route:
+        with patch("matilda_brain.core.routing.router.smart_route") as mock_route:
             mock_route.return_value = (mock_backend, "mock-model")
 
             ask(["What's in this image?", ImageInput(b"fake_image_data_for_testing")])
@@ -99,7 +99,7 @@ class TestStreamFunction:
         """Test basic streaming functionality."""
         mock_backend = MockBackend()
         mock_backend.response_text = "Hello world test"
-        with patch("ttt.core.routing.router.smart_route") as mock_route:
+        with patch("matilda_brain.core.routing.router.smart_route") as mock_route:
             mock_route.return_value = (mock_backend, "mock-model")
 
             chunks = list(stream("Test prompt"))
@@ -110,7 +110,7 @@ class TestStreamFunction:
     def test_stream_with_parameters(self):
         """Test streaming with all parameters."""
         mock_backend = MockBackend()
-        with patch("ttt.core.routing.router.smart_route") as mock_route:
+        with patch("matilda_brain.core.routing.router.smart_route") as mock_route:
             mock_route.return_value = (mock_backend, "specific-model")
 
             list(
@@ -132,7 +132,7 @@ class TestStreamFunction:
     def test_stream_with_images(self):
         """Test streaming with image inputs."""
         mock_backend = MockBackend()
-        with patch("ttt.core.routing.router.smart_route") as mock_route:
+        with patch("matilda_brain.core.routing.router.smart_route") as mock_route:
             mock_route.return_value = (mock_backend, "mock-model")
 
             chunks = list(stream(["Describe this", ImageInput(b"fake_image_data_for_testing")]))
@@ -146,7 +146,7 @@ class TestChatSession:
 
     def test_chat_session_initialization_resolves_backend_and_model_defaults(self):
         """Test ChatSession initialization with defaults."""
-        with patch("ttt.core.routing.router") as mock_router:
+        with patch("matilda_brain.core.routing.router") as mock_router:
             mock_backend = MockBackend()
             # Mock the smart_route to return backend and model
             mock_router.smart_route.return_value = (mock_backend, "default-model")
@@ -164,7 +164,7 @@ class TestChatSession:
 
     def test_chat_session_initialization_with_params(self):
         """Test ChatSession initialization with parameters."""
-        with patch("ttt.core.routing.router") as mock_router:
+        with patch("matilda_brain.core.routing.router") as mock_router:
             mock_backend = MockBackend("local")
             # Mock router to return our backend
             mock_router.resolve_backend.return_value = mock_backend
@@ -267,7 +267,7 @@ class TestAsyncFunctions:
     @pytest.mark.asyncio
     async def test_ask_async(self):
         """Test async ask function."""
-        with patch("ttt.core.routing.router.smart_route") as mock_route:
+        with patch("matilda_brain.core.routing.router.smart_route") as mock_route:
             mock_backend = MockBackend("local")
             # Mock the router to return our backend
             mock_route.return_value = (mock_backend, "model")
@@ -288,7 +288,7 @@ class TestAsyncFunctions:
     @pytest.mark.asyncio
     async def test_stream_async(self):
         """Test async stream function."""
-        with patch("ttt.core.routing.router.smart_route") as mock_route:
+        with patch("matilda_brain.core.routing.router.smart_route") as mock_route:
             mock_backend = MockBackend()
             mock_backend.response_text = "Async stream test"
             mock_route.return_value = (mock_backend, "mock-model")
@@ -302,7 +302,7 @@ class TestAsyncFunctions:
     @pytest.mark.asyncio
     async def test_achat_context_manager(self):
         """Test async chat context manager."""
-        with patch("ttt.core.routing.router.smart_route") as mock_route:
+        with patch("matilda_brain.core.routing.router.smart_route") as mock_route:
             mock_backend = MockBackend()
             mock_route.return_value = (mock_backend, "mock-model")
 
@@ -326,7 +326,7 @@ class TestErrorHandling:
 
     def test_stream_with_failing_backend(self):
         """Test streaming when backend fails."""
-        with patch("ttt.core.routing.router.smart_route") as mock_route:
+        with patch("matilda_brain.core.routing.router.smart_route") as mock_route:
             # Create a backend that fails during streaming
             class FailingBackend(MockBackend):
                 async def astream(self, prompt, **kwargs):
@@ -355,7 +355,7 @@ class TestBackendSelection:
         """Test passing backend instance directly."""
         custom_backend = MockBackend("custom")
 
-        with patch("ttt.core.routing.router.smart_route") as mock_route:
+        with patch("matilda_brain.core.routing.router.smart_route") as mock_route:
             mock_route.return_value = (custom_backend, "model")
 
             ask("Test", backend=custom_backend)

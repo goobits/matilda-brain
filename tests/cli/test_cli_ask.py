@@ -2,7 +2,7 @@
 
 import pytest
 
-from ttt.cli import main
+from matilda_brain.cli import main
 from tests.cli.conftest import IntegrationTestBase
 
 

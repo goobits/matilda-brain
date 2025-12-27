@@ -12,9 +12,9 @@ from rich.console import Console
 
 console = Console()
 
-import ttt
-from ttt.config.manager import ConfigManager
-from ttt.session.manager import ChatSessionManager
+import matilda_brain
+from matilda_brain.config.manager import ConfigManager
+from matilda_brain.session.manager import ChatSessionManager
 from .utils import setup_logging_level
 
 def on_list(
@@ -33,8 +33,8 @@ def on_list(
     if resource is None:
         # No resource specified, show summary of all resources
         if format == "json":
-            from ttt.config.schema import get_model_registry
-            from ttt.tools import list_tools
+            from matilda_brain.config.schema import get_model_registry
+            from matilda_brain.tools import list_tools
 
             session_manager = ChatSessionManager()
             model_registry = get_model_registry()
@@ -56,7 +56,7 @@ def on_list(
             console.print("\n[bold]TTT Resources Summary[/bold]\n")
 
             # Models count
-            from ttt.config.schema import get_model_registry
+            from matilda_brain.config.schema import get_model_registry
 
             model_registry = get_model_registry()
             console.print(f"[cyan]Models:[/cyan] {len(model_registry.models)} available")
@@ -69,7 +69,7 @@ def on_list(
             console.print("  Run [green]ttt list sessions[/green] to see all sessions\n")
 
             # Tools count
-            from ttt.tools import list_tools
+            from matilda_brain.tools import list_tools
 
             tools = list_tools()
             console.print(f"[cyan]Tools:[/cyan] {len(tools)} available")
@@ -86,7 +86,7 @@ def on_list(
         else:
             session_manager.display_sessions_table()
     elif resource == "tools":
-        from ttt.tools import list_tools
+        from matilda_brain.tools import list_tools
 
         tools = list_tools()
         if format == "json":

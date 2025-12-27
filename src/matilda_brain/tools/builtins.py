@@ -5,13 +5,13 @@ immediately use without additional setup. All tools include proper error
 handling, input validation, and security measures.
 
 Usage:
-    from ttt.tools.builtins import load_builtin_tools
+    from matilda_brain.tools.builtins import load_builtin_tools
 
     # Load all built-in tools into the registry
     load_builtin_tools()
 
     # Or import specific tools
-    from ttt.tools.builtins import web_search, read_file
+    from matilda_brain.tools.builtins import web_search, read_file
 """
 
 import ast
@@ -30,8 +30,8 @@ from typing import Any, Callable, Dict, Optional, Union
 
 import zoneinfo
 
-from ttt.config.schema import get_config
-from ttt.tools import tool
+from matilda_brain.config.schema import get_config
+from matilda_brain.tools import tool
 
 from .recovery import ErrorRecoverySystem, InputSanitizer, RetryConfig
 

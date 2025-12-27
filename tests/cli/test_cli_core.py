@@ -5,7 +5,7 @@ from unittest.mock import patch
 import pytest
 from click.testing import CliRunner
 
-from ttt.cli import main
+from matilda_brain.cli import main
 
 
 class TestCLIStructure:
@@ -63,7 +63,7 @@ class TestCLIErrorHandling:
     def test_hook_exception_handling(self):
         """Test that exceptions from hooks are handled gracefully."""
         # Make the underlying API call fail to test exception handling
-        with patch("ttt.core.api.ask", side_effect=Exception("Test error")):
+        with patch("matilda_brain.core.api.ask", side_effect=Exception("Test error")):
             result = self.runner.invoke(main, ["ask", "test"])
 
             # Should handle exception gracefully - exact behavior depends on implementation

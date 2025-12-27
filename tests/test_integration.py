@@ -15,7 +15,7 @@ import os
 
 import pytest
 
-from ttt import APIKeyError, ModelNotFoundError, RateLimitError
+from matilda_brain import APIKeyError, ModelNotFoundError, RateLimitError
 
 
 def is_valid_key(key):

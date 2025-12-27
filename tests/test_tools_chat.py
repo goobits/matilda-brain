@@ -4,10 +4,10 @@ from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 
-from ttt import AIResponse, chat
-from ttt.session.chat import PersistentChatSession
-from ttt.session.chat import PersistentChatSession as ChatSession
-from ttt.tools import ToolCall, ToolResult
+from matilda_brain import AIResponse, chat
+from matilda_brain.session.chat import PersistentChatSession
+from matilda_brain.session.chat import PersistentChatSession as ChatSession
+from matilda_brain.tools import ToolCall, ToolResult
 
 
 class TestChatSessionTools:
@@ -28,7 +28,7 @@ class TestChatSessionTools:
         def test_tool(x: int) -> int:
             return x * 2
 
-        with patch("ttt.core.routing.router.smart_route") as mock_route:
+        with patch("matilda_brain.core.routing.router.smart_route") as mock_route:
             backend_instance = Mock()
             backend_instance.ask = AsyncMock(return_value=AIResponse("Response", model="test", backend="test"))
             mock_route.return_value = (backend_instance, "test-model")
@@ -70,7 +70,7 @@ class TestPersistentChatSessionTools:
         def test_tool(x: int) -> int:
             return x * 2
 
-        from ttt.session.chat import router
+        from matilda_brain.session.chat import router
 
         with patch.object(router, "smart_route") as mock_smart_route:
             backend_instance = Mock()
@@ -185,7 +185,7 @@ class TestCLIToolSupport:
         """Test that CLI with --tools flag is properly supported."""
         from click.testing import CliRunner
 
-        from ttt.cli import main
+        from matilda_brain.cli import main
 
         runner = CliRunner()
 
@@ -197,10 +197,10 @@ class TestCLIToolSupport:
         assert "Enable tool usage" in result.output
 
         # Test 2: Verify we can call the hook function directly with tools parameter
-        from ttt.cli_handlers import on_ask
+        from matilda_brain.cli_handlers import on_ask
 
         # Mock the API functions to prevent real calls
-        with patch("ttt.cli_handlers.ttt_stream") as mock_stream, patch("ttt.cli_handlers.ttt_ask") as mock_ask:
+        with patch("matilda_brain.cli_handlers.ttt_stream") as mock_stream, patch("matilda_brain.cli_handlers.ttt_ask") as mock_ask:
             mock_stream.return_value = iter(["Test response"])
             mock_ask.return_value = "Test response"
 
@@ -261,8 +261,8 @@ class TestCLIToolSupport:
 
     def test_resolve_tools_from_registry(self):
         """Test resolving tools from registry."""
-        from ttt.cli_handlers import resolve_tools
-        from ttt.tools.registry import clear_registry, register_tool
+        from matilda_brain.cli_handlers import resolve_tools
+        from matilda_brain.tools.registry import clear_registry, register_tool
 
         # Register a test tool
         def test_tool(x: int) -> int:
@@ -281,8 +281,8 @@ class TestCLIToolSupport:
 
     def test_resolve_tools_from_module(self):
         """Test resolving tools from module imports."""
-        from ttt.cli_handlers import resolve_tools
-        from ttt.tools import register_tool, tool, unregister_tool
+        from matilda_brain.cli_handlers import resolve_tools
+        from matilda_brain.tools import register_tool, tool, unregister_tool
 
         # Register a test tool in a test category
         @tool(register=False)
@@ -304,7 +304,7 @@ class TestCLIToolSupport:
 
     def test_resolve_tools_handles_errors(self):
         """Test tool resolution handles errors gracefully."""
-        from ttt.cli_handlers import resolve_tools
+        from matilda_brain.cli_handlers import resolve_tools
 
         # Non-existent module
         tools = resolve_tools(["nonexistent:function"])

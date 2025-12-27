@@ -18,7 +18,7 @@ import tempfile
 import pytest
 from click.testing import CliRunner
 
-from ttt.cli import main
+from matilda_brain.cli import main
 
 
 def has_valid_api_key():

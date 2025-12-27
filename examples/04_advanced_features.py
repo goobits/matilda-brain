@@ -12,8 +12,8 @@ This script demonstrates advanced functionality including:
 import os
 from pathlib import Path
 
-import ttt
-from ttt import (
+import matilda_brain
+from matilda_brain import (
     # Import all exception types
     AIError,
     APIKeyError,
@@ -405,7 +405,7 @@ def config_error_handling():
     invalid_config.write_text("invalid: yaml: content: [}")
 
     try:
-        from ttt.config import load_config
+        from matilda_brain.config import load_config
 
         config = load_config(invalid_config)
 

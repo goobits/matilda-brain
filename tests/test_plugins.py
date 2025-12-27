@@ -4,9 +4,9 @@ from typing import Any, AsyncIterator, Dict, List
 
 import pytest
 
-from ttt import AIResponse, PluginValidationError
-from ttt.backends import BaseBackend
-from ttt.plugins import BackendPlugin, PluginRegistry, plugin_registry
+from matilda_brain import AIResponse, PluginValidationError
+from matilda_brain.backends import BaseBackend
+from matilda_brain.plugins import BackendPlugin, PluginRegistry, plugin_registry
 
 
 class MockTestBackend(BaseBackend):
@@ -120,8 +120,8 @@ class TestPluginLoading:
         plugin_file = tmp_path / "test_plugin.py"
 
         plugin_code = """
-from ttt.backends import BaseBackend
-from ttt import AIResponse
+from matilda_brain.backends import BaseBackend
+from matilda_brain import AIResponse
 
 class FileMockTestBackend(BaseBackend):
     @property
@@ -183,8 +183,8 @@ def register_plugin(registry):
         init_file = package_dir / "__init__.py"
 
         plugin_code = """
-from ttt.backends import BaseBackend
-from ttt import AIResponse
+from matilda_brain.backends import BaseBackend
+from matilda_brain import AIResponse
 
 class PackageBackend(BaseBackend):
     @property
@@ -229,8 +229,8 @@ def register_plugin(registry):
         plugin_file = plugins_dir / "discovered_plugin.py"
 
         plugin_code = """
-from ttt.backends import BaseBackend
-from ttt import AIResponse
+from matilda_brain.backends import BaseBackend
+from matilda_brain import AIResponse
 
 class DiscoveredBackend(BaseBackend):
     @property
@@ -273,14 +273,14 @@ class TestGlobalRegistry:
 
     def test_global_registry_exists(self):
         """Test that global registry is available."""
-        from ttt.plugins import plugin_registry
+        from matilda_brain.plugins import plugin_registry
 
         assert plugin_registry is not None
         assert isinstance(plugin_registry, PluginRegistry)
 
     def test_register_backend_function(self):
         """Test the module-level register_backend function."""
-        from ttt.plugins import register_backend
+        from matilda_brain.plugins import register_backend
 
         # Create a unique backend to avoid conflicts
         class UniqueMockTestBackend(MockTestBackend):

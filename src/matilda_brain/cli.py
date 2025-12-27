@@ -57,7 +57,7 @@ app_hooks = None
 
 # Using configured hooks path: src/ttt/app_hooks.py
 try:
-    # First try as a module import (e.g., "ttt.app_hooks")
+    # First try as a module import (e.g., "matilda_brain.app_hooks")
     module_path = "src/ttt/app_hooks.py".replace(".py", "").replace("/", ".")
     if module_path.startswith("src."):
         module_path = module_path[4:]  # Remove 'src.' prefix
