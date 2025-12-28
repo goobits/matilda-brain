@@ -48,6 +48,7 @@ readonly TREE_SPACE="  "
 
 # Tree view state
 TREE_MODE="${TREE_MODE:-true}"
+QUIET_MODE="${QUIET_MODE:-false}"
 TREE_DEPTH=0
 TREE_PREFIX=""
 TREE_BUFFER=""
@@ -96,8 +97,10 @@ readonly OPTIONAL_DEPS=()
 # Tree view helper functions
 tree_start() {
     local title="$1"
-    echo "$DISPLAY_NAME Setup $(get_version)"
-    echo "$TREE_LAST $title"
+    if [[ "$QUIET_MODE" != "true" ]]; then
+        echo "$DISPLAY_NAME Setup $(get_version)"
+        echo "$TREE_LAST $title"
+    fi
     TREE_DEPTH=1
     TREE_PREFIX="   "
 }
@@ -107,6 +110,14 @@ tree_node() {
     local message="$2"
     local progress="$3"
     local is_last="${4:-false}"
+
+    # In quiet mode, only show warnings and errors
+    if [[ "$QUIET_MODE" == "true" ]]; then
+        case "$status" in
+            "warning"|"error") ;;
+            *) return 0 ;;
+        esac
+    fi
 
     local status_icon
     case "$status" in
@@ -135,6 +146,14 @@ tree_sub_node() {
     local status="$1"
     local message="$2"
     local is_last="${3:-false}"
+
+    # In quiet mode, only show warnings and errors
+    if [[ "$QUIET_MODE" == "true" ]]; then
+        case "$status" in
+            "warning"|"error") ;;
+            *) return 0 ;;
+        esac
+    fi
 
     local status_icon
     case "$status" in
@@ -868,6 +887,11 @@ Thank you for using Matilda Brain!
 
 # System dependencies installation (before Python packages)
 install_system_dependencies() {
+    # Skip apt-get checks on macOS - it uses brew instead
+    if [[ "$(uname -s)" == "Darwin" ]]; then
+        return 0
+    fi
+
     if command -v apt-get >/dev/null 2>&1; then
         # Check which packages are missing
         local missing_packages=()
@@ -1068,6 +1092,7 @@ OPTIONS:
     --no-deps              Skip dependency checks
     --no-cache             Skip system information caching
     --simple               Use simple log output instead of tree view
+    --quiet, -q            Quiet mode: only show errors and warnings
 
 EXAMPLES:
     $0 install             # Install from PyPI
@@ -1106,6 +1131,10 @@ main() {
                 no_cache="true"
                 ;;
             --simple)
+                TREE_MODE="false"
+                ;;
+            --quiet|-q)
+                QUIET_MODE="true"
                 TREE_MODE="false"
                 ;;
             *)
