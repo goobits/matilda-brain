@@ -25,7 +25,7 @@ import click
 
 class ColoredFormatter(logging.Formatter):
     """Custom formatter with color support."""
-    
+
     COLORS = {
         'DEBUG': '\033[36m',    # Cyan
         'INFO': '\033[32m',     # Green
@@ -34,7 +34,7 @@ class ColoredFormatter(logging.Formatter):
         'CRITICAL': '\033[35m', # Magenta
     }
     RESET = '\033[0m'
-    
+
     def format(self, record):
         log_color = self.COLORS.get(record.levelname, self.RESET)
         record.levelname = f"{log_color}{record.levelname}{self.RESET}"
@@ -43,7 +43,7 @@ class ColoredFormatter(logging.Formatter):
 def setup_logging(level=logging.INFO, log_file=None):
     """Configure logging for the CLI."""
     handlers = []
-    
+
     # Console handler with colors
     console_handler = logging.StreamHandler()
     console_handler.setFormatter(ColoredFormatter(
@@ -51,7 +51,7 @@ def setup_logging(level=logging.INFO, log_file=None):
         datefmt='%Y-%m-%d %H:%M:%S'
     ))
     handlers.append(console_handler)
-    
+
     # File handler if specified
     if log_file:
         file_handler = logging.FileHandler(log_file)
@@ -59,7 +59,7 @@ def setup_logging(level=logging.INFO, log_file=None):
             '%(asctime)s - %(levelname)s - %(name)s - %(message)s'
         ))
         handlers.append(file_handler)
-    
+
     logging.basicConfig(
         level=level,
         handlers=handlers
@@ -73,17 +73,17 @@ logger = logging.getLogger(__name__)
 
 class ConfigManager:
     """Manage CLI configuration."""
-    
+
     def __init__(self, config_file: Optional[Path] = None):
         """Initialize configuration manager."""
         if config_file is None:
             config_dir = Path.home() / '.config' / 'brain'
             config_dir.mkdir(parents=True, exist_ok=True)
             config_file = config_dir / 'config.yaml'
-        
+
         self.config_file = Path(config_file)
         self.config = self._load_config()
-    
+
     def _load_config(self) -> Dict[str, Any]:
         """Load configuration from file."""
         if self.config_file.exists():
@@ -94,7 +94,7 @@ class ConfigManager:
                 logger.warning(f"Failed to load config: {e}")
                 return {}
         return {}
-    
+
     def save_config(self) -> bool:
         """Save configuration to file."""
         try:
@@ -104,7 +104,7 @@ class ConfigManager:
         except Exception as e:
             logger.error(f"Failed to save config: {e}")
             return False
-    
+
     def get(self, key: str, default: Any = None) -> Any:
         """Get configuration value."""
         keys = key.split('.')
@@ -117,7 +117,7 @@ class ConfigManager:
             else:
                 return default
         return value
-    
+
     def set(self, key: str, value: Any):
         """Set configuration value."""
         keys = key.split('.')
@@ -165,12 +165,12 @@ def handle_error(error: Exception, verbose: bool = False):
 
 class CLIContext:
     """Shared context for CLI commands."""
-    
+
     def __init__(self, config: ConfigManager, verbose: bool = False, debug: bool = False):
         self.config = config
         self.verbose = verbose
         self.debug = debug
-        
+
         # Setup logging based on verbosity
         if debug:
             setup_logging(logging.DEBUG)
@@ -216,12 +216,12 @@ def cli(ctx, verbose, debug, config):
 @click.argument('prompt', type=click.STRING)
 @click.option('--model', '-m', default=None,              help='LLM model to use')
 @click.option('--temperature', '-t', default=0.7,              help='Sampling temperature (0.0-2.0)')
-@click.option('--max-tokens', '-None', default=None,              help='Maximum response length')
-@click.option('--tools', '-None', is_flag=True, default=False,              help='Enable tool usage')
+@click.option('--max-tokens', '-', default=None,              help='Maximum response length')
+@click.option('--tools', '-', is_flag=True, default=False,              help='Enable tool usage')
 @click.option('--session', '-s', default=None,              help='Session ID for context')
-@click.option('--system', '-None', default=None,              help='System prompt to set AI behavior')
-@click.option('--stream', '-None', is_flag=True, default=True,              help='Stream the response')
-@click.option('--json', '-None', default=None,              help='Output response in JSON format')
+@click.option('--system', '-', default=None,              help='System prompt to set AI behavior')
+@click.option('--stream', '-', is_flag=True, default=True,              help='Stream the response')
+@click.option('--json', '-', default=None,              help='Output response in JSON format')
 @click.pass_obj
 def ask(ctx, prompt, model, temperature, max_tokens, tools, session, system, stream, json):
     """Quickly ask one-off questions"""
@@ -237,7 +237,7 @@ def ask(ctx, prompt, model, temperature, max_tokens, tools, session, system, str
 @cli.command('chat')
 @click.option('--model', '-m', default=None,              help='LLM model to use')
 @click.option('--session', '-s', default=None,              help='Session ID to resume or create')
-@click.option('--tools', '-None', is_flag=True, default=False,              help='Enable tool usage in chat')
+@click.option('--tools', '-', is_flag=True, default=False,              help='Enable tool usage in chat')
 @click.pass_obj
 def chat(ctx, model, session, tools):
     """Chat interactively with AI"""
@@ -252,12 +252,12 @@ def chat(ctx, model, session, tools):
         handle_error(e, ctx.verbose)
 @cli.command('stateless')
 @click.argument('message', type=click.STRING)
-@click.option('--system', '-None', default=None,              help='System prompt to set context')
-@click.option('--history', '-None', default=None,              help='Path to JSON file with conversation history')
-@click.option('--tools', '-None', default=None,              help='Comma-separated tool names to enable')
+@click.option('--system', '-', default=None,              help='System prompt to set context')
+@click.option('--history', '-', default=None,              help='Path to JSON file with conversation history')
+@click.option('--tools', '-', default=None,              help='Comma-separated tool names to enable')
 @click.option('--model', '-m', default=None,              help='LLM model to use')
 @click.option('--temperature', '-t', default=0.7,              help='Sampling temperature (0.0-2.0)')
-@click.option('--max-tokens', '-None', default=2048,              help='Maximum response length')
+@click.option('--max-tokens', '-', default=2048,              help='Maximum response length')
 @click.pass_obj
 def stateless(ctx, message, system, history, tools, model, temperature, max_tokens):
     """Execute stateless AI request without session"""
@@ -286,7 +286,7 @@ def list(ctx, resource, format):
     except Exception as e:
         handle_error(e, ctx.verbose)
 @cli.command('status')
-@click.option('--json', '-None', default=None,              help='Output status in JSON format')
+@click.option('--json', '-', default=None,              help='Output status in JSON format')
 @click.pass_obj
 def status(ctx, json):
     """Verify system and API health"""
@@ -300,7 +300,7 @@ def status(ctx, json):
     except Exception as e:
         handle_error(e, ctx.verbose)
 @cli.command('models')
-@click.option('--json', '-None', default=None,              help='Output models in JSON format')
+@click.option('--json', '-', default=None,              help='Output models in JSON format')
 @click.pass_obj
 def models(ctx, json):
     """View AI models"""
@@ -315,7 +315,7 @@ def models(ctx, json):
         handle_error(e, ctx.verbose)
 @cli.command('info')
 @click.argument('model', type=click.STRING)
-@click.option('--json', '-None', default=None,              help='Output model info in JSON format')
+@click.option('--json', '-', default=None,              help='Output model info in JSON format')
 @click.pass_obj
 def info(ctx, model, json):
     """Detailed model information"""
@@ -332,7 +332,7 @@ def info(ctx, model, json):
 @click.argument('session', type=click.STRING)
 @click.option('--format', '-f', default='markdown',              help='Export format')
 @click.option('--output', '-o', default=None,              help='Output file path')
-@click.option('--include-metadata', '-None', is_flag=True, default=False,              help='Include timestamps and model info')
+@click.option('--include-metadata', '-', is_flag=True, default=False,              help='Include timestamps and model info')
 @click.pass_obj
 def export(ctx, session, format, output, include_metadata):
     """Save your chat history"""
@@ -382,7 +382,7 @@ def config_set(ctx, key, value):
         handle_error(e, ctx.verbose)
 
 @config_group.command('list')
-@click.option('', 'None', is_flag=True, default=False,              help='Include API keys in output')
+@click.option('', '', is_flag=True, default=False,              help='Include API keys in output')
 @click.pass_obj
 def config_list(ctx, show_secrets):
     """List all configuration"""
@@ -431,7 +431,7 @@ def tools_disable(ctx, tool_name):
         handle_error(e, ctx.verbose)
 
 @tools_group.command('list')
-@click.option('', 'None', is_flag=True, default=False,              help='Include disabled tools')
+@click.option('', '', is_flag=True, default=False,              help='Include disabled tools')
 @click.pass_obj
 def tools_list(ctx, show_disabled):
     """List all tools"""
@@ -445,8 +445,8 @@ def tools_list(ctx, show_disabled):
     except Exception as e:
         handle_error(e, ctx.verbose)
 @cli.command('serve')
-@click.option('--host', '-None', default='0.0.0.0',              help='Host address to bind to')
-@click.option('--port', '-p', default=3213,              help='Port to listen on')
+@click.option('--host', '-', default='0.0.0.0',              help='Host address to bind to')
+@click.option('--port', '-p', default=8772,              help='Port to listen on')
 @click.pass_obj
 def serve(ctx, host, port):
     """Start TTT HTTP server for browser clients"""

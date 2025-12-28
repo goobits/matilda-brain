@@ -5,10 +5,10 @@ Exposes TTT functionality over HTTP for browser-based clients.
 Supports both one-shot requests and streaming responses with conversation memory.
 
 Usage:
-    ttt serve --port 3213
+    brain serve --port 8772
 
     # Or directly:
-    python -m ttt.server --port 3213
+    python -m matilda_brain.server --port 8772
 """
 
 import argparse
@@ -219,7 +219,7 @@ def create_app() -> web.Application:
     return app
 
 
-def run_server(host: str = "0.0.0.0", port: int = 3213):
+def run_server(host: str = "0.0.0.0", port: int = 8772):
     """Run the HTTP server."""
     app = create_app()
 
@@ -236,7 +236,7 @@ def main():
     """CLI entry point."""
     parser = argparse.ArgumentParser(description="TTT HTTP Server")
     parser.add_argument("--host", default="0.0.0.0", help="Host to bind to")
-    parser.add_argument("--port", "-p", type=int, default=3213, help="Port to listen on")
+    parser.add_argument("--port", "-p", type=int, default=8772, help="Port to listen on")
     args = parser.parse_args()
 
     run_server(host=args.host, port=args.port)

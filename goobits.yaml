@@ -322,7 +322,7 @@ cli:
           short: "p"
           type: "int"
           desc: "Port to listen on"
-          default: 3213
+          default: 8772
 
   config:
     rich_help_panel: true

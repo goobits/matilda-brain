@@ -147,7 +147,7 @@ def on_stateless(
 def on_serve(
     command_name: str,
     host: str = "0.0.0.0",
-    port: int = 3213,
+    port: int = 8772,
     **kwargs,
 ) -> None:
     """Hook for 'serve' command.
@@ -157,7 +157,7 @@ def on_serve(
 
     Args:
         host: Host address to bind to (default: 0.0.0.0)
-        port: Port to listen on (default: 3213)
+        port: Port to listen on (default: 8772)
     """
     from matilda_brain.server import run_server
 
