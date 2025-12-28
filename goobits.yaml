@@ -30,6 +30,7 @@ installation:
 shell_integration:
   enabled: false
   alias: "brain"
+  aliases: ["ttt"]  # Backward compatibility
 
 validation:
   check_api_keys: false
@@ -69,7 +70,7 @@ messages:
 
 # CLI fields for cli.py generation
 cli:
-  name: "GOOBITS MATILDA BRAIN CLI"
+  name: "MATILDA BRAIN CLI"
   display_version: true
   tagline: "Talk to Transformer"
   description: "AI-powered conversations, straight from your command line"
@@ -80,20 +81,20 @@ cli:
   header_sections:
     - title: "💡 Quick Start"
       items:
-        - { item: 'ttt "What is the meaning of life?"', desc: "Instant response", style: "example" }
-        - { item: "ttt chat", desc: "Interactive session", style: "example" }
-        - { item: "ttt models", desc: "Explore available models", style: "example" }
-        - { item: "ttt config set model gpt-4", desc: "Set your preferred model", style: "example" }
+        - { item: 'brain "What is the meaning of life?"', desc: "Instant response", style: "example" }
+        - { item: "brain chat", desc: "Interactive session", style: "example" }
+        - { item: "brain models", desc: "Explore available models", style: "example" }
+        - { item: "brain config set model gpt-4", desc: "Set your preferred model", style: "example" }
 
 
     - title: "🔑 Initial Setup"
       items:
-        - { item: "1. See providers", desc: "ttt providers", style: "setup" }
+        - { item: "1. See providers", desc: "brain providers", style: "setup" }
         - { item: "2. Add API key", desc: "export OPENROUTER_API_KEY='your-key-here'", style: "setup" }
-        - { item: "3. Check setup", desc: "ttt status", style: "setup" }
-        - { item: "4. Start chatting", desc: "ttt chat", style: "setup" }
+        - { item: "3. Check setup", desc: "brain status", style: "setup" }
+        - { item: "4. Start chatting", desc: "brain chat", style: "setup" }
 
-  footer_note: "📚 For detailed help on a command, run: [color(2)]ttt [COMMAND][/color(2)] [#ff79c6]--help[/#ff79c6]"
+  footer_note: "📚 For detailed help on a command, run: [color(2)]brain [COMMAND][/color(2)] [#ff79c6]--help[/#ff79c6]"
 
   command_groups:
     - name: "Core Commands"

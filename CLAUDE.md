@@ -40,7 +40,7 @@ pytest tests/path/to/test.py::test_name -v  # Run single test
 
 ### Self-Hosting Pattern
 
-TTT uses `goobits.yaml` to generate its own CLI infrastructure:
+Brain uses `goobits.yaml` to generate its own CLI infrastructure:
 ```bash
 goobits build  # Regenerates src/matilda_brain/cli.py and setup.sh
 ```

@@ -842,7 +842,7 @@ class DefaultGroup(RichGroup):
 @click.group(
     cls=DefaultGroup, default="ask", context_settings={"help_option_names": ["-h", "--help"], "max_content_width": 120}
 )
-@click.version_option(version=get_version(), prog_name="GOOBITS TTT CLI")
+@click.version_option(version=get_version(), prog_name="Matilda Brain")
 @click.pass_context
 @click.option(
     "--help-json",
