@@ -14,6 +14,7 @@ console = Console()
 
 import matilda_brain
 from matilda_brain.config.manager import ConfigManager
+from matilda_brain.i18n import t, t_common
 from .utils import setup_logging_level
 
 def show_models_list(json_output: bool = False) -> None:

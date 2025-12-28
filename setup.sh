@@ -158,7 +158,7 @@ tree_sub_node() {
 tree_final_node() {
     local status="$1"
     local message="$2"
-    
+
     local status_icon
     case "$status" in
         "success") status_icon="✓" ;;
@@ -167,7 +167,7 @@ tree_final_node() {
         "info") status_icon="•" ;;
         *) status_icon="" ;;
     esac
-    
+
     echo "${TREE_PREFIX}$TREE_LAST $status_icon $message"
 }
 
@@ -215,13 +215,13 @@ validate_system_package() {
     local platform_package="$3"
     local check_method="$4"
     local check_args="$5"
-    
+
     # If it's a command type, use command -v
     if [[ "$dep_type" == "command" ]]; then
         command -v "$dep_name" >/dev/null 2>&1
         return $?
     fi
-    
+
     # For system packages, try different detection methods
     case "$check_method" in
         "pkg_config")
@@ -262,7 +262,7 @@ validate_system_package() {
             return 1
             ;;
     esac
-    
+
     # Fallback: try platform-specific detection
     local current_platform=$(detect_platform)
     case "$current_platform" in
@@ -285,7 +285,7 @@ validate_system_package() {
             fi
             ;;
     esac
-    
+
     return 1
 }
 
@@ -294,9 +294,9 @@ generate_install_instruction() {
     local dep_name="$1"
     local platform_package="$2"
     local install_instructions="$3"
-    
+
     local current_platform=$(detect_platform)
-    
+
     # Check if custom install instructions are provided
     if [[ -n "$install_instructions" ]]; then
         # Parse JSON-like install instructions (simplified)
@@ -306,7 +306,7 @@ generate_install_instruction() {
             return
         fi
     fi
-    
+
     # Generate default instructions based on platform
     case "$current_platform" in
         "ubuntu"|"debian")
@@ -425,7 +425,7 @@ detect_system() {
         if [[ "$TREE_MODE" != "true" ]]; then
             log_info "Detecting system configuration..."
         fi
-        
+
         # Detect OS
         if [[ "$OSTYPE" == "linux-gnu"* ]]; then
             SYSTEM_OS="linux"
@@ -436,10 +436,10 @@ detect_system() {
         else
             SYSTEM_OS="unknown"
         fi
-        
+
         # Detect architecture
         SYSTEM_ARCH="$(uname -m)"
-        
+
         # Detect Python
         if command -v python3 >/dev/null 2>&1; then
             PYTHON_PATH="$(command -v python3)"
@@ -451,7 +451,7 @@ detect_system() {
             PYTHON_PATH=""
             PYTHON_VERSION=""
         fi
-        
+
         # Detect pipx
         if command -v pipx >/dev/null 2>&1; then
             PIPX_AVAILABLE="true"
@@ -460,7 +460,7 @@ detect_system() {
             PIPX_AVAILABLE="false"
             PIPX_PATH=""
         fi
-        
+
         cache_system_info
     fi
 }
@@ -469,11 +469,11 @@ detect_system() {
 version_compare() {
     local version1=$1
     local version2=$2
-    
+
     # Convert versions to arrays
     IFS='.' read -ra v1_parts <<< "$(echo "$version1" | sed 's/[^0-9.]*//g')"
     IFS='.' read -ra v2_parts <<< "$(echo "$version2" | sed 's/[^0-9.]*//g')"
-    
+
     # Pad arrays to same length
     local max_parts=3
     for ((i=${#v1_parts[@]}; i<$max_parts; i++)); do
@@ -482,20 +482,20 @@ version_compare() {
     for ((i=${#v2_parts[@]}; i<$max_parts; i++)); do
         v2_parts[i]=0
     done
-    
+
     # Compare each part
     for ((i=0; i<$max_parts; i++)); do
         # Force base 10 to avoid octal interpretation
         local p1=$((10#${v1_parts[i]:-0}))
         local p2=$((10#${v2_parts[i]:-0}))
-        
+
         if [[ $p1 -lt $p2 ]]; then
             return 1  # version1 < version2
         elif [[ $p1 -gt $p2 ]]; then
             return 2  # version1 > version2
         fi
     done
-    
+
     return 0  # version1 == version2
 }
 
@@ -505,11 +505,11 @@ validate_python() {
         log_error "Please install Python $REQUIRED_VERSION or later"
         return 1
     fi
-    
+
     if [[ "$TREE_MODE" != "true" ]]; then
         log_info "Found Python $PYTHON_VERSION at $PYTHON_PATH"
     fi
-    
+
     # Check minimum version
     version_compare "$PYTHON_VERSION" "$REQUIRED_VERSION"
     case $? in
@@ -523,7 +523,7 @@ validate_python() {
             fi
             ;;
     esac
-    
+
     # Check maximum version if specified
     if [[ -n "$MAXIMUM_VERSION" ]]; then
         version_compare "$PYTHON_VERSION" "$MAXIMUM_VERSION"
@@ -537,7 +537,7 @@ validate_python() {
                 ;;
         esac
     fi
-    
+
     return 0
 }
 
@@ -547,7 +547,7 @@ validate_python_tree() {
         tree_sub_node "error" "Python not found in PATH" "true"
         return 1
     fi
-    
+
     # Check minimum version
     version_compare "$PYTHON_VERSION" "$REQUIRED_VERSION"
     case $? in
@@ -565,7 +565,7 @@ validate_dependencies_tree() {
     local missing_deps=()
     local optional_missing=()
     local install_instructions=()
-    
+
     # Enhanced dependency validation using JSON data
     if command -v python3 >/dev/null 2>&1; then
         # Parse and validate required dependencies
@@ -575,29 +575,29 @@ import sys
 try:
     required_deps = json.loads('$REQUIRED_DEPS_JSON')
     current_platform = '$SYSTEM_OS'
-    
+
     missing = []
     instructions = []
-    
+
     for dep in required_deps:
         if isinstance(dep, str):
             dep = {'name': dep, 'type': 'command'}
-        
+
         dep_name = dep['name']
         dep_type = dep.get('type', 'command')
-        
+
         # Get platform-specific package name
         platform_package = dep.get(current_platform, dep_name)
         check_method = dep.get('check_method', '')
         check_args = ' '.join(dep.get('check_args', []))
-        
+
         # For now, we'll do basic validation in shell
         print(f'{dep_name}|{dep_type}|{platform_package}|{check_method}|{check_args}')
 except Exception as e:
     # Fallback to simple validation
     pass
 ")
-        
+
         # Process each dependency
         while IFS='|' read -r dep_name dep_type platform_package check_method check_args; do
             if [[ -n "$dep_name" ]]; then
@@ -616,14 +616,14 @@ except Exception as e:
             fi
         done
     fi
-    
+
     # Similar process for optional dependencies (simplified)
     for dep in "${OPTIONAL_DEPS[@]}"; do
         if ! command -v "$dep" >/dev/null 2>&1; then
             optional_missing+=("$dep")
         fi
     done
-    
+
     # Display results
     if [[ ${#missing_deps[@]} -gt 0 ]]; then
         tree_sub_node "error" "Missing required: ${missing_deps[*]}"
@@ -632,16 +632,17 @@ except Exception as e:
         fi
         return 1
     fi
-    
+
     if [[ ${#optional_missing[@]} -gt 0 ]]; then
         tree_sub_node "warning" "${optional_missing[*]} (optional)" "true"
     fi
-    
+
     return 0
 }
 
 # Package Management Functions
 # ============================
+
 validate_pipx() {
     if [[ "$PIPX_AVAILABLE" != "true" ]]; then
         log_warning "pipx is not installed. Installing pipx is recommended for isolated Python applications."
@@ -649,7 +650,7 @@ validate_pipx() {
         log_info "Or on macOS with Homebrew: brew install pipx"
         return 1
     fi
-    
+
     log_success "pipx is available at $PIPX_PATH"
     return 0
 }
@@ -657,7 +658,7 @@ validate_pipx() {
 # Installation functions
 install_package() {
     local install_dev="$1"
-    
+
     if [[ "$PIPX_AVAILABLE" == "true" ]]; then
         install_with_pipx "$install_dev"
     else
@@ -808,7 +809,7 @@ uninstall_package() {
         show_spinner $!
         wait $!
     fi
-    
+
     if [[ $? -eq 0 ]]; then
         log_success "Uninstall completed!"
         show_uninstall_success_message
@@ -870,7 +871,7 @@ install_system_dependencies() {
     if command -v apt-get >/dev/null 2>&1; then
         # Check which packages are missing
         local missing_packages=()
-        
+
         if ! dpkg -l | grep -q "^ii.*git" 2>/dev/null; then
             missing_packages+=("git")
         else
@@ -886,16 +887,16 @@ install_system_dependencies() {
         else
             tree_sub_node "success" "✓ Already installed: curl"
         fi
-        
+
         # Only prompt for sudo if there are missing packages
         if [[ ${#missing_packages[@]} -gt 0 ]]; then
             tree_sub_node "info" "Installing system packages: ${missing_packages[*]} (requires sudo)..."
-            
+
             # Update package list first if we're installing anything
             if ! sudo apt-get update >/dev/null 2>&1; then
                 tree_sub_node "warning" "Failed to update package list"
             fi
-            
+
             # Install each missing package
             for pkg in "${missing_packages[@]}"; do
                 if sudo apt-get install -y "$pkg" >/dev/null 2>&1; then
@@ -918,41 +919,42 @@ setup_shell_integration() {
     if [[ "$SHELL_INTEGRATION" != "true" ]]; then
         return 0
     fi
-    
+
     log_info "Setting up shell integration..."
-    
+
     # Add alias to shell configuration files
     local shell_configs=("$HOME/.bashrc" "$HOME/.zshrc" "$HOME/.bash_profile" "$HOME/.profile")
     local alias_line="alias $SHELL_ALIAS='$COMMAND_NAME'"
-    
+
     for config in "${shell_configs[@]}"; do
         if [[ -f "$config" ]] && ! grep -q "alias $SHELL_ALIAS=" "$config"; then
             echo "$alias_line" >> "$config"
             log_info "Added alias to $config"
         fi
     done
-    
+
     log_success "Shell integration configured"
 }
+
 validate_disk_space() {
     if [[ "$CHECK_DISK_SPACE" != "true" ]]; then
         return 0
     fi
-    
+
     local available_mb
     if command -v df >/dev/null 2>&1; then
         available_mb=$(df "$PROJECT_DIR" | awk 'NR==2 {print int($4/1024)}')
-        
+
         if [[ $available_mb -lt $REQUIRED_MB ]]; then
             log_error "Insufficient disk space. Required: ${REQUIRED_MB}MB, Available: ${available_mb}MB"
             return 1
         fi
-        
+
         log_success "Disk space check passed (${available_mb}MB available)"
     else
         log_warning "Cannot check disk space (df command not available)"
     fi
-    
+
     return 0
 }
 
@@ -960,7 +962,7 @@ validate_dependencies() {
     local missing_deps=()
     local optional_missing=()
     local install_instructions=()
-    
+
     # Enhanced dependency validation using JSON data
     if command -v python3 >/dev/null 2>&1; then
         # Parse and validate required dependencies
@@ -970,29 +972,29 @@ import sys
 try:
     required_deps = json.loads('$REQUIRED_DEPS_JSON')
     current_platform = '$SYSTEM_OS'
-    
+
     missing = []
     instructions = []
-    
+
     for dep in required_deps:
         if isinstance(dep, str):
             dep = {'name': dep, 'type': 'command'}
-        
+
         dep_name = dep['name']
         dep_type = dep.get('type', 'command')
-        
+
         # Get platform-specific package name
         platform_package = dep.get(current_platform, dep_name)
         check_method = dep.get('check_method', '')
         check_args = ' '.join(dep.get('check_args', []))
-        
+
         # For now, we'll do basic validation in shell
         print(f'{dep_name}|{dep_type}|{platform_package}|{check_method}|{check_args}')
 except Exception as e:
     # Fallback to simple validation
     pass
 ")
-        
+
         # Process each dependency
         while IFS='|' read -r dep_name dep_type platform_package check_method check_args; do
             if [[ -n "$dep_name" ]]; then
@@ -1011,14 +1013,14 @@ except Exception as e:
             fi
         done
     fi
-    
+
     # Similar process for optional dependencies (simplified)
     for dep in "${OPTIONAL_DEPS[@]}"; do
         if ! command -v "$dep" >/dev/null 2>&1; then
             optional_missing+=("$dep")
         fi
     done
-    
+
     # Display results
     if [[ ${#missing_deps[@]} -gt 0 ]]; then
         log_error "Missing required dependencies: ${missing_deps[*]}"
@@ -1030,22 +1032,17 @@ except Exception as e:
         fi
         return 1
     fi
-    
+
     if [[ ${#optional_missing[@]} -gt 0 ]]; then
         log_warning "Missing optional dependencies: ${optional_missing[*]}"
         log_warning "Some features may not be available"
     fi
-    
+
     if [[ "$TREE_MODE" != "true" ]]; then
         log_success "Dependency check completed"
     fi
     return 0
 }
-
-
-
-
-
 
 # Help and usage
 show_help() {
@@ -1089,7 +1086,7 @@ main() {
     local no_deps="false"
     local no_cache="false"
     local install_dev="false"
-    
+
     # Parse arguments
     while [[ $# -gt 0 ]]; do
         case $1 in
@@ -1119,13 +1116,13 @@ main() {
         esac
         shift
     done
-    
+
     # Handle help command
     if [[ "$command" == "help" ]]; then
         show_help
         exit 0
     fi
-    
+
     # Header
     if [[ "$TREE_MODE" == "true" ]]; then
         # POSIX-compatible capitalization (works on macOS Bash 3.2)
@@ -1136,12 +1133,12 @@ main() {
         log_info "Starting $DISPLAY_NAME setup..."
         echo
     fi
-    
+
     # System detection
     if [[ "$no_cache" != "true" ]]; then
         detect_system
     fi
-    
+
     # Validation
     if [[ "$command" != "uninstall" ]]; then
         tree_node "info" "System Check" "$(update_progress)"
@@ -1171,7 +1168,7 @@ main() {
             fi
         fi
     fi
-    
+
     # Execute command
     case "$command" in
         install)
@@ -1224,7 +1221,7 @@ main() {
             exit 1
             ;;
     esac
-    
+
     if [[ "$TREE_MODE" != "true" ]]; then
         echo
         log_success "$DISPLAY_NAME setup completed!"

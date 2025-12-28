@@ -214,14 +214,14 @@ def cli(ctx, verbose, debug, config):
 
 @cli.command('ask')
 @click.argument('prompt', type=click.STRING)
-@click.option('--model', '-m', default=None,              help='LLM model to use')
-@click.option('--temperature', '-t', default=0.7,              help='Sampling temperature (0.0-2.0)')
-@click.option('--max-tokens', '-', default=None,              help='Maximum response length')
-@click.option('--tools', '-', is_flag=True, default=False,              help='Enable tool usage')
-@click.option('--session', '-s', default=None,              help='Session ID for context')
-@click.option('--system', '-', default=None,              help='System prompt to set AI behavior')
-@click.option('--stream', '-', is_flag=True, default=True,              help='Stream the response')
-@click.option('--json', '-', default=None,              help='Output response in JSON format')
+@click.option('--model', '-m', default=None,              help="LLM model to use")
+@click.option('--temperature', '-t', default=0.7,              help="Sampling temperature (0.0-2.0)")
+@click.option('--max-tokens', default=None,              help="Maximum response length")
+@click.option('--tools', is_flag=True, default=False,              help="Enable tool usage")
+@click.option('--session', '-s', default=None,              help="Session ID for context")
+@click.option('--system', default=None,              help="System prompt to set AI behavior")
+@click.option('--stream', is_flag=True, default=True,              help="Stream the response")
+@click.option('--json', is_flag=True, default=None,              help="Output response in JSON format")
 @click.pass_obj
 def ask(ctx, prompt, model, temperature, max_tokens, tools, session, system, stream, json):
     """Quickly ask one-off questions"""
@@ -235,9 +235,9 @@ def ask(ctx, prompt, model, temperature, max_tokens, tools, session, system, str
     except Exception as e:
         handle_error(e, ctx.verbose)
 @cli.command('chat')
-@click.option('--model', '-m', default=None,              help='LLM model to use')
-@click.option('--session', '-s', default=None,              help='Session ID to resume or create')
-@click.option('--tools', '-', is_flag=True, default=False,              help='Enable tool usage in chat')
+@click.option('--model', '-m', default=None,              help="LLM model to use")
+@click.option('--session', '-s', default=None,              help="Session ID to resume or create")
+@click.option('--tools', is_flag=True, default=False,              help="Enable tool usage in chat")
 @click.pass_obj
 def chat(ctx, model, session, tools):
     """Chat interactively with AI"""
@@ -252,12 +252,12 @@ def chat(ctx, model, session, tools):
         handle_error(e, ctx.verbose)
 @cli.command('stateless')
 @click.argument('message', type=click.STRING)
-@click.option('--system', '-', default=None,              help='System prompt to set context')
-@click.option('--history', '-', default=None,              help='Path to JSON file with conversation history')
-@click.option('--tools', '-', default=None,              help='Comma-separated tool names to enable')
-@click.option('--model', '-m', default=None,              help='LLM model to use')
-@click.option('--temperature', '-t', default=0.7,              help='Sampling temperature (0.0-2.0)')
-@click.option('--max-tokens', '-', default=2048,              help='Maximum response length')
+@click.option('--system', default=None,              help="System prompt to set context")
+@click.option('--history', default=None,              help="Path to JSON file with conversation history")
+@click.option('--tools', default=None,              help="Comma-separated tool names to enable")
+@click.option('--model', '-m', default=None,              help="LLM model to use")
+@click.option('--temperature', '-t', default=0.7,              help="Sampling temperature (0.0-2.0)")
+@click.option('--max-tokens', default=2048,              help="Maximum response length")
 @click.pass_obj
 def stateless(ctx, message, system, history, tools, model, temperature, max_tokens):
     """Execute stateless AI request without session"""
@@ -272,7 +272,7 @@ def stateless(ctx, message, system, history, tools, model, temperature, max_toke
         handle_error(e, ctx.verbose)
 @cli.command('list')
 @click.argument('resource', type=click.STRING)
-@click.option('--format', '-f', default='table',              help='Output format')
+@click.option('--format', '-f', default='table',              help="Output format")
 @click.pass_obj
 def list(ctx, resource, format):
     """See available resources"""
@@ -286,7 +286,7 @@ def list(ctx, resource, format):
     except Exception as e:
         handle_error(e, ctx.verbose)
 @cli.command('status')
-@click.option('--json', '-', default=None,              help='Output status in JSON format')
+@click.option('--json', is_flag=True, default=None,              help="Output status in JSON format")
 @click.pass_obj
 def status(ctx, json):
     """Verify system and API health"""
@@ -300,7 +300,7 @@ def status(ctx, json):
     except Exception as e:
         handle_error(e, ctx.verbose)
 @cli.command('models')
-@click.option('--json', '-', default=None,              help='Output models in JSON format')
+@click.option('--json', is_flag=True, default=None,              help="Output models in JSON format")
 @click.pass_obj
 def models(ctx, json):
     """View AI models"""
@@ -315,7 +315,7 @@ def models(ctx, json):
         handle_error(e, ctx.verbose)
 @cli.command('info')
 @click.argument('model', type=click.STRING)
-@click.option('--json', '-', default=None,              help='Output model info in JSON format')
+@click.option('--json', is_flag=True, default=None,              help="Output model info in JSON format")
 @click.pass_obj
 def info(ctx, model, json):
     """Detailed model information"""
@@ -330,9 +330,9 @@ def info(ctx, model, json):
         handle_error(e, ctx.verbose)
 @cli.command('export')
 @click.argument('session', type=click.STRING)
-@click.option('--format', '-f', default='markdown',              help='Export format')
-@click.option('--output', '-o', default=None,              help='Output file path')
-@click.option('--include-metadata', '-', is_flag=True, default=False,              help='Include timestamps and model info')
+@click.option('--format', '-f', default='markdown',              help="Export format")
+@click.option('--output', '-o', default=None,              help="Output file path")
+@click.option('--include-metadata', is_flag=True, default=False,              help="Include timestamps and model info")
 @click.pass_obj
 def export(ctx, session, format, output, include_metadata):
     """Save your chat history"""
@@ -382,7 +382,7 @@ def config_set(ctx, key, value):
         handle_error(e, ctx.verbose)
 
 @config_group.command('list')
-@click.option('', '', is_flag=True, default=False,              help='Include API keys in output')
+@click.option('', is_flag=True, default=False,              help="Include API keys in output")
 @click.pass_obj
 def config_list(ctx, show_secrets):
     """List all configuration"""
@@ -431,7 +431,7 @@ def tools_disable(ctx, tool_name):
         handle_error(e, ctx.verbose)
 
 @tools_group.command('list')
-@click.option('', '', is_flag=True, default=False,              help='Include disabled tools')
+@click.option('', is_flag=True, default=False,              help="Include disabled tools")
 @click.pass_obj
 def tools_list(ctx, show_disabled):
     """List all tools"""
@@ -445,8 +445,8 @@ def tools_list(ctx, show_disabled):
     except Exception as e:
         handle_error(e, ctx.verbose)
 @cli.command('serve')
-@click.option('--host', '-', default='0.0.0.0',              help='Host address to bind to')
-@click.option('--port', '-p', default=8772,              help='Port to listen on')
+@click.option('--host', default='0.0.0.0',              help="Host address to bind to")
+@click.option('--port', '-p', default=8772,              help="Port to listen on")
 @click.pass_obj
 def serve(ctx, host, port):
     """Start TTT HTTP server for browser clients"""
