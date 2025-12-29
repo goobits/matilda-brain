@@ -1,6 +1,6 @@
 # Configuration Guide
 
-Goobits TTT provides flexible configuration through multiple sources with clear precedence rules.
+Matilda Brain provides flexible configuration through multiple sources with clear precedence rules.
 
 ## Configuration Hierarchy
 
@@ -17,7 +17,7 @@ The library searches for configuration files in these locations:
 
 1. `./ai.yaml` or `./ai.yml` - Project-specific config
 2. `./.ai.yaml` or `./.ai.yml` - Hidden project config
-3. `~/.config/ttt/config.yaml` or `~/.config/ttt/config.yml` - User config
+3. `~/.config/matilda-brain/config.yaml` or `~/.config/matilda-brain/config.yml` - User config
 4. `~/.ai.yaml` or `~/.ai.yml` - Hidden user config
 5. `config.yaml` - Default configuration (built-in)
 6. `.env` - Environment variables and API keys
@@ -40,43 +40,43 @@ The library searches for configuration files in these locations:
 ### View Settings
 ```bash
 # View all settings
-ttt config
+brain config
 
 # Get specific value
-ttt config get models.default
-ttt config get models.aliases
+brain config get models.default
+brain config get models.aliases
 ```
 
 ### Set Configuration
 ```bash
 # Set API keys (masked when displayed)
-ttt config set openai_key sk-your-key-here
-ttt config set anthropic_key sk-ant-your-key-here
-ttt config set openrouter_key sk-or-v1-your-key-here
+brain config set openai_key sk-your-key-here
+brain config set anthropic_key sk-ant-your-key-here
+brain config set openrouter_key sk-or-v1-your-key-here
 
 # Configure behavior
-ttt config set models.default gpt-4         # Default model
-ttt config set backends.default local       # Backend (local/cloud/auto)
-ttt config set timeout 60                   # Request timeout
-ttt config set retries 3                    # Max retry attempts
+brain config set models.default gpt-4         # Default model
+brain config set backends.default local       # Backend (local/cloud/auto)
+brain config set timeout 60                   # Request timeout
+brain config set retries 3                    # Max retry attempts
 
 # Create model aliases
-ttt config set alias.work claude-3-opus
+brain config set alias.work claude-3-opus
 ```
 
 ### Reset Configuration
 ```bash
-ttt config --reset  # Reset to defaults
+brain config --reset  # Reset to defaults
 ```
 
 ## Common Configurations
 
 | Use Case | Configuration |
 |----------|---------------|
-| **Privacy-First** | `ttt config set backends.default local && ttt config set models.default qwen2.5:32b` |
-| **Fast Responses** | `ttt config set models.default gpt-3.5-turbo` |
-| **Coding Assistant** | `ttt config set models.default claude-3-sonnet && ttt config set backends.default cloud` |
-| **Cost-Effective** | `ttt config set openrouter_key sk-or-... && ttt config set models.default google/gemini-flash` |
+| **Privacy-First** | `brain config set backends.default local && brain config set models.default qwen2.5:32b` |
+| **Fast Responses** | `brain config set models.default gpt-3.5-turbo` |
+| **Coding Assistant** | `brain config set models.default claude-3-sonnet && brain config set backends.default cloud` |
+| **Cost-Effective** | `brain config set openrouter_key sk-or-... && brain config set models.default google/gemini-flash` |
 
 ## Configuration Schema
 
@@ -158,15 +158,15 @@ The library automatically selects appropriate models based on:
 
 ```bash
 # Use predefined aliases
-ttt ask -m @fast "Quick question"
-ttt ask -m @best "Complex analysis"
-ttt ask -m @coding "Write a function"
-ttt ask -m @claude "Explain this concept"
-ttt ask -m @local "Private question"
+brain ask -m @fast "Quick question"
+brain ask -m @best "Complex analysis"
+brain ask -m @coding "Write a function"
+brain ask -m @claude "Explain this concept"
+brain ask -m @local "Private question"
 
 # Create custom aliases
-ttt config set alias.work claude-3-opus
-ttt ask -m @work "Work-related task"
+brain config set alias.work claude-3-opus
+brain ask -m @work "Work-related task"
 ```
 
 ## Programmatic Configuration
@@ -174,7 +174,7 @@ ttt ask -m @work "Work-related task"
 ### Python API
 
 ```python
-from ttt import configure
+from matilda_brain import configure
 
 # Update configuration at runtime
 configure(
@@ -215,7 +215,7 @@ Uses Ollama for privacy-focused local inference:
 export OLLAMA_BASE_URL=http://localhost:11434
 
 # Or via config
-ttt config set ollama_base_url http://custom-server:11434
+brain config set ollama_base_url http://custom-server:11434
 ```
 
 ## Advanced Configuration
@@ -271,13 +271,13 @@ retry_config:
 ### Check Current Configuration
 ```bash
 # View all settings
-ttt config
+brain config
 
 # Check specific backend status
-ttt status
+brain status
 
 # List available models
-ttt models
+brain models
 ```
 
 ### Common Issues
@@ -288,7 +288,7 @@ ttt models
 echo $OPENAI_API_KEY
 
 # Set via config
-ttt config set openai_key sk-...
+brain config set openai_key sk-...
 
 # Or export directly
 export OPENAI_API_KEY=sk-...
@@ -297,16 +297,16 @@ export OPENAI_API_KEY=sk-...
 **Wrong Default Model**
 ```bash
 # Check current default
-ttt config get models.default
+brain config get models.default
 
 # Set new default
-ttt config set models.default gpt-4
+brain config set models.default gpt-4
 ```
 
 **Configuration Not Loading**
 ```bash
 # Check config file locations
-ls -la ~/.config/ttt/config.yaml
+ls -la ~/.config/matilda-brain/config.yaml
 ls -la ./ai.yaml
 
 # Verify syntax

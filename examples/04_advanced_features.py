@@ -12,7 +12,6 @@ This script demonstrates advanced functionality including:
 import os
 from pathlib import Path
 
-import matilda_brain
 from matilda_brain import (
     # Import all exception types
     AIError,
@@ -46,7 +45,7 @@ def basic_image_analysis():
 
     try:
         # Using a public image URL
-        response = ttt.ask(
+        response = ask(
             [
                 "What's in this image? Describe what you see in detail.",
                 ImageInput(
@@ -72,7 +71,7 @@ def multiple_images_comparison():
     print("=== Multiple Images Comparison ===\n")
 
     try:
-        response = ttt.ask(
+        response = ask(
             [
                 "Compare these two images. What breed of dog do you see in each?",
                 ImageInput(
@@ -99,7 +98,7 @@ def streaming_with_vision():
 
     try:
         print("Analysis: ", end="", flush=True)
-        for chunk in ttt.stream(
+        for chunk in stream(
             [
                 "Write a detailed analysis of this image, including colors, composition, and mood. Take your time to describe everything you observe.",
                 ImageInput(
@@ -122,7 +121,7 @@ def chat_with_images():
     print("=== Chat with Images ===\n")
 
     try:
-        with ttt.chat(model="gpt-4-vision-preview") as session:
+        with chat(model="gpt-4-vision-preview") as session:
             # First message with image
             response1 = session.ask(
                 [
@@ -159,7 +158,7 @@ def vision_model_selection():
 
     for model in vision_models:
         try:
-            response = ttt.ask(
+            response = ask(
                 [
                     "Describe this image in one sentence.",
                     ImageInput(
@@ -323,7 +322,7 @@ def handle_rate_limit_errors():
 
     example_code = '''
 import time
-from ai import ask, RateLimitError
+from matilda_brain import ask, RateLimitError
 
 def robust_ask(prompt, max_retries=3):
     """Ask with automatic retry on rate limits."""
@@ -461,7 +460,7 @@ with chat(persist=True) as session:
     print(
         """
 import time
-from ai import RateLimitError
+from matilda_brain import RateLimitError
 
 def ask_with_retry(prompt, max_retries=3):
     for attempt in range(max_retries):
@@ -491,7 +490,7 @@ else:
 
 def main():
     """Run all advanced examples."""
-    print("AI Library - Advanced Features Examples")
+    print("Matilda Brain - Advanced Features Examples")
     print("=" * 50)
     print()
     print("This example shows advanced features including multi-modal AI,")

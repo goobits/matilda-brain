@@ -26,7 +26,7 @@ The library loads configuration from multiple sources with the following precede
 The library searches for configuration files in these locations:
 - `./ai.yaml` or `./ai.yml` (current directory)
 - `./.ai.yaml` or `./.ai.yml` (hidden file in current directory)
-- `~/.config/ttt/config.yaml` or `~/.config/ttt/config.yml`
+- `~/.config/matilda-brain/config.yaml` or `~/.config/matilda-brain/config.yml`
 - `~/.ai.yaml` or `~/.ai.yml`
 
 ### Configuration Schema
@@ -85,7 +85,7 @@ routing:
 ### Programmatic Configuration
 
 ```python
-from ttt import configure
+from matilda_brain import configure
 
 # Update configuration at runtime
 configure(
@@ -104,7 +104,7 @@ The model registry manages all available models and their metadata.
 ### Accessing the Registry
 
 ```python
-from ttt import model_registry
+from matilda_brain import model_registry
 
 # List all models
 all_models = model_registry.list_models()
@@ -125,8 +125,8 @@ aliases = model_registry.list_aliases()
 ### Adding Custom Models
 
 ```python
-from ttt import model_registry
-from ttt.models import ModelInfo
+from matilda_brain import model_registry
+from matilda_brain.models import ModelInfo
 
 # Add a custom model
 model_registry.add_model(ModelInfo(
@@ -163,7 +163,7 @@ Models can include the following metadata:
 ### Plugin Discovery
 
 Plugins are automatically discovered from:
-1. `~/.config/ttt/plugins/`
+1. `~/.config/matilda-brain/plugins/`
 2. `~/.ai/plugins/`
 3. `./ai_plugins/`
 4. Built-in plugins directory
@@ -171,7 +171,7 @@ Plugins are automatically discovered from:
 ### Loading Plugins
 
 ```python
-from ttt import load_plugin, discover_plugins
+from matilda_brain import load_plugin, discover_plugins
 from pathlib import Path
 
 # Manually load a specific plugin
@@ -181,7 +181,7 @@ load_plugin(Path("/path/to/my_plugin.py"))
 discover_plugins()
 
 # Plugins are loaded automatically on import
-import ttt  # This triggers plugin discovery
+import matilda_brain  # This triggers plugin discovery
 ```
 
 ### Plugin Structure
@@ -208,8 +208,8 @@ def register_plugin(registry):
 All backends must inherit from `BaseBackend` and implement required methods:
 
 ```python
-from ttt.backends import BaseBackend
-from ttt.models import AIResponse
+from matilda_brain.backends import BaseBackend
+from matilda_brain.models import AIResponse
 from typing import AsyncIterator, List, Dict, Any, Optional
 
 class MyBackend(BaseBackend):
@@ -322,7 +322,7 @@ async def ask(self, prompt, **kwargs):
 
 1. **Direct Registration**:
    ```python
-   from ttt import register_backend
+   from matilda_brain import register_backend
    register_backend("name", BackendClass, version="1.0.0")
    ```
 
@@ -375,7 +375,7 @@ routing:
 
 ```python
 import pytest
-from ttt import ask, register_backend
+from matilda_brain import ask, register_backend
 from my_backend import MyBackend
 
 @pytest.fixture

@@ -8,7 +8,7 @@ showing how to use the ask(), stream(), and basic chat() functions.
 This is the perfect starting point for learning the library.
 """
 
-from ai import ask, chat, stream
+from matilda_brain import ask, chat, stream
 
 
 def basic_ask_examples():
@@ -171,7 +171,7 @@ def error_handling_examples():
 
 def main():
     """Run all examples."""
-    print("AI Library - Basic Usage Examples")
+    print("Matilda Brain - Basic Usage Examples")
     print("=" * 50)
     print()
     print(

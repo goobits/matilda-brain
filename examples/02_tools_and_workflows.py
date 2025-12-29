@@ -8,7 +8,7 @@ and create custom tools for complex workflows.
 
 import asyncio
 
-from ai import ask, chat
+from matilda_brain import ask, chat
 
 from matilda_brain.tools import get_tool, list_tools, tool
 from matilda_brain.tools.builtins import (
@@ -245,33 +245,33 @@ def demo_cli_examples():
     print()
 
     print("1. Using built-in tools:")
-    print('   ttt "Search for Python tutorials" --tools "web_search"')
-    print('   ttt "Calculate 15% of 250" --tools "calculate"')
+    print('   brain "Search for Python tutorials" --tools "web_search"')
+    print('   brain "Calculate 15% of 250" --tools "calculate"')
     print()
 
     print("2. Using multiple tools:")
     print(
-        '   ttt "Search for weather data and calculate averages" --tools "web_search,calculate"'
+        '   brain "Search for weather data and calculate averages" --tools "web_search,calculate"'
     )
     print()
 
     print("3. Using custom tools from modules:")
-    print('   ttt "Get system info" --tools "os:getcwd,platform:system"')
+    print('   brain "Get system info" --tools "os:getcwd,platform:system"')
     print()
 
     print("4. Using tools from custom scripts:")
-    print('   ttt "Process data" --tools "/path/to/my_tools.py:process_data"')
+    print('   brain "Process data" --tools "/path/to/my_tools.py:process_data"')
     print()
 
     print("5. Complex workflows:")
     print(
-        '   ttt "Research topic, analyze data, create report" --tools "web_search,calculate,write_file"'
+        '   brain "Research topic, analyze data, create report" --tools "web_search,calculate,write_file"'
     )
 
 
 def main():
     """Run all demonstrations."""
-    print("AI Library - Tools and Workflows Examples")
+    print("Matilda Brain - Tools and Workflows Examples")
     print("=" * 50)
     print()
     print("This example shows how to use built-in tools and create custom tools.")

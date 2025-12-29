@@ -1,6 +1,6 @@
 # System Architecture
 
-Goobits TTT implements a layered architecture that provides a unified interface to multiple AI providers while maintaining flexibility and extensibility.
+Matilda Brain implements a layered architecture that provides a unified interface to multiple AI providers while maintaining flexibility and extensibility.
 
 ## Architecture Overview
 
@@ -38,7 +38,7 @@ The system follows a **CLI → Backend → Provider** abstraction pattern:
 
 ## Core Components
 
-### 1. API Layer (`src/ttt/core/api.py`)
+### 1. API Layer (`src/matilda_brain/core/api.py`)
 
 The main interface providing both synchronous and asynchronous APIs:
 
@@ -55,7 +55,7 @@ response = ask("What is Python?", model="gpt-4")
 response = await ask_async("What is Python?", model="gpt-4")
 ```
 
-### 2. Backend System (`src/ttt/backends/`)
+### 2. Backend System (`src/matilda_brain/backends/`)
 
 Pluggable backend architecture for different AI providers:
 
@@ -82,7 +82,7 @@ Integrates with Ollama for local models:
 - Support for open-source models
 - Automatic model management
 
-### 3. Routing System (`src/ttt/core/routing.py`)
+### 3. Routing System (`src/matilda_brain/core/routing.py`)
 
 Intelligent routing between backends and models:
 
@@ -97,7 +97,7 @@ response = ask("Code question", model="gpt-4")  # → CloudBackend
 response = ask("Private data", model="llama2")  # → LocalBackend
 ```
 
-### 4. Tool System (`src/ttt/tools/`)
+### 4. Tool System (`src/matilda_brain/tools/`)
 
 Function calling framework for AI assistants:
 
@@ -115,7 +115,7 @@ def get_weather(city: str) -> str:
     return f"Weather in {city}: Sunny, 72°F"
 ```
 
-### 5. Configuration System (`src/ttt/config/`)
+### 5. Configuration System (`src/matilda_brain/config/`)
 
 Hierarchical configuration management:
 
@@ -124,7 +124,7 @@ Hierarchical configuration management:
 - **Backend-Specific**: Per-backend configuration
 - **Runtime Updates**: Dynamic configuration changes
 
-### 6. Session Management (`src/ttt/session/`)
+### 6. Session Management (`src/matilda_brain/session/`)
 
 Conversation and state management:
 

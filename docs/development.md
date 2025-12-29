@@ -1,6 +1,6 @@
 # Development Guide
 
-This guide covers development setup, testing, code style, and contributing to Goobits TTT.
+This guide covers development setup, testing, code style, and contributing to Matilda Brain.
 
 ## Development Setup
 
@@ -16,8 +16,8 @@ For development work, always use the editable installation:
 
 ```bash
 # Clone the repository
-git clone https://github.com/goobits/ttt.git
-cd ttt
+git clone https://github.com/goobits/matilda-brain.git
+cd matilda-brain
 
 # Install in development mode (RECOMMENDED)
 ./setup.sh install --dev
@@ -99,7 +99,7 @@ pytest tests/ -m "not integration"  # Skip integration tests
 pytest tests/ -m "not slow"         # Skip slow tests
 
 # Run with coverage
-pytest tests/ --cov=ttt --cov-report=html
+pytest tests/ --cov=matilda_brain --cov-report=html
 ```
 
 ### Writing Tests
@@ -137,16 +137,16 @@ The project uses strict code quality standards:
 
 ```bash
 # Format code with Black
-black src/ttt/ tests/
+black src/matilda_brain/ tests/
 
 # Run linter
-ruff src/ttt/ tests/
+ruff src/matilda_brain/ tests/
 
 # Type checking
-mypy src/ttt/
+mypy src/matilda_brain/
 
 # Run all checks
-black src/ttt/ tests/ && ruff src/ttt/ tests/ && mypy src/ttt/
+black src/matilda_brain/ tests/ && ruff src/matilda_brain/ tests/ && mypy src/matilda_brain/
 ```
 
 ### Style Configuration
@@ -166,8 +166,8 @@ black src/ttt/ tests/ && ruff src/ttt/ tests/ && mypy src/ttt/
 ## Project Structure
 
 ```
-ttt/
-├── src/ttt/               # Main package
+matilda-brain/
+├── src/matilda_brain/     # Main package
 │   ├── __init__.py       # Public API exports
 │   ├── __main__.py       # CLI entry point
 │   ├── api.py            # Core API functions
@@ -205,9 +205,9 @@ git checkout -b feature/my-feature
 ./run-tests.sh
 
 # Format and lint
-black src/ttt/ tests/
-ruff src/ttt/ tests/
-mypy src/ttt/
+black src/matilda_brain/ tests/
+ruff src/matilda_brain/ tests/
+mypy src/matilda_brain/
 
 # Commit changes
 git add .
@@ -218,9 +218,9 @@ git commit -m "Add my feature"
 
 ```bash
 # Test CLI directly (dev mode reflects changes immediately)
-ttt "test prompt"
-ttt status
-ttt models
+brain "test prompt"
+brain status
+brain models
 
 # Run unit tests
 ./run-tests.sh
@@ -242,11 +242,11 @@ Update documentation for any new features:
 
 ### Adding a New Backend
 
-1. Create backend class in `src/ttt/backends/`:
+1. Create backend class in `src/matilda_brain/backends/`:
 
 ```python
-from ttt.backends import BaseBackend
-from ttt.models import AIResponse
+from matilda_brain.backends import BaseBackend
+from matilda_brain.models import AIResponse
 
 class MyBackend(BaseBackend):
     @property
@@ -280,10 +280,10 @@ class MyBackend(BaseBackend):
 
 ### Adding a New Tool
 
-1. Add to `src/ttt/tools/builtins.py` or create new file:
+1. Add to `src/matilda_brain/tools/builtins.py` or create new file:
 
 ```python
-from ttt.tools import tool
+from matilda_brain.tools import tool
 
 @tool
 def my_tool(param1: str, param2: int = 10) -> str:
@@ -305,7 +305,7 @@ def my_tool(param1: str, param2: int = 10) -> str:
 
 ### Adding CLI Commands
 
-**IMPORTANT**: `src/ttt/cli.py` is auto-generated from `goobits.yaml`. Never edit it directly - your changes will be overwritten on the next `goobits build`.
+**IMPORTANT**: `src/matilda_brain/cli.py` is auto-generated from `goobits.yaml`. Never edit it directly - your changes will be overwritten on the next `goobits build`.
 
 **Correct workflow:**
 
@@ -328,9 +328,9 @@ def my_tool(param1: str, param2: int = 10) -> str:
    ```bash
    goobits build
    ```
-   This updates `src/ttt/cli.py` and `setup.sh` automatically.
+   This updates `src/matilda_brain/cli.py` and `setup.sh` automatically.
 
-3. **Implement hook in `src/ttt/app_hooks.py`**:
+3. **Implement hook in `src/matilda_brain/app_hooks.py`**:
    ```python
    def on_mycommand(query: str, model: str = None):
        """Business logic for mycommand."""
@@ -349,10 +349,10 @@ def my_tool(param1: str, param2: int = 10) -> str:
 export AI_LOG_LEVEL=DEBUG
 
 # Run with verbose output
-ttt ask "test" --verbose
+brain ask "test" --verbose
 
 # Debug specific component
-python -m ttt.backends.cloud
+python -m matilda_brain.backends.cloud
 ```
 
 ### Common Issues
@@ -380,9 +380,9 @@ pytest tests/test_file.py::test_name -v -s
 ### Before Submitting
 
 1. **Run all tests**: `./run-tests.sh`
-2. **Format code**: `black src/ttt/ tests/`
-3. **Check linting**: `ruff src/ttt/ tests/`
-4. **Type check**: `mypy src/ttt/`
+2. **Format code**: `black src/matilda_brain/ tests/`
+3. **Check linting**: `ruff src/matilda_brain/ tests/`
+4. **Type check**: `mypy src/matilda_brain/`
 5. **Update docs**: Document new features
 6. **Add tests**: Cover new functionality
 

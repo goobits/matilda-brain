@@ -1,12 +1,12 @@
 # API Reference
 
-Complete Python API documentation for Goobits TTT.
+Complete Python API documentation for Matilda Brain.
 
 ```python
 # Common imports
-from ttt import ask, stream, chat, configure
-from ttt import ChatSession
-from ttt.tools import tool
+from matilda_brain import ask, stream, chat, configure
+from matilda_brain import ChatSession
+from matilda_brain.tools import tool
 ```
 
 ## Core Functions
@@ -126,7 +126,7 @@ def configure(
 ) -> None
 ```
 
-Configure TTT programmatically.
+Configure Matilda Brain programmatically.
 
 **Parameters:**
 - `openai_api_key` (str, optional): OpenAI API key
@@ -397,7 +397,7 @@ Common error scenarios:
 
 5. **Use Type Hints**:
    ```python
-   from ttt import AIResponse
+   from matilda_brain import AIResponse
 
    def process_response(response: AIResponse) -> str:
        return response.upper()

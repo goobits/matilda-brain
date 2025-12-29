@@ -12,8 +12,7 @@ This script demonstrates advanced chat session functionality including:
 
 from pathlib import Path
 
-import matilda_brain
-from matilda_brain import PersistentChatSession, chat
+from matilda_brain import ImageInput, PersistentChatSession, chat
 from matilda_brain.tools import tool
 
 
@@ -53,7 +52,7 @@ def basic_persistence():
     print("=== Basic Persistence ===\n")
 
     # Create a persistent session
-    with ttt.chat(persist=True, system="You are a helpful coding assistant") as session:
+    with chat(persist=True, system="You are a helpful coding assistant") as session:
         # Have a conversation
         session.ask("My name is Alice and I'm learning web development.")
         session.ask("I want to build a portfolio website.")
@@ -294,13 +293,13 @@ def session_with_multimodal():
     print("\n=== Session with Multi-modal Content ===\n")
 
     try:
-        with ttt.chat(persist=True, model="gpt-4-vision-preview") as session:
+        with chat(persist=True, model="gpt-4-vision-preview") as session:
             # First interaction with image
             session.ask(
                 [
                     "I'm going to show you images for analysis.",
                     "Here's a Python logo:",
-                    ttt.ImageInput(
+                    ImageInput(
                         "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c3/Python-logo-notext.svg/200px-Python-logo-notext.svg.png"
                     ),
                 ]
@@ -335,7 +334,7 @@ def cost_tracking_example():
     print("\n=== Cost Tracking ===\n")
 
     # Create a session for cost tracking
-    with ttt.chat(persist=True, model="gpt-3.5-turbo") as session:
+    with chat(persist=True, model="gpt-3.5-turbo") as session:
         # Simulate some API calls
         session.ask("Explain Python list comprehensions")
         session.ask("Give me 3 examples")
@@ -367,7 +366,7 @@ def cost_tracking_example():
 
 def main():
     """Run all examples."""
-    print("AI Library - Chat and Persistence Examples")
+    print("Matilda Brain - Chat and Persistence Examples")
     print("=" * 50)
     print()
     print("This example shows advanced chat features including persistence,")

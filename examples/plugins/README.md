@@ -1,6 +1,6 @@
-# AI Library Plugin Examples
+# Matilda Brain Plugin Examples
 
-This directory contains example plugins demonstrating how to extend the AI library with custom backends.
+This directory contains example plugins demonstrating how to extend the Matilda Brain library with custom backends.
 
 ## Available Examples
 
@@ -15,7 +15,7 @@ A simple backend that echoes back the user's prompt. This is the simplest possib
 
 **Usage:**
 ```python
-from ai import ask, load_plugin
+from matilda_brain import ask, load_plugin
 from pathlib import Path
 
 # Load the plugin
@@ -39,7 +39,7 @@ A more sophisticated backend that generates realistic-looking mock responses wit
 
 **Usage:**
 ```python
-from ai import ask, stream, load_plugin
+from matilda_brain import ask, stream, load_plugin
 from pathlib import Path
 
 # Load the plugin
@@ -61,7 +61,7 @@ To create a custom backend plugin:
 1. **Create a new Python file** with your backend implementation
 2. **Inherit from BaseBackend**:
    ```python
-   from ttt.backends import BaseBackend
+   from matilda_brain.backends import BaseBackend
 
    class MyBackend(BaseBackend):
        # Implementation here
@@ -89,14 +89,14 @@ To create a custom backend plugin:
 ## Plugin Discovery
 
 Plugins are automatically discovered from these locations:
-- `~/.config/ttt/plugins/`
+- `~/.config/matilda-brain/plugins/`
 - `~/.ai/plugins/`
 - `./ai_plugins/`
 - Built-in plugins directory
 
 You can also manually load plugins:
 ```python
-from ai import load_plugin
+from matilda_brain import load_plugin
 load_plugin(Path("/path/to/your/plugin.py"))
 ```
 
@@ -114,8 +114,8 @@ Here's a template for creating a backend that calls a custom HTTP API:
 
 ```python
 import httpx
-from ttt.backends import BaseBackend
-from ttt.models import AIResponse
+from matilda_brain.backends import BaseBackend
+from matilda_brain.models import AIResponse
 
 class HTTPBackend(BaseBackend):
     def __init__(self, config=None):
@@ -161,8 +161,8 @@ Test your plugin thoroughly:
 
 ```python
 import asyncio
-from ai import ask, stream, chat
-from ttt.plugins import load_plugin
+from matilda_brain import ask, stream, chat
+from matilda_brain.plugins import load_plugin
 
 # Load and test
 load_plugin(Path("my_plugin.py"))
