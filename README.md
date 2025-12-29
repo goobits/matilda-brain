@@ -30,7 +30,7 @@ echo "print('Hello')" | brain "Explain this code"
 ## 📚 Python Library
 
 ```python
-from ttt import ask, stream, chat
+from matilda_brain import ask, stream, chat
 
 # Single question
 response = ask("What is Python?")
@@ -48,8 +48,8 @@ with chat() as session:
 ## 🛠️ Function Calling
 
 ```python
-from ttt import ask
-from ttt.tools import tool
+from matilda_brain import ask
+from matilda_brain.tools import tool
 
 # Built-in tools
 response = ask(
@@ -74,7 +74,7 @@ brain config list
 
 # Set defaults
 brain config set models.default gpt-4
-brain config set api.openai_key sk-...
+brain config set openai_api_key sk-...
 
 # Model aliases
 brain -m @fast "Quick question"     # gpt-3.5-turbo
@@ -101,8 +101,7 @@ brain -m @claude "Explain this"     # claude-3-sonnet
 ./setup.sh install --dev
 
 # Tests
-./run-tests.sh              # Unit tests (fast, mocked)
-./run-tests.sh integration  # Integration tests (requires API keys)
+./test.sh                   # Run tests with coverage
 
 # Code quality
 ruff check src/ tests/
