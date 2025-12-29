@@ -22,9 +22,21 @@ from aiohttp.web import Request, Response, StreamResponse
 
 from .core.api import ask_async, stream_async
 from .session.chat import PersistentChatSession
+from .session.manager import ChatSessionManager
 from .utils import get_logger
 
 logger = get_logger(__name__)
+
+# Shared session manager instance
+_session_manager: Optional[ChatSessionManager] = None
+
+
+def get_session_manager() -> ChatSessionManager:
+    """Get or create the session manager singleton."""
+    global _session_manager
+    if _session_manager is None:
+        _session_manager = ChatSessionManager()
+    return _session_manager
 
 # CORS headers for browser access
 CORS_HEADERS = {
@@ -205,6 +217,108 @@ async def handle_stream(request: Request) -> StreamResponse:
     return response
 
 
+async def handle_list_sessions(request: Request) -> Response:
+    """
+    List all chat sessions.
+
+    GET /api/sessions
+
+    Response:
+    [
+        {
+            "id": "20250101_120000_abc12345",
+            "created_at": "2025-01-01T12:00:00",
+            "updated_at": "2025-01-01T12:05:00",
+            "message_count": 5,
+            "last_message": "What is Python?...",
+            "model": "gpt-4"
+        }
+    ]
+    """
+    try:
+        manager = get_session_manager()
+        sessions = manager.list_sessions()
+        return add_cors_headers(web.json_response(sessions))
+    except Exception as e:
+        logger.error(f"Error listing sessions: {e}")
+        return add_cors_headers(web.json_response(
+            {"error": str(e)}, status=500
+        ))
+
+
+async def handle_get_session(request: Request) -> Response:
+    """
+    Get a specific session by ID.
+
+    GET /api/sessions/{id}
+
+    Response:
+    {
+        "id": "20250101_120000_abc12345",
+        "created_at": "2025-01-01T12:00:00",
+        "updated_at": "2025-01-01T12:05:00",
+        "messages": [...],
+        "model": "gpt-4"
+    }
+    """
+    session_id = request.match_info.get("id")
+    if not session_id:
+        return add_cors_headers(web.json_response(
+            {"error": "Missing session ID"}, status=400
+        ))
+
+    try:
+        manager = get_session_manager()
+        session = manager.load_session(session_id)
+
+        if session is None:
+            return add_cors_headers(web.json_response(
+                {"error": f"Session '{session_id}' not found"}, status=404
+            ))
+
+        return add_cors_headers(web.json_response(session.to_dict()))
+    except Exception as e:
+        logger.error(f"Error loading session {session_id}: {e}")
+        return add_cors_headers(web.json_response(
+            {"error": str(e)}, status=500
+        ))
+
+
+async def handle_delete_session(request: Request) -> Response:
+    """
+    Delete a session by ID.
+
+    DELETE /api/sessions/{id}
+
+    Response:
+    {"status": "deleted", "id": "session_id"}
+    """
+    session_id = request.match_info.get("id")
+    if not session_id:
+        return add_cors_headers(web.json_response(
+            {"error": "Missing session ID"}, status=400
+        ))
+
+    try:
+        manager = get_session_manager()
+        deleted = manager.delete_session(session_id)
+
+        if deleted:
+            return add_cors_headers(web.json_response({
+                "status": "deleted",
+                "id": session_id
+            }))
+        else:
+            return add_cors_headers(web.json_response(
+                {"error": f"Session '{session_id}' not found"}, status=404
+            ))
+    except Exception as e:
+        logger.error(f"Error deleting session {session_id}: {e}")
+        return add_cors_headers(web.json_response(
+            {"error": str(e)}, status=500
+        ))
+
+
 def create_app() -> web.Application:
     """Create the aiohttp application."""
     app = web.Application()
@@ -216,6 +330,11 @@ def create_app() -> web.Application:
     app.router.add_post("/ask", handle_ask)
     app.router.add_post("/stream", handle_stream)
 
+    # Session management endpoints
+    app.router.add_get("/api/sessions", handle_list_sessions)
+    app.router.add_get("/api/sessions/{id}", handle_get_session)
+    app.router.add_delete("/api/sessions/{id}", handle_delete_session)
+
     return app
 
 
@@ -223,9 +342,18 @@ def run_server(host: str = "0.0.0.0", port: int = 8772):
     """Run the HTTP server."""
     app = create_app()
 
-    print(f"Starting TTT server on http://{host}:{port}")
+    print(f"Starting Brain server on http://{host}:{port}")
+    print()
+    print("AI Endpoints:")
     print(f"  POST /ask    - One-shot AI request")
     print(f"  POST /stream - Streaming AI request (SSE)")
+    print()
+    print("Session Endpoints:")
+    print(f"  GET    /api/sessions      - List all sessions")
+    print(f"  GET    /api/sessions/{{id}} - Get session by ID")
+    print(f"  DELETE /api/sessions/{{id}} - Delete session")
+    print()
+    print("Health:")
     print(f"  GET  /health - Health check")
     print()
 

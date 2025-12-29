@@ -1,6 +1,9 @@
 # Unified artifacts
 .artifacts/
 
+# Goobits generated directories
+goobits_*/
+
 # Python
 __pycache__/
 *.py[cod]
