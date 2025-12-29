@@ -74,7 +74,7 @@ response = ask("What's the weather in NYC?", tools=[get_weather])
 brain config list
 
 # Set defaults
-brain config set models.default gpt-4
+brain config set model gpt-4
 brain config set openai_api_key sk-...
 
 # Model aliases (via OpenRouter)
