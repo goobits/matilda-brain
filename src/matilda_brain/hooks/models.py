@@ -3,19 +3,13 @@
 
 import json as json_module
 import os
-import sys
-from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, Optional
 
 import rich_click as click
 from rich.console import Console
 
 console = Console()
 
-import matilda_brain
-from matilda_brain.config.manager import ConfigManager
-from matilda_brain.i18n import t, t_common
-from .utils import setup_logging_level
 
 def show_models_list(json_output: bool = False) -> None:
     """Show list of available models.

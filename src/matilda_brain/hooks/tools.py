@@ -1,11 +1,6 @@
 #!/usr/bin/env python3
 """Hook handlers for TTT CLI."""
 
-import json as json_module
-import os
-import sys
-from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
 
 import rich_click as click
 from rich.console import Console
@@ -13,7 +8,6 @@ from rich.console import Console
 console = Console()
 
 from matilda_brain.config.manager import ConfigManager
-from .utils import setup_logging_level
 
 def on_tools_enable(command_name: str, tool_name: str, **kwargs) -> None:
     """Hook for 'tools enable' subcommand.

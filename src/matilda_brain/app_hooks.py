@@ -1,81 +1,157 @@
-#!/usr/bin/env python3
-"""Business logic hooks for the TTT CLI.
+"""
+Hook implementations for Matilda Brain - Text to Text.
 
-This module provides backward compatibility by re-exporting all hook
-handlers from the hooks submodule.
+This file contains the business logic for your CLI commands.
+Implement the hook functions below to handle your CLI commands.
 
-The implementation has been split into:
-- hooks/utils.py: Helper functions (is_verbose_mode, setup_logging_level, etc.)
-- hooks/core.py: on_ask, on_chat handlers
-- hooks/config.py: on_config_*, on_list, on_export handlers
-- hooks/tools.py: on_tools_* handlers
-- hooks/models.py: on_models, on_info, on_status handlers
-- hooks/server.py: on_serve, on_stateless handlers
+IMPORTANT: Hook names must use snake_case with 'on_' prefix
+Example:
+- Command 'hello' -> Hook function 'on_hello'
+- Command 'hello-world' -> Hook function 'on_hello_world'
 """
 
-# Re-export all hook handlers for backward compatibility
-from .hooks import (
-    # Utils
-    is_verbose_mode,
-    setup_logging_level,
-    resolve_model_alias,
-    parse_tools_arg,
-    resolve_tools,
-    apply_coding_optimization,
-    # Core
-    on_ask,
-    on_chat,
-    # Config
-    on_list,
-    on_config_get,
-    on_config_set,
-    on_config_list,
-    on_export,
-    # Tools
-    on_tools_enable,
-    on_tools_disable,
-    on_tools_list,
-    # Models
-    show_models_list,
-    show_model_info,
-    show_backend_status,
-    on_status,
-    on_models,
-    on_info,
-    # Server
-    on_stateless,
-    on_serve,
-)
-
-__all__ = [
-    # Utils
-    "is_verbose_mode",
-    "setup_logging_level",
-    "resolve_model_alias",
-    "parse_tools_arg",
-    "resolve_tools",
-    "apply_coding_optimization",
-    # Core
-    "on_ask",
-    "on_chat",
-    # Config
-    "on_list",
-    "on_config_get",
-    "on_config_set",
-    "on_config_list",
-    "on_export",
-    # Tools
-    "on_tools_enable",
-    "on_tools_disable",
-    "on_tools_list",
-    # Models
-    "show_models_list",
-    "show_model_info",
-    "show_backend_status",
-    "on_status",
-    "on_models",
-    "on_info",
-    # Server
-    "on_stateless",
-    "on_serve",
-]
+# Import any modules you need here
+from typing import Any, Dict, Optional
+def on_ask(    model: Optional[str] = None,    temperature: Optional[float] = None,    max_tokens: Optional[int] = None,    tools: Optional[bool] = None,    session: Optional[str] = None,    system: Optional[str] = None,    stream: Optional[bool] = None,    json: bool = False,    **kwargs
+) -> Dict[str, Any]:
+    """
+    Handle ask command.        model: LLM model to use        temperature: Sampling temperature (0.0-2.0)        max_tokens: Maximum response length        tools: Enable tool usage        session: Session ID for context        system: System prompt to set AI behavior        stream: Stream the response        json: Output response in JSON format
+    Returns:
+        Dictionary with status and optional results
+    """
+    # Add your business logic here
+    print("Executing ask command")
+    return {
+        "status": "success",
+        "message": "ask completed successfully"
+    }
+def on_chat(    model: Optional[str] = None,    session: Optional[str] = None,    tools: Optional[bool] = None,    markdown: Optional[bool] = None,    **kwargs
+) -> Dict[str, Any]:
+    """
+    Handle chat command.        model: LLM model to use        session: Session ID to resume or create        tools: Enable tool usage in chat        markdown: Render markdown in responses
+    Returns:
+        Dictionary with status and optional results
+    """
+    # Add your business logic here
+    print("Executing chat command")
+    return {
+        "status": "success",
+        "message": "chat completed successfully"
+    }
+def on_stateless(    system: Optional[str] = None,    history: Optional[str] = None,    tools: Optional[str] = None,    model: Optional[str] = None,    temperature: Optional[float] = None,    max_tokens: Optional[int] = None,    **kwargs
+) -> Dict[str, Any]:
+    """
+    Handle stateless command.        system: System prompt to set context        history: Path to JSON file with conversation history        tools: Comma-separated tool names to enable        model: LLM model to use        temperature: Sampling temperature (0.0-2.0)        max_tokens: Maximum response length
+    Returns:
+        Dictionary with status and optional results
+    """
+    # Add your business logic here
+    print("Executing stateless command")
+    return {
+        "status": "success",
+        "message": "stateless completed successfully"
+    }
+def on_list(    format: Optional[str] = None,    **kwargs
+) -> Dict[str, Any]:
+    """
+    Handle list command.        format: Output format
+    Returns:
+        Dictionary with status and optional results
+    """
+    # Add your business logic here
+    print("Executing list command")
+    return {
+        "status": "success",
+        "message": "list completed successfully"
+    }
+def on_status(    json: bool = False,    **kwargs
+) -> Dict[str, Any]:
+    """
+    Handle status command.        json: Output status in JSON format
+    Returns:
+        Dictionary with status and optional results
+    """
+    # Add your business logic here
+    print("Executing status command")
+    return {
+        "status": "success",
+        "message": "status completed successfully"
+    }
+def on_models(    json: bool = False,    **kwargs
+) -> Dict[str, Any]:
+    """
+    Handle models command.        json: Output models in JSON format
+    Returns:
+        Dictionary with status and optional results
+    """
+    # Add your business logic here
+    print("Executing models command")
+    return {
+        "status": "success",
+        "message": "models completed successfully"
+    }
+def on_info(    json: bool = False,    **kwargs
+) -> Dict[str, Any]:
+    """
+    Handle info command.        json: Output model info in JSON format
+    Returns:
+        Dictionary with status and optional results
+    """
+    # Add your business logic here
+    print("Executing info command")
+    return {
+        "status": "success",
+        "message": "info completed successfully"
+    }
+def on_export(    format: Optional[str] = None,    output: Optional[str] = None,    include_metadata: Optional[bool] = None,    **kwargs
+) -> Dict[str, Any]:
+    """
+    Handle export command.        format: Export format        output: Output file path        include_metadata: Include timestamps and model info
+    Returns:
+        Dictionary with status and optional results
+    """
+    # Add your business logic here
+    print("Executing export command")
+    return {
+        "status": "success",
+        "message": "export completed successfully"
+    }
+def on_config(    **kwargs
+) -> Dict[str, Any]:
+    """
+    Handle config command.
+    Returns:
+        Dictionary with status and optional results
+    """
+    # Add your business logic here
+    print("Executing config command")
+    return {
+        "status": "success",
+        "message": "config completed successfully"
+    }
+def on_tools(    **kwargs
+) -> Dict[str, Any]:
+    """
+    Handle tools command.
+    Returns:
+        Dictionary with status and optional results
+    """
+    # Add your business logic here
+    print("Executing tools command")
+    return {
+        "status": "success",
+        "message": "tools completed successfully"
+    }
+def on_serve(    host: Optional[str] = None,    port: Optional[int] = None,    **kwargs
+) -> Dict[str, Any]:
+    """
+    Handle serve command.        host: Host address to bind to        port: Port to listen on
+    Returns:
+        Dictionary with status and optional results
+    """
+    # Add your business logic here
+    print("Executing serve command")
+    return {
+        "status": "success",
+        "message": "serve completed successfully"
+    }

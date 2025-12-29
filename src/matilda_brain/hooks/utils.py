@@ -1,13 +1,9 @@
 #!/usr/bin/env python3
 """Hook handlers for TTT CLI."""
 
-import json as json_module
 import os
-import sys
-from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
-import rich_click as click
 from rich.console import Console
 
 console = Console()
@@ -16,7 +12,6 @@ import asyncio
 import logging
 from rich.logging import RichHandler
 
-import matilda_brain
 from matilda_brain.config.manager import ConfigManager
 
 def is_verbose_mode() -> bool:
@@ -41,10 +36,7 @@ def is_verbose_mode() -> bool:
 
 def setup_logging_level(verbose: bool = False, debug: bool = False, json_output: bool = False) -> None:
     """Setup logging level based on verbosity flags."""
-    import asyncio
-    import logging
 
-    from rich.logging import RichHandler
 
     # Set environment variables for verbosity to be used by other parts of the system
     if verbose:

@@ -2,20 +2,18 @@
 """Hook handlers for TTT CLI."""
 
 import json as json_module
-import os
 import sys
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, Optional
 
 import rich_click as click
 from rich.console import Console
 
 console = Console()
 
-import matilda_brain
 from matilda_brain.config.manager import ConfigManager
 from matilda_brain.session.manager import ChatSessionManager
-from .utils import setup_logging_level
+from .models import show_models_list
 
 def on_list(
     command_name: str, resource: Optional[str] = None, format: str = "table", **kwargs

@@ -24,7 +24,6 @@ Usage:
 
 import sys
 from pathlib import Path
-from typing import Any
 
 # Add central i18n to path for base_loader import
 _I18N_PATH = Path("/workspace/i18n")
@@ -35,7 +34,7 @@ try:
     from base_loader import I18nLoader, get_monorepo_locales_path
 except ImportError:
     # Fallback: define minimal loader inline if base not available
-    from typing import Callable, Dict, Optional
+    from typing import Callable, Dict
     import json
     import threading
     import os
@@ -54,8 +53,12 @@ except ImportError:
             self._lock = threading.Lock()
             self._lang = default_language
 
-        def set_language(self, lang: str): self._lang = lang; self._cache.clear()
-        def get_language(self) -> str: return os.environ.get("MATILDA_LANG", self._lang)[:2]
+        def set_language(self, lang: str):
+            self._lang = lang
+            self._cache.clear()
+
+        def get_language(self) -> str:
+            return os.environ.get("MATILDA_LANG", self._lang)[:2]
 
         def _load_domain(self, domain: str, lang: str = None) -> dict:
             lang = lang or self.get_language()

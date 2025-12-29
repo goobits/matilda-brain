@@ -4,7 +4,6 @@
 import json as json_module
 import os
 import sys
-from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 import rich_click as click
@@ -12,18 +11,14 @@ from rich.console import Console
 
 console = Console()
 
-import matilda_brain
-from matilda_brain.config.manager import ConfigManager
 from matilda_brain.core.api import ask as ttt_ask
+from matilda_brain.core.api import chat as ttt_chat
 from matilda_brain.core.api import stream as ttt_stream
 from matilda_brain.session.manager import ChatSessionManager
 from .utils import (
-    is_verbose_mode,
     setup_logging_level,
     resolve_model_alias,
-    parse_tools_arg,
     resolve_tools,
-    apply_coding_optimization,
 )
 
 def on_ask(
@@ -337,7 +332,6 @@ def on_chat(
         Creates an interactive loop that continues until user types /exit
         or interrupts with Ctrl+C. Session state is automatically saved.
     """
-    from matilda_brain.session.manager import ChatSessionManager
 
     # Setup logging
     setup_logging_level()
@@ -384,7 +378,7 @@ def on_chat(
     # Start chat loop
     try:
         # Use the chat API
-        with ttt.chat(**chat_kwargs) as api_chat_session:
+        with ttt_chat(**chat_kwargs) as api_chat_session:
             # Restore message history
             if messages:
                 api_chat_session.history = messages

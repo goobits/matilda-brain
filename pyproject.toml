@@ -23,7 +23,7 @@ dev = [ "pytest>=7.0", "pytest-asyncio", "pytest-cov", "pytest-timeout", "pytest
 publish = [ "build", "twine",]
 
 [project.scripts]
-brain = "goobits_matilda_brain.cli:cli_entry"
+brain = "matilda_brain.cli:cli_entry"
 
 [project.urls]
 Homepage = "https://github.com/goobits/ttt"
@@ -33,6 +33,10 @@ Homepage = "https://github.com/goobits/ttt"
 line-length = 120
 target-version = "py38"
 cache-dir = ".artifacts/cache/ruff"
+
+[tool.ruff.lint.per-file-ignores]
+# Hooks files use Console() before imports for initialization pattern
+"src/matilda_brain/hooks/*.py" = ["E402"]
 
 [tool.black]
 line-length = 120

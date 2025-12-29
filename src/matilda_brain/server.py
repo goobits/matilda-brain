@@ -12,16 +12,13 @@ Usage:
 """
 
 import argparse
-import asyncio
 import json
-import sys
-from typing import Any, Dict, List, Optional
+from typing import Optional
 
 from aiohttp import web
 from aiohttp.web import Request, Response, StreamResponse
 
 from .core.api import ask_async, stream_async
-from .session.chat import PersistentChatSession
 from .session.manager import ChatSessionManager
 from .utils import get_logger
 
@@ -38,10 +35,11 @@ def get_session_manager() -> ChatSessionManager:
         _session_manager = ChatSessionManager()
     return _session_manager
 
+
 # CORS headers for browser access
 CORS_HEADERS = {
     "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type, Authorization",
 }
 
@@ -90,15 +88,11 @@ async def handle_ask(request: Request) -> Response:
     try:
         data = await request.json()
     except json.JSONDecodeError:
-        return add_cors_headers(web.json_response(
-            {"error": "Invalid JSON"}, status=400
-        ))
+        return add_cors_headers(web.json_response({"error": "Invalid JSON"}, status=400))
 
     prompt = data.get("prompt")
     if not prompt:
-        return add_cors_headers(web.json_response(
-            {"error": "Missing 'prompt' field"}, status=400
-        ))
+        return add_cors_headers(web.json_response({"error": "Missing 'prompt' field"}, status=400))
 
     messages = data.get("messages", [])
     model = data.get("model")
@@ -147,9 +141,7 @@ async def handle_ask(request: Request) -> Response:
 
     except Exception as e:
         logger.error(f"Error processing request: {e}")
-        return add_cors_headers(web.json_response(
-            {"error": str(e)}, status=500
-        ))
+        return add_cors_headers(web.json_response({"error": str(e)}, status=500))
 
 
 async def handle_stream(request: Request) -> StreamResponse:
@@ -173,15 +165,11 @@ async def handle_stream(request: Request) -> StreamResponse:
     try:
         data = await request.json()
     except json.JSONDecodeError:
-        return add_cors_headers(web.json_response(
-            {"error": "Invalid JSON"}, status=400
-        ))
+        return add_cors_headers(web.json_response({"error": "Invalid JSON"}, status=400))
 
     prompt = data.get("prompt")
     if not prompt:
-        return add_cors_headers(web.json_response(
-            {"error": "Missing 'prompt' field"}, status=400
-        ))
+        return add_cors_headers(web.json_response({"error": "Missing 'prompt' field"}, status=400))
 
     response = StreamResponse(
         status=200,
@@ -190,7 +178,7 @@ async def handle_stream(request: Request) -> StreamResponse:
             "Cache-Control": "no-cache",
             "Connection": "keep-alive",
             **CORS_HEADERS,
-        }
+        },
     )
     await response.prepare(request)
 
@@ -206,7 +194,7 @@ async def handle_stream(request: Request) -> StreamResponse:
             await response.write(f"data: {event_data}\n\n".encode())
 
         # Send done event
-        await response.write(b"data: {\"done\": true}\n\n")
+        await response.write(b'data: {"done": true}\n\n')
 
     except Exception as e:
         logger.error(f"Error during streaming: {e}")
@@ -241,9 +229,7 @@ async def handle_list_sessions(request: Request) -> Response:
         return add_cors_headers(web.json_response(sessions))
     except Exception as e:
         logger.error(f"Error listing sessions: {e}")
-        return add_cors_headers(web.json_response(
-            {"error": str(e)}, status=500
-        ))
+        return add_cors_headers(web.json_response({"error": str(e)}, status=500))
 
 
 async def handle_get_session(request: Request) -> Response:
@@ -263,25 +249,19 @@ async def handle_get_session(request: Request) -> Response:
     """
     session_id = request.match_info.get("id")
     if not session_id:
-        return add_cors_headers(web.json_response(
-            {"error": "Missing session ID"}, status=400
-        ))
+        return add_cors_headers(web.json_response({"error": "Missing session ID"}, status=400))
 
     try:
         manager = get_session_manager()
         session = manager.load_session(session_id)
 
         if session is None:
-            return add_cors_headers(web.json_response(
-                {"error": f"Session '{session_id}' not found"}, status=404
-            ))
+            return add_cors_headers(web.json_response({"error": f"Session '{session_id}' not found"}, status=404))
 
         return add_cors_headers(web.json_response(session.to_dict()))
     except Exception as e:
         logger.error(f"Error loading session {session_id}: {e}")
-        return add_cors_headers(web.json_response(
-            {"error": str(e)}, status=500
-        ))
+        return add_cors_headers(web.json_response({"error": str(e)}, status=500))
 
 
 async def handle_delete_session(request: Request) -> Response:
@@ -295,28 +275,19 @@ async def handle_delete_session(request: Request) -> Response:
     """
     session_id = request.match_info.get("id")
     if not session_id:
-        return add_cors_headers(web.json_response(
-            {"error": "Missing session ID"}, status=400
-        ))
+        return add_cors_headers(web.json_response({"error": "Missing session ID"}, status=400))
 
     try:
         manager = get_session_manager()
         deleted = manager.delete_session(session_id)
 
         if deleted:
-            return add_cors_headers(web.json_response({
-                "status": "deleted",
-                "id": session_id
-            }))
+            return add_cors_headers(web.json_response({"status": "deleted", "id": session_id}))
         else:
-            return add_cors_headers(web.json_response(
-                {"error": f"Session '{session_id}' not found"}, status=404
-            ))
+            return add_cors_headers(web.json_response({"error": f"Session '{session_id}' not found"}, status=404))
     except Exception as e:
         logger.error(f"Error deleting session {session_id}: {e}")
-        return add_cors_headers(web.json_response(
-            {"error": str(e)}, status=500
-        ))
+        return add_cors_headers(web.json_response({"error": str(e)}, status=500))
 
 
 def create_app() -> web.Application:
@@ -345,16 +316,16 @@ def run_server(host: str = "0.0.0.0", port: int = 8772):
     print(f"Starting Brain server on http://{host}:{port}")
     print()
     print("AI Endpoints:")
-    print(f"  POST /ask    - One-shot AI request")
-    print(f"  POST /stream - Streaming AI request (SSE)")
+    print("  POST /ask    - One-shot AI request")
+    print("  POST /stream - Streaming AI request (SSE)")
     print()
     print("Session Endpoints:")
-    print(f"  GET    /api/sessions      - List all sessions")
-    print(f"  GET    /api/sessions/{{id}} - Get session by ID")
-    print(f"  DELETE /api/sessions/{{id}} - Delete session")
+    print("  GET    /api/sessions      - List all sessions")
+    print("  GET    /api/sessions/{id} - Get session by ID")
+    print("  DELETE /api/sessions/{id} - Delete session")
     print()
     print("Health:")
-    print(f"  GET  /health - Health check")
+    print("  GET  /health - Health check")
     print()
 
     web.run_app(app, host=host, port=port, print=None)

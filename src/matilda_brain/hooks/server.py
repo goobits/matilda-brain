@@ -2,20 +2,15 @@
 """Hook handlers for TTT CLI."""
 
 import json as json_module
-import os
 import sys
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Optional, Tuple
 
-import rich_click as click
 from rich.console import Console
 
 console = Console()
 
-import matilda_brain
-from matilda_brain.config.manager import ConfigManager
-from matilda_brain.core.api import ask as ttt_ask
-from .utils import setup_logging_level, resolve_model_alias
+from .utils import setup_logging_level, resolve_model_alias, parse_tools_arg
 
 def on_stateless(
     command_name: str,
@@ -44,7 +39,6 @@ def on_stateless(
         max_tokens: Maximum tokens in response
         **kwargs: Additional parameters
     """
-    import json as json_module
     from matilda_brain.stateless import execute_stateless, StatelessRequest
 
     # Setup logging (JSON mode to avoid noise)

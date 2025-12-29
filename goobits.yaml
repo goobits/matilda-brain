@@ -165,6 +165,10 @@ cli:
           type: "bool"
           desc: "Enable tool usage in chat"
           default: false
+        - name: "markdown"
+          type: "bool"
+          desc: "Render markdown in responses"
+          default: true
 
     stateless:
       desc: "Execute stateless AI request without session"
