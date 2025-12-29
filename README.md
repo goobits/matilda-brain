@@ -23,7 +23,7 @@ export OPENAI_API_KEY=sk-your-key
 
 # Use
 brain "What is Python?"
-brain "What time is it in Tokyo?" --tools "get_current_time"
+brain "What time is it in Tokyo?" --tools  # Enable built-in tools
 echo "print('Hello')" | brain "Explain this code"
 ```
 
@@ -50,11 +50,12 @@ with chat() as session:
 ```python
 from matilda_brain import ask
 from matilda_brain.tools import tool
+from matilda_brain.tools.builtins import web_search, write_file
 
-# Built-in tools
+# Built-in tools (pass function references)
 response = ask(
     "Search for Python tutorials and save results",
-    tools=["web_search", "write_file"]
+    tools=[web_search, write_file]
 )
 
 # Custom tools
@@ -76,10 +77,10 @@ brain config list
 brain config set models.default gpt-4
 brain config set openai_api_key sk-...
 
-# Model aliases
-brain -m @fast "Quick question"     # gpt-3.5-turbo
-brain -m @best "Complex analysis"   # gpt-4
-brain -m @claude "Explain this"     # claude-3-sonnet
+# Model aliases (via OpenRouter)
+brain -m @fast "Quick question"     # openrouter/openai/gpt-3.5-turbo
+brain -m @best "Complex analysis"   # openrouter/openai/gpt-4
+brain -m @claude "Explain this"     # openrouter/anthropic/claude-3-sonnet
 ```
 
 ## 📖 Documentation
