@@ -8,8 +8,8 @@ display_name: "Matilda Brain - Text to Text"
 description: "A powerful AI assistant for your terminal"
 
 # CLI generation configuration
-cli_output_path: "src/matilda_brain/cli.py"
-hooks_path: "src/matilda_brain/app_hooks.py"
+cli_path: "src/matilda_brain/cli.py"
+cli_hooks_path: "src/matilda_brain/app_hooks.py"
 
 python:
   minimum_version: "3.8"
