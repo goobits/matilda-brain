@@ -12,7 +12,7 @@ keywords = [ "ai", "assistant", "terminal", "llm", "chat", "gpt", "claude",]
 classifiers = [ "Development Status :: 4 - Beta", "Intended Audience :: Developers", "License :: OSI Approved :: MIT License", "Programming Language :: Python :: 3", "Programming Language :: Python :: 3.8", "Programming Language :: Python :: 3.9", "Programming Language :: Python :: 3.10", "Programming Language :: Python :: 3.11", "Programming Language :: Python :: 3.12", "Programming Language :: Python :: 3.13", "Topic :: Software Development :: Libraries :: Python Modules", "Topic :: Communications :: Chat", "Topic :: Scientific/Engineering :: Artificial Intelligence",]
 dependencies = [ "click>=8.0.0", "rich-click>=1.7.0", "rich>=13.0.0", "pydantic>=2.0.0", "httpx>=0.24.0", "litellm>=1.0.0", "pyyaml>=6.0.0", "bleach>=6.0.0", "validators>=0.20.0",]
 [[project.authors]]
-name = "TTT CLI Contributors"
+name = "Matilda Brain Contributors"
 
 [project.license]
 text = "MIT"
@@ -23,11 +23,11 @@ dev = [ "pytest>=7.0", "pytest-asyncio", "pytest-cov", "pytest-timeout", "pytest
 publish = [ "build", "twine",]
 
 [project.scripts]
-brain = "matilda_brain.cli:cli_entry"
+brain = "matilda_brain.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/goobits/ttt"
-"Bug Tracker" = "https://github.com/goobits/ttt/issues"
+Homepage = "https://github.com/goobits/matilda-brain"
+"Bug Tracker" = "https://github.com/goobits/matilda-brain/issues"
 
 [tool.ruff]
 line-length = 120

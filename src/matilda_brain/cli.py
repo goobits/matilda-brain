@@ -186,10 +186,10 @@ class CLIContext:
 def load_hooks():
     """Load user-defined hooks."""
     try:
-        import cli_hooks
-        return cli_hooks
+        from matilda_brain import app_hooks
+        return app_hooks
     except ImportError:
-        logger.warning("No cli_hooks.py found. Please create one with your command implementations.")
+        logger.warning("No app_hooks.py found. Please create one with your command implementations.")
         logger.warning("Example:")
         logger.warning("  def on_build(ctx, **kwargs):")
         logger.warning("      print('Build command implementation')")
@@ -383,7 +383,7 @@ def config_set(ctx, key, value):
         handle_error(e, ctx.verbose)
 
 @config_group.command('list')
-@click.option('', is_flag=True, default=False,              help="Include API keys in output")
+@click.option('--show-secrets', is_flag=True, default=False,              help="Include API keys in output")
 @click.pass_obj
 def config_list(ctx, show_secrets):
     """List all configuration"""
@@ -432,7 +432,7 @@ def tools_disable(ctx, tool_name):
         handle_error(e, ctx.verbose)
 
 @tools_group.command('list')
-@click.option('', is_flag=True, default=False,              help="Include disabled tools")
+@click.option('--show-disabled', is_flag=True, default=False,              help="Include disabled tools")
 @click.pass_obj
 def tools_list(ctx, show_disabled):
     """List all tools"""

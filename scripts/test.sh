@@ -173,7 +173,7 @@ run_unit_tests() {
     
     # Add coverage if requested
     if [[ "$COVERAGE" == true ]]; then
-        pytest_cmd="$pytest_cmd --cov=ttt --cov-report=term-missing --cov-report=html"
+        pytest_cmd="$pytest_cmd --cov=matilda_brain --cov-report=term-missing --cov-report=html"
         print_color $YELLOW "📊 Coverage report will be generated in htmlcov/"
         echo
     fi

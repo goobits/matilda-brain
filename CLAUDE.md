@@ -11,13 +11,13 @@ A professional CLI and Python library for interacting with multiple AI providers
 ## Essential Commands
 
 ```bash
-./setup.sh install --dev         # Development setup (required)
-./run-tests.sh                   # Run tests with smart rate limiting
-pytest -m unit                   # Unit tests (fast, no API calls)
-pytest -m integration --fast     # Integration tests without delays
-ruff check src/ tests/           # Lint code
-black src/ tests/                # Format code
-mypy src/matilda_brain/                    # Type check
+./scripts/setup.sh install --dev  # Development setup (required)
+./scripts/test.sh                 # Run tests with smart rate limiting
+pytest -m unit                    # Unit tests (fast, no API calls)
+pytest -m integration --fast      # Integration tests without delays
+ruff check src/ tests/            # Lint code
+black src/ tests/                 # Format code
+mypy src/matilda_brain/           # Type check
 pytest tests/path/to/test.py::test_name -v  # Run single test
 ```
 
@@ -35,8 +35,8 @@ pytest tests/path/to/test.py::test_name -v  # Run single test
 3. **Router** (`src/matilda_brain/core/routing.py`): Manages backend selection and fallbacks
 4. **Tools** (`src/matilda_brain/tools/`): `@tool` decorator enables function calling
 5. **Config** (`src/matilda_brain/config/`): Hierarchical configuration (defaults → file → env → runtime)
-6. **CLI** (`src/matilda_brain/cli.py`): Generated CLI interface (1,492 lines) - **DO NOT EDIT DIRECTLY**
-7. **Hooks** (`src/matilda_brain/cli_handlers.py`): Business logic implementation (1,396 lines)
+6. **CLI** (`src/matilda_brain/cli.py`): Generated CLI interface - **DO NOT EDIT DIRECTLY**
+7. **Hooks** (`src/matilda_brain/app_hooks.py`): Business logic implementation
 
 ### Self-Hosting Pattern
 
@@ -47,9 +47,9 @@ goobits build  # Regenerates src/matilda_brain/cli.py and setup.sh
 
 ### Critical Patterns
 
-- **Generated Files**: `cli.py` is auto-generated from `goobits.yaml` - modify hooks in `cli_handlers.py`
-- **Hook System**: All CLI business logic lives in `cli_handlers.py`, not the generated CLI
-- **Smart Rate Limiting**: `./run-tests.sh` includes provider-specific delays (OpenRouter: 1s, OpenAI: 0.5s)
+- **Generated Files**: `cli.py` is auto-generated from `goobits.yaml` - modify hooks in `app_hooks.py`
+- **Hook System**: All CLI business logic lives in `app_hooks.py`, not the generated CLI
+- **Smart Rate Limiting**: `./scripts/test.sh` includes provider-specific delays (OpenRouter: 1s, OpenAI: 0.5s)
 - **Dual Backend Architecture**: Automatic routing Cloud (LiteLLM) ↔ Local (Ollama)
 - **Tool Schema Auto-generation**: Python type hints → OpenAI function calling schemas
 - **Provider Auto-detection**: Model names automatically route to correct backend
@@ -57,7 +57,7 @@ goobits build  # Regenerates src/matilda_brain/cli.py and setup.sh
 
 ### Testing Notes
 
-- **Smart Testing**: `./run-tests.sh` with intelligent rate limiting is the primary test runner
+- **Smart Testing**: `./scripts/test.sh` with intelligent rate limiting is the primary test runner
 - **Unit tests**: Use mocked responses (no API costs, fast)
 - **Integration tests**: Real API calls with rate limiting (`conftest.py`)
 - **Fast mode**: `pytest --fast` bypasses rate limiting for development
