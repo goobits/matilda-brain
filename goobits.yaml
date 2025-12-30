@@ -23,6 +23,7 @@ dependencies:
 installation:
   pypi_name: "goobits-matilda-brain"
   development_path: "."
+  setup_path: "scripts/setup.sh"  # Output to scripts directory
   extras:
     python: ["local"]  # For local backend with httpx
     apt: ["git", "pipx", "curl"]  # Required: git, pipx; Optional: curl for Ollama installation
