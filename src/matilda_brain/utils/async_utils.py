@@ -31,50 +31,54 @@ def _start_background_loop() -> None:
     """
     global _background_loop, _background_thread, _executor
 
-    if _background_loop is not None:
-        return  # Already started
+    # Acquire lock BEFORE checking state to prevent race condition
+    with _lock:
+        if _background_loop is not None:
+            return  # Already started
 
-    def run_loop() -> None:
-        """Internal function to run the event loop in the background thread."""
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
+        def run_loop() -> None:
+            """Internal function to run the event loop in the background thread."""
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
 
-        # Set up custom exception handler to suppress aiohttp task warnings
-        def custom_exception_handler(loop: asyncio.AbstractEventLoop, context: dict) -> None:
-            """Custom exception handler that suppresses specific task destruction warnings.
+            # Set up custom exception handler to suppress aiohttp task warnings
+            def custom_exception_handler(loop: asyncio.AbstractEventLoop, context: dict) -> None:
+                """Custom exception handler that suppresses specific task destruction warnings.
 
-            Args:
-                loop: The event loop where the exception occurred
-                context: Exception context containing message and exception details
-            """
-            # Suppress specific aiohttp task destruction warnings
-            message = context.get("message", "")
-            exception = context.get("exception")
-            if "Task was destroyed but it is pending" in message or (
-                exception and "Task was destroyed but it is pending" in str(exception)
-            ):
-                return  # Ignore this specific error
-            # For other exceptions, use default behavior
-            loop.default_exception_handler(context)
+                Args:
+                    loop: The event loop where the exception occurred
+                    context: Exception context containing message and exception details
+                """
+                # Suppress specific aiohttp task destruction warnings
+                message = context.get("message", "")
+                exception = context.get("exception")
+                if "Task was destroyed but it is pending" in message or (
+                    exception and "Task was destroyed but it is pending" in str(exception)
+                ):
+                    return  # Ignore this specific error
+                # For other exceptions, use default behavior
+                loop.default_exception_handler(context)
 
-        loop.set_exception_handler(custom_exception_handler)
+            loop.set_exception_handler(custom_exception_handler)
 
-        global _background_loop
-        _background_loop = loop
-        try:
-            loop.run_forever()
-        finally:
-            loop.close()
+            global _background_loop
+            _background_loop = loop
+            try:
+                loop.run_forever()
+            finally:
+                loop.close()
 
-    _background_thread = threading.Thread(target=run_loop, daemon=True)
-    _background_thread.start()
+        _background_thread = threading.Thread(target=run_loop, daemon=True)
+        _background_thread.start()
 
-    # Wait for the loop to be ready
+    # Wait for the loop to be ready (outside lock to avoid deadlock)
     while _background_loop is None:
         pass
 
     # Create a thread pool executor for non-async operations
-    _executor = concurrent.futures.ThreadPoolExecutor(max_workers=4)
+    with _lock:
+        if _executor is None:
+            _executor = concurrent.futures.ThreadPoolExecutor(max_workers=4)
 
 
 def _stop_background_loop() -> None:

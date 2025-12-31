@@ -156,19 +156,30 @@ class TestPersistentChatSession:
         assert data["metadata"]["session_id"] == "save_test"
 
     def test_save_pickle(self, tmp_path):
-        """Test saving session as pickle."""
+        """Test that pickle format is deprecated and saves as JSON instead."""
+        import warnings
+
         session = PersistentChatSession(system="Test system", session_id="pickle_test")
 
-        # Save as pickle
+        # Save with pickle format (should trigger deprecation warning and save as JSON)
         save_path = tmp_path / "test_session.pkl"
-        result_path = session.save(save_path, format="pickle")
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            result_path = session.save(save_path, format="pickle")
+            # Verify deprecation warning was issued
+            assert len(w) == 1
+            assert issubclass(w[0].category, DeprecationWarning)
+            assert "pickle" in str(w[0].message).lower()
 
-        assert result_path == save_path
-        assert save_path.exists()
+        # Result path should be changed to .json
+        expected_path = tmp_path / "test_session.json"
+        assert result_path == expected_path
+        assert expected_path.exists()
+        assert not save_path.exists()  # Original .pkl path should not exist
 
-        # Verify it's a valid pickle file
-        with open(save_path, "rb") as f:
-            data = pickle.load(f)
+        # Verify it's a valid JSON file
+        with open(expected_path, "r") as f:
+            data = json.load(f)
 
         assert data["version"] == "1.0"
         assert data["metadata"]["session_id"] == "pickle_test"
@@ -213,6 +224,8 @@ class TestPersistentChatSession:
         """Test auto-detecting file format on load."""
         session = PersistentChatSession(session_id="auto_test")
 
+        import warnings
+
         # Save as JSON with .json extension
         json_path = tmp_path / "session.json"
         session.save(json_path)
@@ -221,12 +234,17 @@ class TestPersistentChatSession:
         loaded = PersistentChatSession.load(json_path)
         assert loaded.metadata["session_id"] == "auto_test"
 
-        # Save as pickle with .pkl extension
+        # Save with pickle format (deprecated - converts to JSON)
         pkl_path = tmp_path / "session.pkl"
-        session.save(pkl_path, format="pickle")
+        with warnings.catch_warnings(record=True):
+            warnings.simplefilter("always")
+            result_path = session.save(pkl_path, format="pickle")
 
-        # Load without specifying format
-        loaded = PersistentChatSession.load(pkl_path)
+        # The result should be a .json file (extension is changed)
+        assert result_path.suffix == ".json"
+
+        # Load the resulting JSON file
+        loaded = PersistentChatSession.load(result_path)
         assert loaded.metadata["session_id"] == "auto_test"
 
     def test_get_summary(self):

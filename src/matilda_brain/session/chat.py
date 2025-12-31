@@ -2,7 +2,7 @@
 
 import asyncio
 import json
-import pickle
+import warnings
 from datetime import datetime
 from pathlib import Path
 from typing import Any, AsyncIterator, Dict, Iterator, List, Optional, Union
@@ -318,12 +318,27 @@ class PersistentChatSession:
 
         Args:
             path: File path to save to
-            format: Save format - "json" or "pickle"
+            format: Save format - only "json" is supported (pickle removed for security)
 
         Returns:
             Path where the session was saved
         """
         path = Path(path)
+
+        # Warn if pickle format requested (deprecated for security)
+        if format == "pickle":
+            warnings.warn(
+                "Pickle format is deprecated due to security concerns. Using JSON instead.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            format = "json"
+            # Change extension if needed
+            if path.suffix in [".pkl", ".pickle"]:
+                path = path.with_suffix(".json")
+
+        if format != "json":
+            raise InvalidParameterError("format", format, "Only 'json' format is supported")
 
         # Update metadata with current message count
         self.metadata["message_count"] = len(self.history)
@@ -351,38 +366,19 @@ class PersistentChatSession:
             "kwargs": self.kwargs,
         }
 
-        if format == "json":
-            try:
-                # JSON format - human readable
-                with open(path, "w") as f:
-                    json.dump(session_data, f, indent=2, default=str)
-                logger.info(f"Saved session to {path} (JSON format)")
-            except PermissionError as e:
-                raise SessionSaveError(str(path), f"Permission denied: {e}") from e
-            except OSError as e:
-                raise SessionSaveError(str(path), f"OS error: {e}") from e
-            except (TypeError, ValueError) as e:
-                raise SessionSaveError(str(path), f"JSON serialization error: {e}") from e
-            except Exception as e:
-                raise SessionSaveError(str(path), str(e)) from e
-
-        elif format == "pickle":
-            try:
-                # Pickle format - preserves all object types
-                with open(path, "wb") as f:
-                    pickle.dump(session_data, f)
-                logger.info(f"Saved session to {path} (pickle format)")
-            except PermissionError as e:
-                raise SessionSaveError(str(path), f"Permission denied: {e}") from e
-            except OSError as e:
-                raise SessionSaveError(str(path), f"OS error: {e}") from e
-            except pickle.PicklingError as e:
-                raise SessionSaveError(str(path), f"Pickle serialization error: {e}") from e
-            except Exception as e:
-                raise SessionSaveError(str(path), str(e)) from e
-
-        else:
-            raise InvalidParameterError("format", format, "Must be 'json' or 'pickle'")
+        try:
+            # JSON format - human readable and secure
+            with open(path, "w") as f:
+                json.dump(session_data, f, indent=2, default=str)
+            logger.info(f"Saved session to {path} (JSON format)")
+        except PermissionError as e:
+            raise SessionSaveError(str(path), f"Permission denied: {e}") from e
+        except OSError as e:
+            raise SessionSaveError(str(path), f"OS error: {e}") from e
+        except (TypeError, ValueError) as e:
+            raise SessionSaveError(str(path), f"JSON serialization error: {e}") from e
+        except Exception as e:
+            raise SessionSaveError(str(path), str(e)) from e
 
         return path
 
@@ -393,7 +389,7 @@ class PersistentChatSession:
 
         Args:
             path: File path to load from
-            format: Load format - "json" or "pickle" (auto-detected if None)
+            format: Load format - "json" preferred, "pickle" deprecated but supported for migration
 
         Returns:
             Loaded PersistentChatSession instance
@@ -415,14 +411,21 @@ class PersistentChatSession:
                 with open(path) as f:
                     session_data = json.load(f)
             else:
+                # Pickle support for legacy files - warn and suggest migration
+                warnings.warn(
+                    f"Loading pickle file '{path}'. Pickle format is deprecated for security reasons. "
+                    "Please save this session as JSON to migrate.",
+                    DeprecationWarning,
+                    stacklevel=2,
+                )
+                import pickle  # Import only when needed for legacy support
+
                 with open(path, "rb") as f:
                     session_data = pickle.load(f)
         except FileNotFoundError:
             raise SessionLoadError(str(path), "File not found") from None
         except json.JSONDecodeError as e:
             raise SessionLoadError(str(path), f"Invalid JSON: {e}") from e
-        except pickle.UnpicklingError as e:
-            raise SessionLoadError(str(path), f"Invalid pickle data: {e}") from e
         except Exception as e:
             raise SessionLoadError(str(path), str(e)) from e
 
