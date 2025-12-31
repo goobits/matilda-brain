@@ -74,8 +74,8 @@ class LocalBackend(BaseBackend):
             # Use run_async to handle the event loop properly
             result = run_async(check())
             return bool(result)
-        except Exception as e:
-            logger.debug(f"Ollama availability check failed: {e}")
+        except Exception:
+            logger.exception("Ollama availability check failed")
             return False
 
     async def ask(
@@ -184,7 +184,7 @@ class LocalBackend(BaseBackend):
         except httpx.TimeoutException:
             raise BackendTimeoutError(self.name, self.timeout) from None
         except Exception as e:
-            logger.error(f"Ollama request failed: {str(e)}")
+            logger.exception("Ollama request failed")
             raise BackendConnectionError(self.name, e) from e
 
     async def astream(
@@ -284,7 +284,7 @@ class LocalBackend(BaseBackend):
         except httpx.TimeoutException:
             raise BackendTimeoutError(self.name, self.timeout) from None
         except Exception as e:
-            logger.error(f"Streaming request failed: {str(e)}")
+            logger.exception("Streaming request failed")
             raise BackendConnectionError(self.name, e) from e
 
     async def models(self) -> List[str]:
@@ -314,7 +314,7 @@ class LocalBackend(BaseBackend):
             model_list_timeout = get_config_value("constants.timeouts.model_list", 10)
             raise BackendTimeoutError(self.name, float(model_list_timeout)) from None
         except Exception as e:
-            logger.error(f"Failed to fetch models: {str(e)}")
+            logger.exception("Failed to fetch models")
             raise BackendConnectionError(self.name, e) from e
 
     def list_models(self, detailed: bool = False) -> List[Union[str, Dict[str, Any]]]:
@@ -370,6 +370,7 @@ class LocalBackend(BaseBackend):
             }
 
         except Exception as e:
+            logger.exception("Failed to get backend status")
             return {
                 "backend": self.name,
                 "base_url": self.base_url,

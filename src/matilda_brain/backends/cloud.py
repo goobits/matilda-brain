@@ -208,8 +208,8 @@ class CloudBackend(BaseBackend):
                 get_model_suggestions(used_model, available_models)
             except (ImportError, AttributeError, KeyError) as e:
                 logger.warning(f"Could not load model suggestions: {e}")
-            except Exception as e:
-                logger.warning(f"Unexpected error loading model suggestions: {e}")
+            except Exception:
+                logger.exception("Unexpected error loading model suggestions")
 
             # Create enhanced ModelNotFoundError with suggestions
             raise ModelNotFoundError(used_model, self.name) from e
@@ -649,6 +649,7 @@ class CloudBackend(BaseBackend):
                                 info["test_result"] = "failed"
                                 info["test_error"] = str(test_response.error) if test_response else "No response"
                     except Exception as e:
+                        logger.exception(f"Connection test failed for provider {provider}")
                         info["test_result"] = "failed"
                         info["test_error"] = str(e)
 

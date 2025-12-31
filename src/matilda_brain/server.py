@@ -140,7 +140,7 @@ async def handle_ask(request: Request) -> Response:
         return add_cors_headers(web.json_response(result))
 
     except Exception as e:
-        logger.error(f"Error processing request: {e}")
+        logger.exception("Error processing request")
         return add_cors_headers(web.json_response({"error": str(e)}, status=500))
 
 
@@ -197,7 +197,7 @@ async def handle_stream(request: Request) -> StreamResponse:
         await response.write(b'data: {"done": true}\n\n')
 
     except Exception as e:
-        logger.error(f"Error during streaming: {e}")
+        logger.exception("Error during streaming")
         error_data = json.dumps({"error": str(e)})
         await response.write(f"data: {error_data}\n\n".encode())
 
@@ -228,7 +228,7 @@ async def handle_list_sessions(request: Request) -> Response:
         sessions = manager.list_sessions()
         return add_cors_headers(web.json_response(sessions))
     except Exception as e:
-        logger.error(f"Error listing sessions: {e}")
+        logger.exception("Error listing sessions")
         return add_cors_headers(web.json_response({"error": str(e)}, status=500))
 
 
@@ -260,7 +260,7 @@ async def handle_get_session(request: Request) -> Response:
 
         return add_cors_headers(web.json_response(session.to_dict()))
     except Exception as e:
-        logger.error(f"Error loading session {session_id}: {e}")
+        logger.exception(f"Error loading session {session_id}")
         return add_cors_headers(web.json_response({"error": str(e)}, status=500))
 
 
@@ -286,7 +286,7 @@ async def handle_delete_session(request: Request) -> Response:
         else:
             return add_cors_headers(web.json_response({"error": f"Session '{session_id}' not found"}, status=404))
     except Exception as e:
-        logger.error(f"Error deleting session {session_id}: {e}")
+        logger.exception(f"Error deleting session {session_id}")
         return add_cors_headers(web.json_response({"error": str(e)}, status=500))
 
 

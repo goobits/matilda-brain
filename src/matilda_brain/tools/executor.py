@@ -110,7 +110,7 @@ class ToolExecutor:
             )
         except Exception as e:
             self.execution_stats["failed_calls"] += 1
-            self.logger.error(f"Unexpected error executing {tool_name}: {e}")
+            self.logger.exception(f"Unexpected error executing {tool_name}")
             return ToolCall(
                 id=call_id,
                 name=tool_name,
@@ -241,8 +241,8 @@ class ToolExecutor:
                     result=result,
                 )
 
-            except Exception as e:
-                self.logger.warning(f"Fallback {suggestion.tool_name} also failed: {e}")
+            except Exception:
+                self.logger.exception(f"Fallback {suggestion.tool_name} also failed")
                 continue
 
         return None
@@ -385,8 +385,8 @@ class ToolExecutor:
                     unregister_tool(tool_name)
                 except (ImportError, AttributeError, KeyError) as e:
                     logger.warning(f"Could not unregister temporary tool {tool_name}: {e}")
-                except Exception as e:
-                    logger.warning(f"Unexpected error unregistering tool {tool_name}: {e}")
+                except Exception:
+                    logger.exception(f"Unexpected error unregistering tool {tool_name}")
 
 
 # Global executor instance

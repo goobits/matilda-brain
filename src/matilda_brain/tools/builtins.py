@@ -426,8 +426,10 @@ def get_current_time(timezone: str = "UTC", format: str = "%Y-%m-%d %H:%M:%S %Z"
     except zoneinfo.ZoneInfoNotFoundError:
         available = ", ".join(sorted(zoneinfo.available_timezones())[:10])
         return f"Error: Unknown timezone '{timezone}'. Examples: {available}..."
-    except Exception as e:
-        return f"Error getting time: {str(e)}"
+    except Exception:
+        from ..utils import get_logger
+        get_logger(__name__).exception("Error getting time")
+        return "Error getting time - see logs for details"
 
 
 @tool(category="web", description="Make HTTP requests to APIs or websites")
@@ -528,8 +530,10 @@ def http_request(
         return f"HTTP Error {e.code}: {e.reason}"
     except urllib.error.URLError as e:
         return f"Network error: {str(e)}"
-    except Exception as e:
-        return f"Error making request: {str(e)}"
+    except Exception:
+        from ..utils import get_logger
+        get_logger(__name__).exception("Error making HTTP request")
+        return "Error making request - see logs for details"
 
 
 class MathEvaluator(ast.NodeVisitor):
@@ -682,8 +686,10 @@ def calculate(expression: str) -> str:
         return "Error: Division by zero"
     except ValueError as e:
         return f"Error: {str(e)}"
-    except Exception as e:
-        return f"Error evaluating expression: {str(e)}"
+    except Exception:
+        from ..utils import get_logger
+        get_logger(__name__).exception("Error evaluating expression")
+        return "Error evaluating expression - see logs for details"
 
 
 @tool(category="file", description="List files and directories in a given path")
@@ -773,8 +779,10 @@ def list_directory(
 
     except PermissionError:
         return f"Error: Permission denied: {path}"
-    except Exception as e:
-        return f"Error listing directory: {str(e)}"
+    except Exception:
+        from ..utils import get_logger
+        get_logger(__name__).exception("Error listing directory")
+        return "Error listing directory - see logs for details"
 
 
 def load_builtin_tools() -> None:

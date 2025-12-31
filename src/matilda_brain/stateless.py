@@ -37,8 +37,27 @@ class StatelessRequest:
     timeout: int = 30
 
 
-def execute_stateless(req: StatelessRequest) -> str:
-    """Execute a stateless TTT request and return Matilda Protocol JSON.
+@dataclass
+class StatelessResponse:
+    """Response from stateless TTT execution.
+
+    Attributes:
+        content: The response content/text
+        tool_calls: List of tool calls requested by the model (optional)
+        finish_reason: Reason for completion (default: "stop")
+        usage: Token usage statistics (optional)
+        model: Model that generated the response (optional)
+    """
+
+    content: str
+    tool_calls: Optional[List[Dict]] = None
+    finish_reason: str = "stop"
+    usage: Optional[Dict] = None
+    model: Optional[str] = None
+
+
+def execute_stateless(req: StatelessRequest) -> StatelessResponse:
+    """Execute a stateless TTT request and return a StatelessResponse.
 
     This function processes a single request without creating or persisting
     any session state. It builds messages from system prompt, history, and
@@ -48,7 +67,7 @@ def execute_stateless(req: StatelessRequest) -> str:
         req: StatelessRequest with all parameters
 
     Returns:
-        JSON string complying with Matilda Protocol (v1)
+        StatelessResponse with content, tool_calls, finish_reason, usage, model
     """
     logger.debug(
         f"Stateless request: message={req.message[:50]}..., "
@@ -93,43 +112,72 @@ def execute_stateless(req: StatelessRequest) -> str:
     try:
         # Execute the request
         ai_response = run_async(_execute())
-        
+
+        # Convert AIResponse to StatelessResponse
+        return StatelessResponse(
+            content=str(ai_response.content) if ai_response.content else "",
+            tool_calls=ai_response.tool_calls,
+            finish_reason=ai_response.finish_reason or "stop",
+            usage=ai_response.usage,
+            model=resolved_model,
+        )
+
+    except Exception as e:
+        logger.exception("Error during stateless execution")
+        raise
+
+
+def execute_stateless_protocol(req: StatelessRequest) -> str:
+    """Execute a stateless TTT request and return Matilda Protocol JSON.
+
+    This is a wrapper around execute_stateless that converts the response
+    to Matilda Protocol JSON format for server/CLI usage.
+
+    Args:
+        req: StatelessRequest with all parameters
+
+    Returns:
+        JSON string complying with Matilda Protocol (v1)
+    """
+    try:
+        response = execute_stateless(req)
+
         # Convert to Matilda Protocol Message
-        if ai_response.tool_calls:
+        if response.tool_calls:
             # Handle tool call as Proposal
             # For simplicity, we take the first tool call
-            tool_call = ai_response.tool_calls[0]
-            
+            tool_call = response.tool_calls[0]
+
             # Function/Tool name usually in 'function' key or 'name'
             tool_name = tool_call.get("name") or tool_call.get("function", {}).get("name", "unknown")
             args = tool_call.get("arguments") or tool_call.get("function", {}).get("arguments", "{}")
-            
+
             if isinstance(args, str):
                 try:
                     args = json.loads(args)
                 except json.JSONDecodeError:
                     args = {"raw": args}
-            
+
             proposal = Proposal(
-                tool_name="system", # Grouping under 'system' capability for now
+                tool_name="system",  # Grouping under 'system' capability for now
                 action_name=tool_name,
                 params=args,
-                risk_level=RiskLevel.MEDIUM, # Default to Medium
+                risk_level=RiskLevel.MEDIUM,  # Default to Medium
                 reasoning="Agent requested this action."
             )
-            
+
             msg = Message.proposal_msg(proposal)
-            msg.metadata["model"] = resolved_model
+            msg.metadata["model"] = response.model
             return msg.to_protocol_json()
-            
+
         else:
             # Standard Text Response
-            msg = Message.assistant(str(ai_response.content))
-            msg.metadata["model"] = resolved_model
+            msg = Message.assistant(response.content)
+            msg.metadata["model"] = response.model
             return msg.to_protocol_json()
 
     except Exception as e:
-        logger.error(f"Error during stateless execution: {e}")
+        logger.exception("Error during stateless protocol execution")
         # Return Protocol Error
         error_msg = Message(
             role=Role.SYSTEM,

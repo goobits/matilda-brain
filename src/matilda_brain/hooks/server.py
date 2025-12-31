@@ -39,7 +39,7 @@ def on_stateless(
         max_tokens: Maximum tokens in response
         **kwargs: Additional parameters
     """
-    from matilda_brain.stateless import execute_stateless, StatelessRequest
+    from matilda_brain.stateless import execute_stateless_protocol, StatelessRequest
 
     # Setup logging (JSON mode to avoid noise)
     setup_logging_level(json_output=True)
@@ -123,7 +123,7 @@ def on_stateless(
     # Execute stateless request
     try:
         # Returns JSON string (Matilda Protocol)
-        result_json = execute_stateless(req)
+        result_json = execute_stateless_protocol(req)
         print(result_json)
 
     except Exception as e:

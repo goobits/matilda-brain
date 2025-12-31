@@ -2,7 +2,6 @@
 """Hook handlers for TTT CLI."""
 
 import json as json_module
-import os
 import sys
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -15,6 +14,7 @@ from matilda_brain.core.api import ask as ttt_ask
 from matilda_brain.core.api import chat as ttt_chat
 from matilda_brain.core.api import stream as ttt_stream
 from matilda_brain.session.manager import ChatSessionManager
+from .error_handlers import handle_error
 from .utils import (
     setup_logging_level,
     resolve_model_alias,
@@ -176,142 +176,13 @@ def on_ask(
             response = ttt_ask(prompt_text, **api_params)
             click.echo(str(response).strip())
     except Exception as e:
-        # Import exception types for better error handling
-        from matilda_brain.core.exceptions import (
-            APIKeyError,
-            BackendConnectionError,
-            BackendTimeoutError,
-            ModelNotFoundError,
-            RateLimitError,
-            QuotaExceededError,
+        handle_error(
+            error=e,
+            api_params=api_params,
+            json_mode=json,
+            debug=kwargs.get("debug", False),
+            context="ask",
         )
-        from matilda_brain.utils.smart_suggestions import (
-            suggest_model_alternatives,
-            suggest_provider_alternatives,
-            suggest_troubleshooting_steps,
-        )
-
-        if json:
-            # For JSON mode, return structured error
-            error_output = {
-                "error": str(e),
-                "error_type": e.__class__.__name__,
-                "model": api_params.get("model"),
-                "parameters": api_params,
-            }
-            click.echo(json_module.dumps(error_output, indent=2), err=True)
-        else:
-            # Format error messages with smart suggestions
-            debug_mode = kwargs.get("debug", False) or os.getenv("TTT_DEBUG", "").lower() == "true"
-
-            if isinstance(e, APIKeyError):
-                click.echo(f"❌ API key error: {e.message}", err=True)
-                # Suggest provider alternatives
-                provider_suggestions = suggest_provider_alternatives(str(e), api_params.get("model"))
-                if provider_suggestions:
-                    click.echo("\n[cyan]💡 Try these alternatives:[/cyan]", err=True)
-                    for suggestion in provider_suggestions[:3]:
-                        click.echo(f"   • [bold]{suggestion['provider']}[/bold]: {suggestion['description']}", err=True)
-                        click.echo(f"     Example: {suggestion['example']}", err=True)
-
-            elif isinstance(e, BackendConnectionError):
-                # Check for specific patterns in the error message
-                error_msg = str(e.details.get("original_error", str(e)))
-                if "Model temporarily overloaded" in error_msg or "Service temporarily unavailable" in error_msg:
-                    click.echo(f"⚠️  {error_msg}", err=True)
-                else:
-                    click.echo(f"❌ Connection error: {e.message}", err=True)
-
-                # Suggest alternatives
-                provider_suggestions = suggest_provider_alternatives(error_msg, api_params.get("model"))
-                if provider_suggestions:
-                    click.echo("\n[cyan]💡 Try these alternatives:[/cyan]", err=True)
-                    for suggestion in provider_suggestions[:2]:
-                        click.echo(f"   • [bold]{suggestion['provider']}[/bold]: {suggestion['description']}", err=True)
-                        click.echo(f"     {suggestion['example']}", err=True)
-
-                # Show troubleshooting steps
-                steps = suggest_troubleshooting_steps("connection", error_msg)
-                if steps:
-                    click.echo("\n[dim]Troubleshooting steps:[/dim]", err=True)
-                    for i, step in enumerate(steps[:3], 1):
-                        click.echo(f"   {i}. {step}", err=True)
-
-                # Show full traceback in debug mode
-                debug_mode_local = kwargs.get("debug", False) or os.getenv("TTT_DEBUG", "").lower() == "true"
-                if debug_mode_local:
-                    import traceback
-
-                    traceback.print_exc()
-
-            elif isinstance(e, BackendTimeoutError):
-                click.echo(f"⏱️  Request timed out after {e.details.get('timeout', 'unknown')}s", err=True)
-                steps = suggest_troubleshooting_steps("timeout", str(e))
-                if steps:
-                    click.echo("\n[dim]Try these solutions:[/dim]", err=True)
-                    for i, step in enumerate(steps[:3], 1):
-                        click.echo(f"   {i}. {step}", err=True)
-
-            elif isinstance(e, ModelNotFoundError):
-                click.echo(f"❌ Model not found: {e.message}", err=True)
-
-                # Suggest model alternatives
-                failed_model = e.details.get("model", "")
-                if failed_model:
-                    model_suggestions = suggest_model_alternatives(failed_model, limit=3)
-                    if model_suggestions:
-                        click.echo("\n[cyan]💡 Similar models you can try:[/cyan]", err=True)
-                        for model_suggestion in model_suggestions:
-                            available = model_suggestion.get("available", False)
-                            status = "[green]✓[/green]" if available else "[red]✗[/red]"
-                            alias = str(model_suggestion.get("alias", ""))
-                            description = str(model_suggestion.get("description", ""))
-                            click.echo(f"   {status} [bold]{alias}[/bold]  {description}", err=True)
-
-                click.echo("\n[dim]Run 'ttt models' to see all available models[/dim]", err=True)
-
-            elif isinstance(e, RateLimitError):
-                click.echo(f"⚠️  Rate limit exceeded: {e.message}", err=True)
-                if e.details.get("retry_after"):
-                    click.echo(f"  Retry after {e.details['retry_after']} seconds", err=True)
-
-                # Suggest alternatives
-                provider_suggestions = suggest_provider_alternatives(str(e))
-                if provider_suggestions:
-                    click.echo("\n[cyan]💡 Try a different provider:[/cyan]", err=True)
-                    for suggestion in provider_suggestions[:2]:
-                        if suggestion["provider"] != e.details.get("provider"):
-                            click.echo(
-                                f"   • [bold]{suggestion['provider']}[/bold]: {suggestion['description']}", err=True
-                            )
-
-            elif isinstance(e, QuotaExceededError):
-                click.echo(f"❌ Quota exceeded: {e.message}", err=True)
-                # Suggest alternatives
-                provider_suggestions = suggest_provider_alternatives(str(e))
-                if provider_suggestions:
-                    click.echo("\n[cyan]💡 Alternative providers:[/cyan]", err=True)
-                    for suggestion in provider_suggestions[:2]:
-                        click.echo(f"   • [bold]{suggestion['provider']}[/bold]: {suggestion['description']}", err=True)
-
-            else:
-                # For other exceptions, show simplified message
-                click.echo(f"Error: {str(e)}", err=True)
-
-                # Try to provide generic troubleshooting steps
-                steps = suggest_troubleshooting_steps("generic", str(e))
-                if steps:
-                    click.echo("\n[dim]Troubleshooting steps:[/dim]", err=True)
-                    for i, step in enumerate(steps[:3], 1):
-                        click.echo(f"   {i}. {step}", err=True)
-
-            # Show full traceback in debug mode
-            if debug_mode:
-                import traceback
-
-                traceback.print_exc()
-
-        sys.exit(1)
 
 
 
@@ -457,67 +328,13 @@ def on_chat(
                     )
 
                 except Exception as e:
-                    # Import exception types for better error handling
-                    from matilda_brain.core.exceptions import (
-                        APIKeyError,
-                        BackendConnectionError,
-                        BackendTimeoutError,
-                        ModelNotFoundError,
-                        RateLimitError,
-                        QuotaExceededError,
+                    handle_error(
+                        error=e,
+                        api_params=chat_kwargs,
+                        json_mode=False,
+                        debug=kwargs.get("debug", False),
+                        context="chat",
                     )
-                    from matilda_brain.utils.smart_suggestions import suggest_provider_alternatives
-
-                    # Format error messages with smart suggestions for chat
-                    if isinstance(e, APIKeyError):
-                        console.print(f"[red]❌ API key error: {e.message}[/red]")
-                        # Suggest alternatives inline
-                        provider_suggestions = suggest_provider_alternatives(str(e))
-                        if provider_suggestions:
-                            console.print("[cyan]💡 Try these alternatives:[/cyan]")
-                            for suggestion in provider_suggestions[:2]:
-                                console.print(
-                                    f"   • [bold]{suggestion['provider']}[/bold]: {suggestion['description']}"
-                                )
-                    elif isinstance(e, BackendConnectionError):
-                        # Check for specific patterns in the error message
-                        error_msg = str(e.details.get("original_error", str(e)))
-                        if "Model temporarily overloaded" in error_msg:
-                            console.print(f"[yellow]⚠️  {error_msg}[/yellow]")
-                        elif "Service temporarily unavailable" in error_msg:
-                            console.print(f"[yellow]⚠️  {error_msg}[/yellow]")
-                        else:
-                            console.print(f"[red]❌ Connection error: {e.message}[/red]")
-
-                        # Brief suggestion for chat mode
-                        provider_suggestions = suggest_provider_alternatives(error_msg)
-                        if provider_suggestions and provider_suggestions[0]["provider"] != "Local (Ollama)":
-                            suggestion = provider_suggestions[0]
-                            console.print(f"[dim]💡 Try: {suggestion['example']}[/dim]")
-                    elif isinstance(e, BackendTimeoutError):
-                        console.print(
-                            f"[yellow]⏱️  Request timed out after {e.details.get('timeout', 'unknown')}s[/yellow]"
-                        )
-                    elif isinstance(e, ModelNotFoundError):
-                        console.print(f"[red]❌ Model not found: {e.message}[/red]")
-                    elif isinstance(e, RateLimitError):
-                        console.print(f"[yellow]⚠️  Rate limit exceeded: {e.message}[/yellow]")
-                    elif isinstance(e, QuotaExceededError):
-                        console.print(f"[red]❌ Quota exceeded: {e.message}[/red]")
-                    else:
-                        console.print(f"[red]Error: {str(e)}[/red]")
-
-                    # Show full traceback in debug mode
-                    debug_mode = kwargs.get("debug", False) or os.getenv("TTT_DEBUG", "").lower() == "true"
-                    if debug_mode:
-                        import traceback
-
-                        traceback.print_exc()
-
-                    # Exit with error code for non-interactive errors
-                    import sys
-
-                    sys.exit(1)
 
     except (EOFError, KeyboardInterrupt):
         # Normal exit, don't show error

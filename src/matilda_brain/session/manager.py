@@ -10,6 +10,9 @@ from typing import Any, Dict, List, Optional
 from rich.console import Console
 from rich.table import Table
 
+from ..utils import get_logger
+
+logger = get_logger(__name__)
 console = Console()
 
 
@@ -110,6 +113,7 @@ class ChatSessionManager:
                 data = json.load(f)
             return ChatSession.from_dict(data)
         except Exception as e:
+            logger.exception(f"Error loading session {session_id}")
             console.print(f"[red]Error loading session {session_id}: {e}[/red]")
             return None
 
@@ -139,12 +143,15 @@ class ChatSessionManager:
             with open(session_file, "w") as f:
                 json.dump(session.to_dict(), f, indent=2)
         except PermissionError:
+            logger.exception(f"Permission denied saving session to {session_file}")
             console.print(f"[red]Error: Permission denied saving session to {session_file}[/red]")
             raise
         except OSError as e:
+            logger.exception(f"Could not save session to {session_file}")
             console.print(f"[red]Error: Could not save session to {session_file}: {e}[/red]")
             raise
         except Exception as e:
+            logger.exception(f"Unexpected error saving session {session.id}")
             console.print(f"[red]Error: Unexpected error saving session {session.id}: {e}[/red]")
             raise
 
@@ -189,6 +196,7 @@ class ChatSessionManager:
                     }
                 )
             except Exception as e:
+                logger.exception(f"Could not read session {session_file.name}")
                 console.print(f"[yellow]Warning: Could not read session {session_file.name}: {e}[/yellow]")
 
         # Sort by updated_at, newest first
