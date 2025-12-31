@@ -101,8 +101,21 @@ class ChatSessionManager:
         self._save_session(session)
         return session
 
+    def _validate_session_id(self, session_id: str) -> None:
+        """Validate session ID to prevent path traversal."""
+        if not session_id or not session_id.replace("_", "").replace("-", "").isalnum():
+            raise ValueError("Invalid session ID")
+        if ".." in session_id or "/" in session_id or "\\" in session_id:
+            raise ValueError("Invalid session ID")
+
     def load_session(self, session_id: str) -> Optional[ChatSession]:
         """Load a session by ID."""
+        try:
+            self._validate_session_id(session_id)
+        except ValueError:
+            logger.warning(f"Invalid session ID attempt: {session_id}")
+            return None
+
         session_file = self.sessions_dir / f"{session_id}.json"
 
         if not session_file.exists():
@@ -205,6 +218,11 @@ class ChatSessionManager:
 
     def delete_session(self, session_id: str) -> bool:
         """Delete a session."""
+        try:
+            self._validate_session_id(session_id)
+        except ValueError:
+            return False
+
         session_file = self.sessions_dir / f"{session_id}.json"
 
         if session_file.exists():

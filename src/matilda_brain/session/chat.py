@@ -411,17 +411,13 @@ class PersistentChatSession:
                 with open(path) as f:
                     session_data = json.load(f)
             else:
-                # Pickle support for legacy files - warn and suggest migration
-                warnings.warn(
-                    f"Loading pickle file '{path}'. Pickle format is deprecated for security reasons. "
-                    "Please save this session as JSON to migrate.",
-                    DeprecationWarning,
-                    stacklevel=2,
-                )
-                import pickle  # Import only when needed for legacy support
-
-                with open(path, "rb") as f:
-                    session_data = pickle.load(f)
+                # Pickle support removed for security
+                if path.suffix in [".pkl", ".pickle"] or format == "pickle":
+                    raise SessionLoadError(str(path), "Pickle format is no longer supported for security reasons.")
+                
+                # Default to JSON
+                with open(path) as f:
+                    session_data = json.load(f)
         except FileNotFoundError:
             raise SessionLoadError(str(path), "File not found") from None
         except json.JSONDecodeError as e:
