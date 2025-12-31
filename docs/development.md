@@ -20,7 +20,7 @@ git clone https://github.com/goobits/matilda-brain.git
 cd matilda-brain
 
 # Install in development mode (RECOMMENDED)
-./setup.sh install --dev
+./scripts/setup.sh install --dev
 
 # This creates an editable installation where code changes 
 # are immediately reflected without needing to reinstall
@@ -56,31 +56,23 @@ The test suite uses pytest with comprehensive coverage:
 
 ### Running Tests
 
-**Always use the test script for proper rate limiting:**
+**Use make targets or the test script for proper rate limiting:**
 
 ```bash
-# Run unit tests (default - free, fast)
-./run-tests.sh
+# Run all tests (default)
+make test
 
-# Run unit tests with coverage
-./run-tests.sh unit --coverage
-
-# Run specific test file
-./run-tests.sh --test test_api
+# Run unit tests only (fast, no API calls)
+make test-unit
 
 # Run integration tests (costs money, requires API keys)
 export OPENROUTER_API_KEY=your-key-here
-./run-tests.sh integration          # Will prompt for confirmation
-./run-tests.sh integration --force  # Skip confirmation
+make test-integration
 
-# Run all tests (unit first, then integration)
-./run-tests.sh all
-
-# Skip slow tests
-./run-tests.sh --markers "not slow"
-
-# Verbose output
-./run-tests.sh unit --verbose
+# Or use the test script directly
+./scripts/test.sh              # Run all tests
+./scripts/test.sh unit         # Unit tests only
+./scripts/test.sh integration  # Integration tests
 ```
 
 ### Direct pytest Usage
@@ -185,8 +177,9 @@ matilda-brain/
 ├── tests/                # Test suite
 ├── examples/             # Usage examples
 ├── docs/                 # Documentation
-├── setup.sh             # Installation script
-├── test.sh              # Test runner script
+├── scripts/
+│   ├── setup.sh         # Installation script
+│   └── test.sh          # Test runner script
 └── pyproject.toml       # Package configuration
 ```
 
@@ -202,7 +195,7 @@ git checkout -b feature/my-feature
 # ... edit files ...
 
 # Run tests
-./run-tests.sh
+make test
 
 # Format and lint
 black src/matilda_brain/ tests/
@@ -223,7 +216,7 @@ brain status
 brain models
 
 # Run unit tests
-./run-tests.sh
+make test-unit
 
 # Test specific functionality
 pytest tests/test_my_feature.py -v
@@ -328,7 +321,7 @@ def my_tool(param1: str, param2: int = 10) -> str:
    ```bash
    goobits build
    ```
-   This updates `src/matilda_brain/cli.py` and `setup.sh` automatically.
+   This updates `src/matilda_brain/cli.py` and `scripts/setup.sh` automatically.
 
 3. **Implement hook in `src/matilda_brain/app_hooks.py`**:
    ```python
@@ -360,7 +353,7 @@ python -m matilda_brain.backends.cloud
 **Import Errors**
 ```bash
 # Ensure dev installation
-./setup.sh install --dev
+./scripts/setup.sh install --dev
 
 # Or reinstall
 pip install -e ".[dev,local]"
@@ -372,14 +365,14 @@ pip install -e ".[dev,local]"
 pytest tests/test_file.py::test_name -v -s
 
 # Check test coverage
-./run-tests.sh unit --coverage
+./scripts/test.sh unit --coverage
 ```
 
 ## Contributing
 
 ### Before Submitting
 
-1. **Run all tests**: `./run-tests.sh`
+1. **Run all tests**: `make test`
 2. **Format code**: `black src/matilda_brain/ tests/`
 3. **Check linting**: `ruff src/matilda_brain/ tests/`
 4. **Type check**: `mypy src/matilda_brain/`
@@ -438,7 +431,7 @@ Closes #123
 
 1. Update version in `pyproject.toml`
 2. Update CHANGELOG.md
-3. Run full test suite: `./run-tests.sh all`
+3. Run full test suite: `make test`
 4. Create git tag: `git tag v1.0.0`
 5. Push to GitHub: `git push origin main --tags`
 6. GitHub Actions handles PyPI release
