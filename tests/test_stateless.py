@@ -2,8 +2,7 @@
 
 import json
 import pytest
-from pathlib import Path
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, patch
 
 from matilda_brain.stateless import StatelessRequest, StatelessResponse, execute_stateless
 from matilda_brain.core.api import stateless

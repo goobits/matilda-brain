@@ -7,7 +7,6 @@ import json
 from unittest.mock import Mock, patch
 
 import pytest
-from click.testing import CliRunner
 
 from matilda_brain.cli import main
 from .conftest import IntegrationTestBase

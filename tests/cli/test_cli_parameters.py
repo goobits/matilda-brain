@@ -8,7 +8,6 @@ import os
 from unittest.mock import patch
 
 import pytest
-from click.testing import CliRunner
 
 from matilda_brain.cli import main
 from .conftest import IntegrationTestBase

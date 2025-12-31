@@ -33,9 +33,9 @@ _session_manager: Optional[ChatSessionManager] = None
 API_TOKEN = os.getenv("MATILDA_API_TOKEN")
 if not API_TOKEN:
     API_TOKEN = secrets.token_hex(32)
-    print(f"⚠️  SECURITY WARNING: MATILDA_API_TOKEN not set.")
+    print("⚠️  SECURITY WARNING: MATILDA_API_TOKEN not set.")
     print(f"⚠️  Generated temporary secure token: {API_TOKEN}")
-    print(f"⚠️  Please set MATILDA_API_TOKEN in your environment for persistence.")
+    print("⚠️  Please set MATILDA_API_TOKEN in your environment for persistence.")
 
 @web.middleware
 async def auth_middleware(request: Request, handler):

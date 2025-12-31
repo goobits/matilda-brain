@@ -18,23 +18,17 @@ from matilda_brain import (
     APIKeyError,
     BackendConnectionError,
     BackendNotAvailableError,
-    BackendTimeoutError,
     ConfigFileError,
-    EmptyResponseError,
     ImageInput,
     InvalidParameterError,
-    InvalidPromptError,
     ModelNotFoundError,
-    ModelNotSupportedError,
     MultiModalError,
     PersistentChatSession,
-    QuotaExceededError,
     RateLimitError,
     SessionLoadError,
     SessionSaveError,
     ask,
     chat,
-    configure,
     stream,
 )
 
@@ -184,7 +178,7 @@ def handle_backend_errors():
     except BackendNotAvailableError as e:
         print(f"Backend not available: {e}")
         print(f"  Details: {e.details}")
-        print(f"  Available backends: local, cloud")
+        print("  Available backends: local, cloud")
 
     # 2. Backend connection error
     try:
@@ -198,7 +192,7 @@ def handle_backend_errors():
     except BackendConnectionError as e:
         print(f"\nConnection error: {e}")
         print(f"  Backend: {e.details.get('backend', 'unknown')}")
-        print(f"  This often means the local server (like Ollama) isn't running")
+        print("  This often means the local server (like Ollama) isn't running")
 
     except Exception as e:
         print(f"\nConnection issue: {type(e).__name__}: {e}")
@@ -224,7 +218,7 @@ def handle_model_errors():
         print(f"Model not found: {e}")
         print(f"  Model: {e.details.get('model', 'unknown')}")
         print(f"  Backend: {e.details.get('backend', 'unknown')}")
-        print(f"  Try listing available models first")
+        print("  Try listing available models first")
 
     # 2. Multi-modal error (using vision on non-vision model)
     try:
@@ -235,7 +229,7 @@ def handle_model_errors():
     except MultiModalError as e:
         print(f"\nMulti-modal error: {e}")
         print(f"  Reason: {e.details.get('reason', 'Model does not support vision')}")
-        print(f"  Solution: Use a vision-capable model like 'gpt-4-vision-preview'")
+        print("  Solution: Use a vision-capable model like 'gpt-4-vision-preview'")
 
     except Exception as e:
         print(f"\nModel capability error: {type(e).__name__}: {e}")
@@ -260,7 +254,7 @@ def handle_api_key_errors():
         print(f"API key error: {e}")
         print(f"  Provider: {e.details.get('provider', 'unknown')}")
         print(f"  Environment variable: {e.details.get('env_var', 'unknown')}")
-        print(f"  Solution: Set a valid API key in your environment")
+        print("  Solution: Set a valid API key in your environment")
 
     except Exception as e:
         print(f"Authentication error: {type(e).__name__}: {e}")
@@ -307,7 +301,7 @@ def handle_session_errors():
         print(f"\nInvalid parameter: {e}")
         print(f"  Parameter: {e.details.get('parameter', 'unknown')}")
         print(f"  Value: {e.details.get('value', 'unknown')}")
-        print(f"  Valid formats: json, pickle")
+        print("  Valid formats: json, pickle")
 
     print()
 
@@ -412,7 +406,7 @@ def config_error_handling():
         print(f"Config file error: {e}")
         print(f"  File: {e.details.get('file_path', 'unknown')}")
         print(f"  Reason: {e.details.get('reason', 'Invalid format')}")
-        print(f"  Solution: Check your YAML syntax")
+        print("  Solution: Check your YAML syntax")
 
     except Exception as e:
         print(f"Configuration error: {type(e).__name__}: {e}")

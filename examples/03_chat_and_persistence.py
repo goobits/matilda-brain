@@ -23,15 +23,15 @@ def basic_chat_examples():
     print("1. Simple conversation:")
     with chat() as session:
         response1 = session.ask("Hi, I'm learning Python programming")
-        print(f"User: Hi, I'm learning Python programming")
+        print("User: Hi, I'm learning Python programming")
         print(f"AI: {response1}")
 
         response2 = session.ask("What should I learn first?")
-        print(f"User: What should I learn first?")
+        print("User: What should I learn first?")
         print(f"AI: {response2}")
 
         response3 = session.ask("Can you give me a simple example?")
-        print(f"User: Can you give me a simple example?")
+        print("User: Can you give me a simple example?")
         print(f"AI: {response3}")
 
     print()
@@ -41,7 +41,7 @@ def basic_chat_examples():
         system="You are an expert Python tutor who gives concise, practical answers"
     ) as tutor:
         response = tutor.ask("How do I create a dictionary in Python?")
-        print(f"User: How do I create a dictionary in Python?")
+        print("User: How do I create a dictionary in Python?")
         print(f"Tutor: {response}")
 
     print()
@@ -73,7 +73,7 @@ def basic_persistence():
 
     # Continue the conversation
     response = session.ask("What's my name and what am I building?")
-    print(f"User: What's my name and what am I building?")
+    print("User: What's my name and what am I building?")
     print(f"AI: {response}")
 
     # Clean up
@@ -108,7 +108,7 @@ def advanced_session_management():
 
     # Get detailed summary
     summary = session.get_summary()
-    print(f"\nSession Summary:")
+    print("\nSession Summary:")
     print(f"  ID: {summary['session_id']}")
     print(f"  Messages: {summary['message_count']}")
     print(
@@ -257,11 +257,11 @@ def persistent_chat_with_tools():
     print(f"Session ID: {session.session_id}")
 
     response1 = session.ask("What's the weather like in London?")
-    print(f"User: What's the weather like in London?")
+    print("User: What's the weather like in London?")
     print(f"Assistant: {response1}")
 
     response2 = session.ask("If it's 60°F there, what's that in Celsius?")
-    print(f"\nUser: If it's 60°F there, what's that in Celsius?")
+    print("\nUser: If it's 60°F there, what's that in Celsius?")
     print(f"Assistant: {response2}")
 
     # Save session
@@ -275,11 +275,11 @@ def persistent_chat_with_tools():
 
     # Continue conversation
     response3 = loaded_session.ask("What about Tokyo's weather?")
-    print(f"User: What about Tokyo's weather?")
+    print("User: What about Tokyo's weather?")
     print(f"Assistant: {response3}")
 
     # Show tool usage statistics
-    print(f"\nTool usage statistics:")
+    print("\nTool usage statistics:")
     if hasattr(loaded_session, "metadata") and "tools_used" in loaded_session.metadata:
         for tool_name, count in loaded_session.metadata["tools_used"].items():
             print(f"  - {tool_name}: {count} calls")
@@ -309,7 +309,7 @@ def session_with_multimodal():
             response = session.ask(
                 "What programming language does this logo represent?"
             )
-            print(f"User: What programming language does this logo represent?")
+            print("User: What programming language does this logo represent?")
             print(f"AI: {response}")
 
             # Save the multi-modal session
@@ -319,7 +319,7 @@ def session_with_multimodal():
         # Load and continue
         loaded = PersistentChatSession.load("multimodal_session.json")
         response = loaded.ask("What are the main colors in that logo?")
-        print(f"\nUser: What are the main colors in that logo?")
+        print("\nUser: What are the main colors in that logo?")
         print(f"AI: {response}")
 
         # Clean up
@@ -342,14 +342,14 @@ def cost_tracking_example():
 
         # Get cost summary
         summary = session.get_summary()
-        print(f"Session Cost Summary:")
+        print("Session Cost Summary:")
         print(f"  Total tokens in: {summary['total_tokens_in']}")
         print(f"  Total tokens out: {summary['total_tokens_out']}")
         print(f"  Estimated cost: ${summary['total_cost']:.4f}")
 
         # Model usage breakdown
         if "model_usage" in summary:
-            print(f"\nModel Usage:")
+            print("\nModel Usage:")
             for model, usage in summary["model_usage"].items():
                 print(f"  {model}:")
                 print(f"    Calls: {usage['count']}")

@@ -80,15 +80,15 @@ def basic_chat_examples():
     print("1. Simple conversation:")
     with chat() as session:
         response1 = session.ask("Hi, I'm learning to code")
-        print(f"User: Hi, I'm learning to code")
+        print("User: Hi, I'm learning to code")
         print(f"AI: {response1}")
 
         response2 = session.ask("What language should I start with?")
-        print(f"User: What language should I start with?")
+        print("User: What language should I start with?")
         print(f"AI: {response2}")
 
         response3 = session.ask("Why that one?")
-        print(f"User: Why that one?")
+        print("User: Why that one?")
         print(f"AI: {response3}")
 
     print()
@@ -96,11 +96,11 @@ def basic_chat_examples():
     print("2. Chat with system prompt:")
     with chat(system="You are a helpful Python tutor") as tutor:
         response1 = tutor.ask("I'm new to Python")
-        print(f"User: I'm new to Python")
+        print("User: I'm new to Python")
         print(f"Tutor: {response1}")
 
         response2 = tutor.ask("What are lists?")
-        print(f"User: What are lists?")
+        print("User: What are lists?")
         print(f"Tutor: {response2}")
 
     print()

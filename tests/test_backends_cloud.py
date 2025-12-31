@@ -64,7 +64,6 @@ def cloud_backend(mock_litellm):
     # Need to reload the module to pick up the mocked litellm
     import importlib
 
-    import matilda_brain.backends.cloud
 
     importlib.reload(ttt.backends.cloud)
 
@@ -80,7 +79,6 @@ class TestCloudBackendInitialization:
         """Test successful initialization with litellm available."""
         import importlib
 
-        import matilda_brain.backends.cloud
 
         importlib.reload(ttt.backends.cloud)
 
@@ -93,7 +91,6 @@ class TestCloudBackendInitialization:
         with patch.dict("sys.modules", {"litellm": None}):
             import importlib
 
-            import matilda_brain.backends.cloud
 
             importlib.reload(ttt.backends.cloud)
 

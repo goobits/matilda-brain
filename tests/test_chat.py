@@ -1,7 +1,6 @@
 """Tests for chat functionality including persistent sessions and streaming."""
 
 import json
-import pickle
 import tempfile
 from datetime import datetime, timezone
 from pathlib import Path

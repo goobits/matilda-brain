@@ -122,7 +122,7 @@ def execute_stateless(req: StatelessRequest) -> StatelessResponse:
             model=resolved_model,
         )
 
-    except Exception as e:
+    except Exception:
         logger.exception("Error during stateless execution")
         raise
 

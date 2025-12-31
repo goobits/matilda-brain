@@ -11,8 +11,6 @@ Example:
 """
 
 # Import any modules you need here
-import sys
-import json
 from typing import Any, Dict, Optional
 def on_ask(    model: Optional[str] = None,    temperature: Optional[float] = None,    max_tokens: Optional[int] = None,    tools: Optional[bool] = None,    session: Optional[str] = None,    system: Optional[str] = None,    stream: Optional[bool] = None,    json: bool = False,    **kwargs
 ) -> Dict[str, Any]:
@@ -22,7 +20,7 @@ def on_ask(    model: Optional[str] = None,    temperature: Optional[float] = No
         Dictionary with status and optional results
     """
     # Add your business logic here
-    print(f"Executing ask command")
+    print("Executing ask command")
     return {
         "status": "success",
         "message": "ask completed successfully"
@@ -35,7 +33,7 @@ def on_chat(    model: Optional[str] = None,    session: Optional[str] = None,  
         Dictionary with status and optional results
     """
     # Add your business logic here
-    print(f"Executing chat command")
+    print("Executing chat command")
     return {
         "status": "success",
         "message": "chat completed successfully"
@@ -48,7 +46,7 @@ def on_stateless(    system: Optional[str] = None,    history: Optional[str] = N
         Dictionary with status and optional results
     """
     # Add your business logic here
-    print(f"Executing stateless command")
+    print("Executing stateless command")
     return {
         "status": "success",
         "message": "stateless completed successfully"
@@ -61,7 +59,7 @@ def on_list(    format: Optional[str] = None,    **kwargs
         Dictionary with status and optional results
     """
     # Add your business logic here
-    print(f"Executing list command")
+    print("Executing list command")
     return {
         "status": "success",
         "message": "list completed successfully"
@@ -74,7 +72,7 @@ def on_status(    json: bool = False,    **kwargs
         Dictionary with status and optional results
     """
     # Add your business logic here
-    print(f"Executing status command")
+    print("Executing status command")
     return {
         "status": "success",
         "message": "status completed successfully"
@@ -87,7 +85,7 @@ def on_models(    json: bool = False,    **kwargs
         Dictionary with status and optional results
     """
     # Add your business logic here
-    print(f"Executing models command")
+    print("Executing models command")
     return {
         "status": "success",
         "message": "models completed successfully"
@@ -100,7 +98,7 @@ def on_info(    json: bool = False,    **kwargs
         Dictionary with status and optional results
     """
     # Add your business logic here
-    print(f"Executing info command")
+    print("Executing info command")
     return {
         "status": "success",
         "message": "info completed successfully"
@@ -113,7 +111,7 @@ def on_export(    format: Optional[str] = None,    output: Optional[str] = None,
         Dictionary with status and optional results
     """
     # Add your business logic here
-    print(f"Executing export command")
+    print("Executing export command")
     return {
         "status": "success",
         "message": "export completed successfully"
@@ -126,7 +124,7 @@ def on_config(    **kwargs
         Dictionary with status and optional results
     """
     # Add your business logic here
-    print(f"Executing config command")
+    print("Executing config command")
     return {
         "status": "success",
         "message": "config completed successfully"
@@ -139,7 +137,7 @@ def on_tools(    **kwargs
         Dictionary with status and optional results
     """
     # Add your business logic here
-    print(f"Executing tools command")
+    print("Executing tools command")
     return {
         "status": "success",
         "message": "tools completed successfully"
@@ -152,7 +150,7 @@ def on_serve(    host: Optional[str] = None,    port: Optional[int] = None,    *
         Dictionary with status and optional results
     """
     # Add your business logic here
-    print(f"Executing serve command")
+    print("Executing serve command")
     return {
         "status": "success",
         "message": "serve completed successfully"

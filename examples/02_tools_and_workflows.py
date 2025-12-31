@@ -6,21 +6,10 @@ This script demonstrates how to use the comprehensive set of built-in tools
 and create custom tools for complex workflows.
 """
 
-import asyncio
 
 from matilda_brain import ask, chat
 
 from matilda_brain.tools import get_tool, list_tools, tool
-from matilda_brain.tools.builtins import (
-    calculate,
-    get_current_time,
-    http_request,
-    list_directory,
-    read_file,
-    run_python,
-    web_search,
-    write_file,
-)
 
 
 def demo_tool_discovery():
@@ -48,7 +37,7 @@ def demo_tool_discovery():
     if calc_tool:
         print(f"Name: {calc_tool.name}")
         print(f"Description: {calc_tool.description}")
-        print(f"Parameters:")
+        print("Parameters:")
         for param in calc_tool.parameters:
             print(f"  - {param.name} ({param.type.value}): {param.description}")
 
@@ -200,12 +189,12 @@ def demo_chat_with_tools():
     with chat(tools=[get_weather, calculate_math]) as session:
         # Ask about weather
         response = session.ask("What's the weather in New York?")
-        print(f"User: What's the weather in New York?")
+        print("User: What's the weather in New York?")
         print(f"Assistant: {response}")
 
         # Ask for calculation
         response = session.ask("Calculate 15 * 23 + 42")
-        print(f"\nUser: Calculate 15 * 23 + 42")
+        print("\nUser: Calculate 15 * 23 + 42")
         print(f"Assistant: {response}")
 
         # Ask for something requiring both tools
@@ -213,7 +202,7 @@ def demo_chat_with_tools():
             "What's the weather in Tokyo, and if it's 68°F, what's that in Celsius?"
         )
         print(
-            f"\nUser: What's the weather in Tokyo, and if it's 68°F, what's that in Celsius?"
+            "\nUser: What's the weather in Tokyo, and if it's 68°F, what's that in Celsius?"
         )
         print(f"Assistant: {response}")
 
@@ -228,7 +217,7 @@ def demo_builtin_tools_in_chat():
             "people that would be per square kilometer if Japan is 377,975 km². "
             "Save the result to a file called 'japan_stats.txt'"
         )
-        print(f"User: [Complex request about Japan population and density]")
+        print("User: [Complex request about Japan population and density]")
         print(f"Assistant: {response}")
 
         # Check what tools were used

@@ -3,9 +3,6 @@
 Tests all commands, options, help text, and integration with the app hooks system.
 """
 
-import json
-import os
-from pathlib import Path
 from unittest.mock import Mock, patch
 
 import pytest

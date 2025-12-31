@@ -9,7 +9,7 @@ import json as json_module
 import os
 import sys
 import traceback
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 import rich_click as click
 from rich.console import Console

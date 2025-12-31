@@ -12,24 +12,20 @@ from ..core.exceptions import InvalidParameterError, SessionLoadError, SessionSa
 from ..core.models import AIResponse, ImageInput
 from ..core.routing import router
 from ..utils import get_logger, run_async
+from .serialization import (
+    deserialize_tools,
+    estimate_tokens,
+    export_messages_json,
+    export_messages_markdown,
+    export_messages_text,
+    serialize_tools,
+)
 
 logger = get_logger(__name__)
 
 
-def _estimate_tokens(content: Union[str, List]) -> int:
-    """Estimate token count for content."""
-    if isinstance(content, str):
-        # Rough estimate: ~1 token per 4 characters
-        return max(len(content) // 4, 0)
-    elif isinstance(content, list):
-        tokens = 0
-        for item in content:
-            if isinstance(item, str):
-                tokens += len(item) // 4
-            elif isinstance(item, ImageInput):
-                # Images typically use more tokens
-                tokens += 85  # Base64 encoded images use significant tokens
-        return tokens
+# Re-export for backwards compatibility
+_estimate_tokens = estimate_tokens
 
 
 class PersistentChatSession:
@@ -490,53 +486,20 @@ class PersistentChatSession:
             Formatted conversation string
         """
         if format == "text":
-            lines = []
-            for msg in self.history:
-                role = msg["role"].capitalize()
-                content = msg["content"]
-                if isinstance(content, list):
-                    # Handle multi-modal content
-                    text_parts = [item for item in content if isinstance(item, str)]
-                    content = " ".join(text_parts)
-                lines.append(f"{role}: {content}")
-            return "\n\n".join(lines)
-
+            return export_messages_text(self.history)
         elif format == "markdown":
-            lines = []
-            # Add header
-            lines.append(f"# Chat Session: {self.metadata.get('session_id', 'Unknown')}")
-            lines.append("")
-
-            # Add system prompt if present
-            if self.system:
-                lines.append(f"**System:** {self.system}")
-                lines.append("")
-
-            # Add messages
-            for msg in self.history:
-                role = msg["role"].capitalize()
-                content = msg["content"]
-                if isinstance(content, list):
-                    # Handle multi-modal content
-                    text_parts = [item for item in content if isinstance(item, str)]
-                    content = " ".join(text_parts)
-
-                lines.append(f"### {role}")
-                lines.append(content)
-                lines.append("")
-
-            return "\n".join(lines).strip()
-
+            return export_messages_markdown(
+                self.history,
+                session_id=self.metadata.get("session_id", "Unknown"),
+                system=self.system
+            )
         elif format == "json":
-            # Return structured JSON with metadata
-            export_data = {
-                "session_id": self.metadata.get("session_id"),
-                "created_at": self.metadata.get("created_at"),
-                "system": self.system,
-                "messages": self.history,
-            }
-            return json.dumps(export_data, indent=2, default=str)
-
+            return export_messages_json(
+                self.history,
+                session_id=self.metadata.get("session_id"),
+                created_at=self.metadata.get("created_at"),
+                system=self.system
+            )
         else:
             raise ValueError(f"Unknown format: {format}")
 
@@ -659,53 +622,9 @@ class PersistentChatSession:
 
     def _serialize_tools(self) -> List[Dict[str, Any]]:
         """Serialize tools for storage."""
-        if not self.tools:
-            return []
-
-        serialized = []
-        for tool in self.tools:
-            if hasattr(tool, "__name__"):
-                # Function or callable
-                serialized.append(
-                    {
-                        "type": "function_name",
-                        "name": tool.__name__,
-                        "module": (tool.__module__ if hasattr(tool, "__module__") else None),
-                    }
-                )
-            elif hasattr(tool, "name"):
-                # ToolDefinition-like object
-                serialized.append(
-                    {
-                        "type": "tool_definition",
-                        "name": tool.name,
-                        "description": getattr(tool, "description", None),
-                    }
-                )
-            else:
-                # String tool name
-                serialized.append({"type": "tool_name", "name": str(tool)})
-
-        return serialized
+        return serialize_tools(self.tools)
 
     @staticmethod
     def _deserialize_tools(serialized_tools: List[Dict[str, Any]]) -> List:
         """Deserialize tools from storage."""
-        if not serialized_tools:
-            return []
-
-        # For now, return tool names as strings
-        # In a real implementation, we'd resolve these from a registry
-        # or import the actual functions
-        tools = []
-        for tool_data in serialized_tools:
-            if tool_data["type"] == "tool_name":
-                tools.append(tool_data["name"])
-            elif tool_data["type"] == "function_name":
-                # Could attempt to import the function here
-                tools.append(tool_data["name"])
-            elif tool_data["type"] == "tool_definition":
-                # Return as a dict for now
-                tools.append(tool_data["name"])
-
-        return tools
+        return deserialize_tools(serialized_tools)

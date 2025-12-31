@@ -9,15 +9,11 @@ Generated from: goobits.yaml
 """
 
 import sys
-import os
-import json
 import yaml
 import logging
 import traceback
 from pathlib import Path
-from typing import Any, Dict, Optional, List, Union
-from datetime import datetime
-from contextlib import contextmanager
+from typing import Any, Dict, Optional
 import click
 # ============================================================================
 # EMBEDDED LOGGER
@@ -230,7 +226,7 @@ def ask(ctx, prompt, model, temperature, max_tokens, tools, session, system, str
             kwargs = {                'prompt': prompt,                'model': model,                'temperature': temperature,                'max_tokens': max_tokens,                'tools': tools,                'session': session,                'system': system,                'stream': stream,                'json': json,            }
             hooks.on_ask(ctx=ctx, **kwargs)
         else:
-            logger.error(f"Hook 'on_ask' not implemented in cli_hooks.py")
+            logger.error("Hook 'on_ask' not implemented in cli_hooks.py")
             sys.exit(1)
     except Exception as e:
         handle_error(e, ctx.verbose)
@@ -247,7 +243,7 @@ def chat(ctx, model, session, tools, markdown):
             kwargs = {                'model': model,                'session': session,                'tools': tools,                'markdown': markdown,            }
             hooks.on_chat(ctx=ctx, **kwargs)
         else:
-            logger.error(f"Hook 'on_chat' not implemented in cli_hooks.py")
+            logger.error("Hook 'on_chat' not implemented in cli_hooks.py")
             sys.exit(1)
     except Exception as e:
         handle_error(e, ctx.verbose)
@@ -267,7 +263,7 @@ def stateless(ctx, message, system, history, tools, model, temperature, max_toke
             kwargs = {                'message': message,                'system': system,                'history': history,                'tools': tools,                'model': model,                'temperature': temperature,                'max_tokens': max_tokens,            }
             hooks.on_stateless(ctx=ctx, **kwargs)
         else:
-            logger.error(f"Hook 'on_stateless' not implemented in cli_hooks.py")
+            logger.error("Hook 'on_stateless' not implemented in cli_hooks.py")
             sys.exit(1)
     except Exception as e:
         handle_error(e, ctx.verbose)
@@ -282,7 +278,7 @@ def list(ctx, resource, format):
             kwargs = {                'resource': resource,                'format': format,            }
             hooks.on_list(ctx=ctx, **kwargs)
         else:
-            logger.error(f"Hook 'on_list' not implemented in cli_hooks.py")
+            logger.error("Hook 'on_list' not implemented in cli_hooks.py")
             sys.exit(1)
     except Exception as e:
         handle_error(e, ctx.verbose)
@@ -296,7 +292,7 @@ def status(ctx, json):
             kwargs = {                'json': json,            }
             hooks.on_status(ctx=ctx, **kwargs)
         else:
-            logger.error(f"Hook 'on_status' not implemented in cli_hooks.py")
+            logger.error("Hook 'on_status' not implemented in cli_hooks.py")
             sys.exit(1)
     except Exception as e:
         handle_error(e, ctx.verbose)
@@ -310,7 +306,7 @@ def models(ctx, json):
             kwargs = {                'json': json,            }
             hooks.on_models(ctx=ctx, **kwargs)
         else:
-            logger.error(f"Hook 'on_models' not implemented in cli_hooks.py")
+            logger.error("Hook 'on_models' not implemented in cli_hooks.py")
             sys.exit(1)
     except Exception as e:
         handle_error(e, ctx.verbose)
@@ -325,7 +321,7 @@ def info(ctx, model, json):
             kwargs = {                'model': model,                'json': json,            }
             hooks.on_info(ctx=ctx, **kwargs)
         else:
-            logger.error(f"Hook 'on_info' not implemented in cli_hooks.py")
+            logger.error("Hook 'on_info' not implemented in cli_hooks.py")
             sys.exit(1)
     except Exception as e:
         handle_error(e, ctx.verbose)
@@ -342,7 +338,7 @@ def export(ctx, session, format, output, include_metadata):
             kwargs = {                'session': session,                'format': format,                'output': output,                'include_metadata': include_metadata,            }
             hooks.on_export(ctx=ctx, **kwargs)
         else:
-            logger.error(f"Hook 'on_export' not implemented in cli_hooks.py")
+            logger.error("Hook 'on_export' not implemented in cli_hooks.py")
             sys.exit(1)
     except Exception as e:
         handle_error(e, ctx.verbose)
@@ -361,7 +357,7 @@ def config_get(ctx, key):
             kwargs = {                'key': key,            }
             hooks.on_get(ctx=ctx, **kwargs)
         else:
-            logger.error(f"Hook 'on_get' not implemented in cli_hooks.py")
+            logger.error("Hook 'on_get' not implemented in cli_hooks.py")
             sys.exit(1)
     except Exception as e:
         handle_error(e, ctx.verbose)
@@ -377,7 +373,7 @@ def config_set(ctx, key, value):
             kwargs = {                'key': key,                'value': value,            }
             hooks.on_set(ctx=ctx, **kwargs)
         else:
-            logger.error(f"Hook 'on_set' not implemented in cli_hooks.py")
+            logger.error("Hook 'on_set' not implemented in cli_hooks.py")
             sys.exit(1)
     except Exception as e:
         handle_error(e, ctx.verbose)
@@ -392,7 +388,7 @@ def config_list(ctx, show_secrets):
             kwargs = {                'show_secrets': show_secrets,            }
             hooks.on_list(ctx=ctx, **kwargs)
         else:
-            logger.error(f"Hook 'on_list' not implemented in cli_hooks.py")
+            logger.error("Hook 'on_list' not implemented in cli_hooks.py")
             sys.exit(1)
     except Exception as e:
         handle_error(e, ctx.verbose)
@@ -411,7 +407,7 @@ def tools_enable(ctx, tool_name):
             kwargs = {                'tool_name': tool_name,            }
             hooks.on_enable(ctx=ctx, **kwargs)
         else:
-            logger.error(f"Hook 'on_enable' not implemented in cli_hooks.py")
+            logger.error("Hook 'on_enable' not implemented in cli_hooks.py")
             sys.exit(1)
     except Exception as e:
         handle_error(e, ctx.verbose)
@@ -426,7 +422,7 @@ def tools_disable(ctx, tool_name):
             kwargs = {                'tool_name': tool_name,            }
             hooks.on_disable(ctx=ctx, **kwargs)
         else:
-            logger.error(f"Hook 'on_disable' not implemented in cli_hooks.py")
+            logger.error("Hook 'on_disable' not implemented in cli_hooks.py")
             sys.exit(1)
     except Exception as e:
         handle_error(e, ctx.verbose)
@@ -441,7 +437,7 @@ def tools_list(ctx, show_disabled):
             kwargs = {                'show_disabled': show_disabled,            }
             hooks.on_list(ctx=ctx, **kwargs)
         else:
-            logger.error(f"Hook 'on_list' not implemented in cli_hooks.py")
+            logger.error("Hook 'on_list' not implemented in cli_hooks.py")
             sys.exit(1)
     except Exception as e:
         handle_error(e, ctx.verbose)
@@ -456,7 +452,7 @@ def serve(ctx, host, port):
             kwargs = {                'host': host,                'port': port,            }
             hooks.on_serve(ctx=ctx, **kwargs)
         else:
-            logger.error(f"Hook 'on_serve' not implemented in cli_hooks.py")
+            logger.error("Hook 'on_serve' not implemented in cli_hooks.py")
             sys.exit(1)
     except Exception as e:
         handle_error(e, ctx.verbose)
