@@ -340,6 +340,29 @@ async def handle_delete_session(request: Request) -> Response:
         return add_cors_headers(web.json_response({"error": str(e)}, status=500), request)
 
 
+async def handle_reload(request: Request) -> Response:
+    """
+    Reload configuration from disk.
+
+    POST /reload
+
+    Response:
+    {"status": "ok", "message": "Configuration reloaded"}
+    """
+    try:
+        from .config.schema import load_config, set_config
+        # Reload configuration from file
+        new_config = load_config()
+        # Update global config state
+        set_config(new_config)
+        
+        logger.info("Configuration reloaded via API")
+        return add_cors_headers(web.json_response({"status": "ok", "message": "Configuration reloaded"}), request)
+    except Exception as e:
+        logger.exception("Error reloading configuration")
+        return add_cors_headers(web.json_response({"error": str(e)}, status=500), request)
+
+
 def create_app() -> web.Application:
     """Create the aiohttp application."""
     app = web.Application(middlewares=[auth_middleware])
@@ -350,6 +373,7 @@ def create_app() -> web.Application:
     app.router.add_get("/", handle_health)
     app.router.add_post("/ask", handle_ask)
     app.router.add_post("/stream", handle_stream)
+    app.router.add_post("/reload", handle_reload)
 
     # Session management endpoints
     app.router.add_get("/api/sessions", handle_list_sessions)
