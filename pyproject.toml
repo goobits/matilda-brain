@@ -7,9 +7,9 @@ name = "goobits-matilda-brain"
 version = "1.0.3"
 description = "A powerful AI assistant for your terminal"
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.11"
 keywords = [ "ai", "assistant", "terminal", "llm", "chat", "gpt", "claude",]
-classifiers = [ "Development Status :: 4 - Beta", "Intended Audience :: Developers", "License :: OSI Approved :: MIT License", "Programming Language :: Python :: 3", "Programming Language :: Python :: 3.8", "Programming Language :: Python :: 3.9", "Programming Language :: Python :: 3.10", "Programming Language :: Python :: 3.11", "Programming Language :: Python :: 3.12", "Programming Language :: Python :: 3.13", "Topic :: Software Development :: Libraries :: Python Modules", "Topic :: Communications :: Chat", "Topic :: Scientific/Engineering :: Artificial Intelligence",]
+classifiers = [ "Development Status :: 4 - Beta", "Intended Audience :: Developers", "License :: OSI Approved :: MIT License", "Programming Language :: Python :: 3", "Programming Language :: Python :: 3.11", "Programming Language :: Python :: 3.12", "Programming Language :: Python :: 3.13", "Topic :: Software Development :: Libraries :: Python Modules", "Topic :: Communications :: Chat", "Topic :: Scientific/Engineering :: Artificial Intelligence",]
 dependencies = [ "click>=8.0.0,<9.0", "rich-click>=1.7.0,<2.0", "rich>=13.0.0,<14.0", "pydantic>=2.0.0,<3.0", "httpx>=0.24.0,<1.0", "litellm>=1.0.0,<2.0", "pyyaml>=6.0.1,<7.0", "bleach>=6.1.0,<7.0", "validators>=0.20.0,<1.0",]
 [[project.authors]]
 name = "Matilda Brain Contributors"
@@ -31,15 +31,15 @@ Homepage = "https://github.com/goobits/matilda-brain"
 
 [tool.ruff]
 line-length = 120
-target-version = "py38"
+target-version = "py311"
 cache-dir = ".artifacts/cache/ruff"
 
 [tool.black]
 line-length = 120
-target-version = [ "py38",]
+target-version = [ "py311",]
 
 [tool.mypy]
-python_version = "3.8"
+python_version = "3.11"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = false

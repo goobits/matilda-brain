@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Information
 
-**Package**: `goobits-matilda-brain` | **Command**: `brain` | **Python**: 3.8+
+**Package**: `goobits-matilda-brain` | **Command**: `brain` | **Python**: 3.11+
 
 A professional CLI and Python library for interacting with multiple AI providers (OpenRouter, OpenAI, Anthropic, Google, Ollama).
 
