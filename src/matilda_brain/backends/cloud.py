@@ -107,6 +107,76 @@ class CloudBackend(BaseBackend):
         # Use the shared message building utility
         return build_message_list(prompt, system)
 
+    def _prepare_params(
+        self,
+        prompt: Union[str, List[Union[str, ImageInput]]],
+        model: Optional[str],
+        system: Optional[str],
+        temperature: Optional[float],
+        max_tokens: Optional[int],
+        tools: Optional[List[Any]],
+        stream: bool,
+        kwargs: Dict[str, Any],
+    ) -> tuple[str, Dict[str, Any]]:
+        """
+        Prepare parameters for LiteLLM API request.
+
+        Handles message building, tool resolution, and parameter assembly for
+        both ask() and astream() methods, ensuring consistent behavior.
+
+        Args:
+            prompt: The user prompt - can be a string or list of content (text/images)
+            model: Specific model to use (optional)
+            system: System prompt (optional)
+            temperature: Sampling temperature (optional)
+            max_tokens: Maximum tokens to generate (optional)
+            tools: List of tool definitions (optional)
+            stream: Whether to stream the response
+            kwargs: Additional parameters
+
+        Returns:
+            Tuple of (used_model, params_dict)
+        """
+        used_model = model or self.default_model
+
+        # Build messages
+        messages = self._build_messages(prompt, system, kwargs)
+
+        # Build base parameters
+        params: Dict[str, Any] = {
+            "model": used_model,
+            "messages": messages,
+        }
+
+        if stream:
+            params["stream"] = True
+
+        if temperature is not None:
+            params["temperature"] = temperature
+        if max_tokens is not None:
+            params["max_tokens"] = max_tokens
+
+        # Add tools if provided
+        if tools:
+            from ..tools import resolve_tools
+
+            resolved_tools = resolve_tools(tools)
+            tool_definitions = [tool_def.to_openai_schema() for tool_def in resolved_tools]
+
+            if tool_definitions:
+                params["tools"] = tool_definitions
+                params["tool_choice"] = "auto"
+
+        # Add any additional parameters, filtering out None values and 'messages'
+        filtered_kwargs = {k: v for k, v in kwargs.items() if v is not None and k != "messages"}
+        params.update(filtered_kwargs)
+
+        # Add API key explicitly for OpenRouter models
+        if used_model.startswith("openrouter/") and os.getenv("OPENROUTER_API_KEY"):
+            params["api_key"] = os.getenv("OPENROUTER_API_KEY")
+
+        return used_model, params
+
     def _handle_request_error(self, e: Exception, used_model: str, request_type: str = "request") -> NoReturn:
         """
         Handle errors from API requests by converting them to appropriate exceptions.
@@ -248,54 +318,24 @@ class CloudBackend(BaseBackend):
             AIResponse containing the response and metadata
         """
         start_time = time.time()
-        used_model = model or self.default_model
 
-        # Build messages
-        messages = self._build_messages(prompt, system, kwargs)
+        # Use unified parameter preparation
+        used_model, params = self._prepare_params(
+            prompt=prompt,
+            model=model,
+            system=system,
+            temperature=temperature,
+            max_tokens=max_tokens,
+            tools=tools,
+            stream=False,
+            kwargs=kwargs,
+        )
 
-        # Build parameters
-        params = {
-            "model": used_model,
-            "messages": messages,
-        }
-
-        if temperature is not None:
-            params["temperature"] = temperature
-        if max_tokens is not None:
-            params["max_tokens"] = max_tokens
-
-        # Add tools if provided
-        tool_definitions: List[Dict[str, Any]] = []
         tool_result = None
-        if tools:
-            # Import tools here to avoid circular imports
-            from ..tools import resolve_tools
-
-            # Resolve tools to ToolDefinition objects
-            resolved_tools = resolve_tools(tools)
-
-            # Convert to LiteLLM format
-            tool_definitions = []
-            for tool_def in resolved_tools:
-                tool_definitions.append(tool_def.to_openai_schema())
-
-            if tool_definitions:
-                params["tools"] = tool_definitions
-                params["tool_choice"] = "auto"  # Let the model decide when to use tools
-
-        # Add any additional parameters, filtering out None values
-        # Also remove 'messages' from kwargs since we build it ourselves
-        filtered_kwargs = {k: v for k, v in kwargs.items() if v is not None and k != "messages"}
-        params.update(filtered_kwargs)
 
         try:
             logger.debug(f"Sending request to {used_model}")
             logger.debug(f"Parameters: max_tokens={params.get('max_tokens')}, temperature={params.get('temperature')}")
-
-            # Use LiteLLM's completion function
-            # Add API key explicitly for OpenRouter models
-            if used_model.startswith("openrouter/") and os.getenv("OPENROUTER_API_KEY"):
-                params["api_key"] = os.getenv("OPENROUTER_API_KEY")
 
             response = await self.litellm.acompletion(**params)
 
@@ -434,55 +474,23 @@ class CloudBackend(BaseBackend):
         Yields:
             Response chunks as they arrive
         """
-        used_model = model or self.default_model
-
-        # Build messages
-        messages = self._build_messages(prompt, system)
-
-        # Build parameters
-        params = {
-            "model": used_model,
-            "messages": messages,
-            "stream": True,
-        }
-
-        if temperature is not None:
-            params["temperature"] = temperature
-        if max_tokens is not None:
-            params["max_tokens"] = max_tokens
-
-        # Add tools if provided (same as ask method)
-        if tools:
-            # Import tools here to avoid circular imports
-            from ..tools import resolve_tools
-
-            # Resolve tools to ToolDefinition objects
-            resolved_tools = resolve_tools(tools)
-
-            # Convert to LiteLLM format
-            tool_definitions = []
-            for tool_def in resolved_tools:
-                tool_definitions.append(tool_def.to_openai_schema())
-
-            if tool_definitions:
-                params["tools"] = tool_definitions
-                params["tool_choice"] = "auto"
-
-        # Add any additional parameters, filtering out None values
-        # Also remove 'messages' from kwargs since we build it ourselves
-        filtered_kwargs = {k: v for k, v in kwargs.items() if v is not None and k != "messages"}
-        params.update(filtered_kwargs)
+        # Use unified parameter preparation
+        used_model, params = self._prepare_params(
+            prompt=prompt,
+            model=model,
+            system=system,
+            temperature=temperature,
+            max_tokens=max_tokens,
+            tools=tools,
+            stream=True,
+            kwargs=kwargs,
+        )
 
         try:
             logger.debug(f"Starting stream request to {used_model}")
             logger.debug(
                 f"Stream parameters: max_tokens={params.get('max_tokens')}, temperature={params.get('temperature')}"
             )
-
-            # Use LiteLLM's streaming completion
-            # Add API key explicitly for OpenRouter models
-            if used_model.startswith("openrouter/") and os.getenv("OPENROUTER_API_KEY"):
-                params["api_key"] = os.getenv("OPENROUTER_API_KEY")
 
             response = await self.litellm.acompletion(**params)
 

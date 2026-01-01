@@ -53,6 +53,70 @@ class LocalBackend(BaseBackend):
             "backends.local.default_model", "llama2"
         )
 
+    def _prepare_request(
+        self,
+        prompt: Union[str, List[Union[str, ImageInput]]],
+        model: Optional[str],
+        system: Optional[str],
+        temperature: Optional[float],
+        max_tokens: Optional[int],
+        stream: bool,
+    ) -> tuple[str, Dict[str, Any]]:
+        """
+        Prepare the request payload for Ollama API.
+
+        Handles multi-modal input parsing and payload construction for both
+        ask() and astream() methods, ensuring consistent behavior.
+
+        Args:
+            prompt: The user prompt - can be a string or list of content (text/images)
+            model: Specific model to use (optional)
+            system: System prompt (optional)
+            temperature: Sampling temperature (optional)
+            max_tokens: Maximum tokens to generate (optional)
+            stream: Whether to stream the response
+
+        Returns:
+            Tuple of (used_model, payload_dict)
+
+        Raises:
+            MultiModalError: If prompt contains image inputs (not supported by Ollama)
+        """
+        used_model = model or self.default_model
+
+        # Handle multi-modal input
+        if not isinstance(prompt, str):
+            # Check if any images are in the prompt
+            has_images = any(isinstance(item, ImageInput) for item in prompt)
+            if has_images:
+                from ..core.exceptions import MultiModalError
+
+                raise MultiModalError(
+                    "Local backend (Ollama) does not support image inputs yet. "
+                    "Please use a cloud backend with vision capabilities."
+                )
+            # Extract text from the list
+            prompt = " ".join(item for item in prompt if isinstance(item, str))
+
+        # Build the request payload
+        payload: Dict[str, Any] = {"model": used_model, "prompt": prompt, "stream": stream}
+
+        # Add optional parameters
+        options: Dict[str, Any] = {}
+        if temperature is not None:
+            options["temperature"] = temperature
+        if max_tokens is not None:
+            options["num_predict"] = max_tokens
+
+        if options:
+            payload["options"] = options
+
+        # Add system prompt if provided
+        if system:
+            payload["system"] = system
+
+        return used_model, payload
+
     @property
     def name(self) -> str:
         """Backend name for identification."""
@@ -122,39 +186,16 @@ class LocalBackend(BaseBackend):
             AIResponse containing the response and metadata
         """
         start_time = time.time()
-        used_model = model or self.default_model
 
-        # Check for multi-modal input
-        if not isinstance(prompt, str):
-            # Check if any images are in the prompt
-            has_images = any(isinstance(item, ImageInput) for item in prompt)
-            if has_images:
-                # Raise MultiModalError for image inputs
-                from ..core.exceptions import MultiModalError
-
-                raise MultiModalError(
-                    "Local backend (Ollama) does not support image inputs yet. "
-                    "Please use a cloud backend with vision capabilities."
-                )
-            # Extract text from the list
-            prompt = " ".join(item for item in prompt if isinstance(item, str))
-
-        # Build the request payload
-        payload = {"model": used_model, "prompt": prompt, "stream": False}
-
-        # Add optional parameters
-        options = {}
-        if temperature is not None:
-            options["temperature"] = temperature
-        if max_tokens is not None:
-            options["num_predict"] = max_tokens
-
-        if options:
-            payload["options"] = options
-
-        # Add system prompt if provided
-        if system:
-            payload["system"] = system
+        # Use unified request preparation
+        used_model, payload = self._prepare_request(
+            prompt=prompt,
+            model=model,
+            system=system,
+            temperature=temperature,
+            max_tokens=max_tokens,
+            stream=False,
+        )
 
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
@@ -230,39 +271,15 @@ class LocalBackend(BaseBackend):
         Yields:
             Response chunks as they arrive
         """
-        used_model = model or self.default_model
-
-        # Check for multi-modal input
-        if not isinstance(prompt, str):
-            # Check if any images are in the prompt
-            has_images = any(isinstance(item, ImageInput) for item in prompt)
-            if has_images:
-                # Raise MultiModalError for image inputs
-                from ..core.exceptions import MultiModalError
-
-                raise MultiModalError(
-                    "Local backend (Ollama) does not support image inputs yet. "
-                    "Please use a cloud backend with vision capabilities."
-                )
-            # Extract text from the list
-            prompt = " ".join(item for item in prompt if isinstance(item, str))
-
-        # Build the request payload
-        payload = {"model": used_model, "prompt": prompt, "stream": True}
-
-        # Add optional parameters
-        options = {}
-        if temperature is not None:
-            options["temperature"] = temperature
-        if max_tokens is not None:
-            options["num_predict"] = max_tokens
-
-        if options:
-            payload["options"] = options
-
-        # Add system prompt if provided
-        if system:
-            payload["system"] = system
+        # Use unified request preparation
+        used_model, payload = self._prepare_request(
+            prompt=prompt,
+            model=model,
+            system=system,
+            temperature=temperature,
+            max_tokens=max_tokens,
+            stream=True,
+        )
 
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
