@@ -60,22 +60,40 @@ class LocalBackend(BaseBackend):
 
     @property
     def is_available(self) -> bool:
-        """Check if Ollama is running and available."""
+        """Check if Ollama is running and available (sync version).
+
+        Note: For async contexts, prefer using `await ais_available()` to avoid
+        blocking the event loop.
+        """
         try:
-            # Create a simple sync check
-            async def check() -> bool:
-                from ..config.loader import get_config_value
+            from ..config.loader import get_config_value
 
-                availability_timeout = get_config_value("constants.timeouts.availability_check", 5)
-                async with httpx.AsyncClient(timeout=availability_timeout) as client:
-                    response = await client.get(f"{self.base_url}/api/tags")
-                    return response.status_code == 200
-
-            # Use run_async to handle the event loop properly
-            result = run_async(check())
-            return bool(result)
+            availability_timeout = get_config_value("constants.timeouts.availability_check", 5)
+            # Use sync httpx directly to avoid blocking event loop via run_async
+            response = httpx.get(f"{self.base_url}/api/tags", timeout=availability_timeout)
+            return response.status_code == 200
         except Exception:
-            logger.exception("Ollama availability check failed")
+            logger.debug("Ollama availability check failed")
+            return False
+
+    async def ais_available(self) -> bool:
+        """Check if Ollama is running and available (async version).
+
+        This is the preferred method for async contexts as it doesn't block
+        the event loop.
+
+        Returns:
+            True if Ollama is running and responding, False otherwise.
+        """
+        try:
+            from ..config.loader import get_config_value
+
+            availability_timeout = get_config_value("constants.timeouts.availability_check", 5)
+            async with httpx.AsyncClient(timeout=availability_timeout) as client:
+                response = await client.get(f"{self.base_url}/api/tags")
+                return response.status_code == 200
+        except Exception:
+            logger.debug("Ollama availability check failed")
             return False
 
     async def ask(
@@ -363,7 +381,7 @@ class LocalBackend(BaseBackend):
             return {
                 "backend": self.name,
                 "base_url": self.base_url,
-                "available": self.is_available,
+                "available": await self.ais_available(),
                 "models_count": len(models),
                 "models": models[:5],  # Show first 5 models
                 "default_model": self.default_model,

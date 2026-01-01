@@ -18,6 +18,8 @@ from ..core.exceptions import (
 )
 from ..core.models import AIResponse, ImageInput
 from ..utils import get_logger
+from ..utils.messages import build_message_list, extract_messages_from_kwargs
+from ..utils.providers import PROVIDER_ENV_VARS
 from .base import BaseBackend
 
 logger = get_logger(__name__)
@@ -98,44 +100,12 @@ class CloudBackend(BaseBackend):
             List of message dictionaries formatted for the API
         """
         # Check if we received pre-built messages from chat session
-        if kwargs and "messages" in kwargs and kwargs["messages"]:
-            return cast(List[Dict[str, Any]], kwargs["messages"])
+        pre_built = extract_messages_from_kwargs(kwargs)
+        if pre_built:
+            return pre_built
 
-        messages: List[Dict[str, Any]] = []
-        if system:
-            messages.append({"role": "system", "content": system})
-
-        # Handle multi-modal content
-        if isinstance(prompt, str):
-            messages.append({"role": "user", "content": prompt})
-        else:
-            # Build content array for multi-modal input
-            content: List[Dict[str, Any]] = []
-            for item in prompt:
-                if isinstance(item, str):
-                    content.append({"type": "text", "text": item})
-                elif isinstance(item, ImageInput):
-                    # Format image for the provider
-                    if item.is_url:
-                        content.append(
-                            {
-                                "type": "image_url",
-                                "image_url": {"url": str(item.source)},
-                            }
-                        )
-                    else:
-                        # Base64 encode for non-URL images
-                        base64_data = item.to_base64()
-                        mime_type = item.get_mime_type()
-                        content.append(
-                            {
-                                "type": "image_url",
-                                "image_url": {"url": f"data:{mime_type};base64,{base64_data}"},
-                            }
-                        )
-            messages.append({"role": "user", "content": content})
-
-        return messages
+        # Use the shared message building utility
+        return build_message_list(prompt, system)
 
     def _handle_request_error(self, e: Exception, used_model: str, request_type: str = "request") -> NoReturn:
         """
@@ -169,13 +139,7 @@ class CloudBackend(BaseBackend):
                 ) from e
         elif "api_key" in error_msg.lower() or "api key" in error_msg.lower() or "authentication" in error_msg.lower():
             provider = self._get_provider_from_model(used_model)
-            env_vars = {
-                "openai": "OPENAI_API_KEY",
-                "anthropic": "ANTHROPIC_API_KEY",
-                "google": "GOOGLE_API_KEY",
-                "openrouter": "OPENROUTER_API_KEY",
-            }
-            raise APIKeyError(provider, env_vars.get(provider)) from e
+            raise APIKeyError(provider, PROVIDER_ENV_VARS.get(provider)) from e
         elif "rate limit" in error_msg.lower():
             provider = self._get_provider_from_model(used_model)
             # Extract retry_after if available
