@@ -21,7 +21,9 @@ from aiohttp import web
 from aiohttp.web import Request, Response, StreamResponse
 
 from .core.api import ask_async, stream_async
+from .security import get_allowed_origins, is_origin_allowed
 from .session.manager import ChatSessionManager
+from .token_storage import get_or_create_token
 from .utils import get_logger
 
 logger = get_logger(__name__)
@@ -30,12 +32,7 @@ logger = get_logger(__name__)
 _session_manager: Optional[ChatSessionManager] = None
 
 # Security: API Token Management
-API_TOKEN = os.getenv("MATILDA_API_TOKEN")
-if not API_TOKEN:
-    API_TOKEN = secrets.token_hex(32)
-    print("⚠️  SECURITY WARNING: MATILDA_API_TOKEN not set.")
-    print(f"⚠️  Generated temporary secure token: {API_TOKEN}")
-    print("⚠️  Please set MATILDA_API_TOKEN in your environment for persistence.")
+API_TOKEN = get_or_create_token()
 
 @web.middleware
 async def auth_middleware(request: Request, handler):
@@ -74,21 +71,30 @@ def get_session_manager() -> ChatSessionManager:
 
 
 # CORS headers for browser access
-ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000,http://localhost:5173").split(",")
+# Uses secure defaults from security module
+ALLOWED_ORIGINS = get_allowed_origins()
+
 
 def add_cors_headers(response: Response, request: Request = None) -> Response:
-    """Add CORS headers to response."""
-    origin = "*"
-    if request:
-        req_origin = request.headers.get("Origin")
-        if req_origin in ALLOWED_ORIGINS:
-            origin = req_origin
-        else:
-            origin = ALLOWED_ORIGINS[0]
-            
-    response.headers["Access-Control-Allow-Origin"] = origin
+    """
+    Add CORS headers to response.
+
+    Only sets Access-Control-Allow-Origin when:
+    - A request with Origin header is provided, AND
+    - That origin is in the allowed origins list
+
+    If no origin is allowed, CORS headers are not set (browser will block the request).
+    """
     response.headers["Access-Control-Allow-Methods"] = "GET, POST, DELETE, OPTIONS"
     response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
+
+    if request:
+        req_origin = request.headers.get("Origin")
+        if req_origin and is_origin_allowed(req_origin, ALLOWED_ORIGINS):
+            response.headers["Access-Control-Allow-Origin"] = req_origin
+        # If origin not allowed, don't set Access-Control-Allow-Origin header
+        # This causes the browser to block the request (secure default)
+
     return response
 
 
@@ -203,13 +209,6 @@ async def handle_stream(request: Request) -> StreamResponse:
     data: {"chunk": " a time..."}
     data: {"done": true}
     """
-    # Calculate CORS origin
-    req_origin = request.headers.get("Origin")
-    if req_origin in ALLOWED_ORIGINS:
-        origin = req_origin
-    else:
-        origin = ALLOWED_ORIGINS[0]
-
     try:
         data = await request.json()
     except json.JSONDecodeError:
@@ -219,16 +218,23 @@ async def handle_stream(request: Request) -> StreamResponse:
     if not prompt:
         return add_cors_headers(web.json_response({"error": "Missing 'prompt' field"}, status=400), request)
 
+    # Build CORS headers safely - only include Access-Control-Allow-Origin if origin is allowed
+    stream_headers = {
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+        "Connection": "keep-alive",
+        "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization",
+    }
+
+    # Only add Access-Control-Allow-Origin if the request origin is allowed
+    req_origin = request.headers.get("Origin")
+    if req_origin and is_origin_allowed(req_origin, ALLOWED_ORIGINS):
+        stream_headers["Access-Control-Allow-Origin"] = req_origin
+
     response = StreamResponse(
         status=200,
-        headers={
-            "Content-Type": "text/event-stream",
-            "Cache-Control": "no-cache",
-            "Connection": "keep-alive",
-            "Access-Control-Allow-Origin": origin,
-            "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
-            "Access-Control-Allow-Headers": "Content-Type, Authorization",
-        },
+        headers=stream_headers,
     )
     await response.prepare(request)
 
