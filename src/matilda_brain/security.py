@@ -19,7 +19,7 @@ def get_allowed_origins() -> List[str]:
 
     Behavior:
     - If ALLOWED_ORIGINS env var is set, parse and return those origins
-    - If MATILDA_DEV_MODE=1 is set, return common development origins as defaults
+    - If MATILDA_DEV_MODE=1/true/yes is set, return common development origins as defaults
     - Otherwise, return empty list (secure default) and issue a warning
 
     Returns:
@@ -34,7 +34,7 @@ def get_allowed_origins() -> List[str]:
         return origins
 
     # Check if we're in dev mode
-    dev_mode = os.getenv("MATILDA_DEV_MODE", "").strip() == "1"
+    dev_mode = os.getenv("MATILDA_DEV_MODE", "").strip().lower() in ("1", "true", "yes")
 
     if dev_mode:
         # Development mode: allow common development origins
@@ -46,13 +46,13 @@ def get_allowed_origins() -> List[str]:
     warnings.warn(
         "ALLOWED_ORIGINS not set and MATILDA_DEV_MODE not enabled. "
         "CORS will reject all cross-origin requests. "
-        "Set ALLOWED_ORIGINS environment variable or enable MATILDA_DEV_MODE=1 for development.",
+        "Set ALLOWED_ORIGINS environment variable or enable MATILDA_DEV_MODE=1/true/yes for development.",
         UserWarning,
         stacklevel=2,
     )
     logger.warning(
         "CORS: No allowed origins configured. Set ALLOWED_ORIGINS env var "
-        "or enable MATILDA_DEV_MODE=1 for development."
+        "or enable MATILDA_DEV_MODE=1/true/yes for development."
     )
     return []
 
