@@ -12,6 +12,8 @@ Example:
 
 # Import any modules you need here
 from typing import Any, Dict, Optional
+from matilda_brain.server import run_server
+
 def on_ask(    model: Optional[str] = None,    temperature: Optional[float] = None,    max_tokens: Optional[int] = None,    tools: Optional[bool] = None,    session: Optional[str] = None,    system: Optional[str] = None,    stream: Optional[bool] = None,    json: bool = False,    **kwargs
 ) -> Dict[str, Any]:
     """
@@ -151,6 +153,7 @@ def on_serve(    host: Optional[str] = None,    port: Optional[int] = None,    *
     """
     # Add your business logic here
     print("Executing serve command")
+    run_server(host=host or "0.0.0.0", port=port or 8772)
     return {
         "status": "success",
         "message": "serve completed successfully"

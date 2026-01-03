@@ -73,7 +73,14 @@ class ConfigManager:
     def __init__(self, config_file: Optional[Path] = None):
         """Initialize configuration manager."""
         if config_file is None:
-            config_dir = Path.home() / '.config' / 'brain'
+            # Check for override via environment variable
+            import os
+            env_config_dir = os.environ.get("BRAIN_CONFIG_DIR")
+            if env_config_dir:
+                config_dir = Path(env_config_dir)
+            else:
+                config_dir = Path.home() / '.config' / 'brain'
+            
             config_dir.mkdir(parents=True, exist_ok=True)
             config_file = config_dir / 'config.yaml'
 
