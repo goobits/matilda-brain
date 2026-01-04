@@ -60,6 +60,7 @@ def get_allowed_origins() -> List[str]:
 def is_origin_allowed(origin: str, allowed_origins: List[str]) -> bool:
     """
     Check if an origin is in the allowed origins list.
+    Supports '*' as a wildcard.
 
     Args:
         origin: The origin to check
@@ -68,4 +69,6 @@ def is_origin_allowed(origin: str, allowed_origins: List[str]) -> bool:
     Returns:
         True if origin is allowed, False otherwise
     """
+    if "*" in allowed_origins:
+        return True
     return origin in allowed_origins
