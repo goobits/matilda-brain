@@ -373,6 +373,8 @@ def _get_provider_from_model(model_name: str) -> str:
         return "openai"
     elif model_name.startswith("google/") or "gemini" in model_name.lower():
         return "google"
+    elif model_name.startswith("cerebras/"):
+        return "cerebras"
     else:
         return "local"
 
@@ -394,6 +396,7 @@ def _get_model_description(alias: str, model_name: str, available: bool, aliases
         "anthropic": "Anthropic Claude",
         "google": "Google Gemini",
         "openrouter": "OpenRouter",
+        "cerebras": "Cerebras",
         "local": "Local Ollama",
     }
 

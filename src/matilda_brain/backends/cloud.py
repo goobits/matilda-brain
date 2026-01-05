@@ -270,6 +270,10 @@ class CloudBackend(BaseBackend):
         if openrouter_key := (self.backend_config.get("openrouter_api_key") or os.getenv("OPENROUTER_API_KEY")):
             os.environ["OPENROUTER_API_KEY"] = openrouter_key
 
+        # Cerebras
+        if cerebras_key := (self.backend_config.get("cerebras_api_key") or os.getenv("CEREBRAS_API_KEY")):
+            os.environ["CEREBRAS_API_KEY"] = cerebras_key
+
     @property
     def name(self) -> str:
         """Backend name for identification."""
@@ -641,6 +645,8 @@ class CloudBackend(BaseBackend):
         if model.startswith("openrouter/"):
             # For OpenRouter, we use OPENROUTER_API_KEY
             return "openrouter"
+        elif model.startswith("cerebras/"):
+            return "cerebras"
         # Handle direct provider models
         elif model.startswith("gpt-") or "gpt-" in model:
             return "openai"

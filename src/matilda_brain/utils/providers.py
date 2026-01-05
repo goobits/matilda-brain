@@ -10,6 +10,7 @@ PROVIDER_ENV_VARS: Dict[str, str] = {
     "anthropic": "ANTHROPIC_API_KEY",
     "google": "GOOGLE_API_KEY",
     "openrouter": "OPENROUTER_API_KEY",
+    "cerebras": "CEREBRAS_API_KEY",
 }
 
 # Centralized mapping of config keys to environment variable names
@@ -18,6 +19,7 @@ CONFIG_KEY_TO_ENV_VAR: Dict[str, str] = {
     "anthropic_api_key": "ANTHROPIC_API_KEY",
     "google_api_key": "GOOGLE_API_KEY",
     "openrouter_api_key": "OPENROUTER_API_KEY",
+    "cerebras_api_key": "CEREBRAS_API_KEY",
 }
 
 
