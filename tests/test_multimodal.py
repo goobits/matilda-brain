@@ -131,7 +131,11 @@ class TestCloudBackendMultiModal:
     @pytest.mark.asyncio
     async def test_cloud_backend_with_images(self):
         """Test cloud backend handles images correctly."""
-        backend = CloudBackend()
+        class FakeLiteLLM:
+            pass
+
+        with patch.dict("sys.modules", {"litellm": FakeLiteLLM()}):
+            backend = CloudBackend()
 
         # Mock litellm
         mock_response = Mock()
@@ -174,7 +178,11 @@ class TestCloudBackendMultiModal:
     @pytest.mark.asyncio
     async def test_cloud_backend_image_formats(self, tmp_path):
         """Test different image input formats."""
-        backend = CloudBackend()
+        class FakeLiteLLM:
+            pass
+
+        with patch.dict("sys.modules", {"litellm": FakeLiteLLM()}):
+            backend = CloudBackend()
 
         # Create test image file
         image_path = tmp_path / "test.png"
@@ -265,7 +273,8 @@ class TestRoutingMultiModal:
 
         # Mock backends
         with patch.object(router, "get_backend") as mock_get:
-            mock_cloud = Mock(name="cloud")
+            mock_cloud = Mock()
+            mock_cloud.name = "cloud"
             mock_get.return_value = mock_cloud
 
             # Route with images
@@ -281,8 +290,13 @@ class TestRoutingMultiModal:
 
         router = Router()
 
-        # Route with specific vision model
-        backend, model = router.smart_route("Describe this", model="gemini-pro-vision")
+        with patch.object(router, "get_backend") as mock_get:
+            mock_cloud = Mock()
+            mock_cloud.name = "cloud"
+            mock_get.return_value = mock_cloud
 
-        assert model == "gemini-pro-vision"
-        assert backend.name == "cloud"
+            # Route with specific vision model
+            backend, model = router.smart_route("Describe this", model="gemini-pro-vision")
+
+            assert model == "gemini-pro-vision"
+            assert backend.name == "cloud"

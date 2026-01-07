@@ -15,7 +15,8 @@ from .conftest import IntegrationTestBase
 class TestAskCommand(IntegrationTestBase):
     """Test the ask command functionality."""
 
-    @pytest.mark.integration
+    @pytest.mark.requires_credentials
+    @pytest.mark.requires_network
     def test_ask_basic_prompt_demonstrates_core_functionality(self):
         """Test basic ask functionality - demonstrates core TTT question-answering capability with proper error handling."""
         # Real integration test demonstrating TTT's primary use case
@@ -44,7 +45,8 @@ class TestAskCommand(IntegrationTestBase):
             has_error_info = any(indicator in error_output for indicator in expected_error_indicators)
             assert has_error_info, f"Error output should provide helpful information: {result.output}"
 
-    @pytest.mark.integration
+    @pytest.mark.requires_credentials
+    @pytest.mark.requires_network
     def test_ask_with_comprehensive_options_demonstrates_advanced_usage(self):
         """Test ask with various options - demonstrates advanced TTT configuration and feature usage."""
         # Real integration test showing comprehensive option usage

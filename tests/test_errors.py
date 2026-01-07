@@ -214,12 +214,17 @@ class TestCloudBackendExceptions:
 
     def test_api_key_error(self):
         """Test that authentication errors raise APIKeyError."""
-        from matilda_brain.backends.cloud import CloudBackend
+        class FakeLiteLLM:
+            def __init__(self):
+                self.acompletion = AsyncMock(side_effect=Exception("api_key is required"))
 
-        backend = CloudBackend()
+        fake_litellm = FakeLiteLLM()
+        with patch.dict("sys.modules", {"litellm": fake_litellm}):
+            import importlib
+            from matilda_brain.backends import cloud
 
-        # Mock the instance's litellm.acompletion method
-        backend.litellm.acompletion = AsyncMock(side_effect=Exception("api_key is required"))
+            importlib.reload(cloud)
+            backend = cloud.CloudBackend()
 
         with pytest.raises(APIKeyError) as exc_info:
             import asyncio
@@ -236,12 +241,17 @@ class TestCloudBackendExceptions:
 
     def test_rate_limit_error(self):
         """Test that rate limit errors are handled properly."""
-        from matilda_brain.backends.cloud import CloudBackend
+        class FakeLiteLLM:
+            def __init__(self):
+                self.acompletion = AsyncMock(side_effect=Exception("Rate limit exceeded"))
 
-        backend = CloudBackend()
+        fake_litellm = FakeLiteLLM()
+        with patch.dict("sys.modules", {"litellm": fake_litellm}):
+            import importlib
+            from matilda_brain.backends import cloud
 
-        # Mock the instance's litellm.acompletion method
-        backend.litellm.acompletion = AsyncMock(side_effect=Exception("Rate limit exceeded"))
+            importlib.reload(cloud)
+            backend = cloud.CloudBackend()
 
         with pytest.raises(RateLimitError) as exc_info:
             import asyncio
@@ -665,8 +675,9 @@ class TestSessionExceptions:
     def test_session_save_invalid_format(self):
         """Test saving with invalid format raises InvalidParameterError."""
         from matilda_brain.session.chat import PersistentChatSession
+        from tests.utils import MockBackend
 
-        session = PersistentChatSession()
+        session = PersistentChatSession(backend=MockBackend())
 
         with pytest.raises(InvalidParameterError) as exc_info:
             session.save("test.txt", format="xml")
@@ -678,8 +689,9 @@ class TestSessionExceptions:
     def test_session_save_permission_error(self, tmp_path):
         """Test saving to protected location raises SessionSaveError."""
         from matilda_brain.session.chat import PersistentChatSession
+        from tests.utils import MockBackend
 
-        session = PersistentChatSession()
+        session = PersistentChatSession(backend=MockBackend())
 
         # Try to save to a read-only directory
         protected_dir = tmp_path / "protected"

@@ -26,12 +26,12 @@ def mock_backend():
     return MockBackend(responses=["Response 1", "Response 2", "Response 3"])
 
 
-@pytest.fixture
+@pytest.fixture(autouse=True)
 def mock_router(mock_backend):
     """Mock router to return our backend."""
-    with patch("matilda_brain.core.routing.router") as mock:
+    with patch("matilda_brain.session.chat.router") as mock:
         mock.smart_route.return_value = (mock_backend, "mock-model")
-        mock.resolve_backend.return_value = mock_backend
+        mock.resolve_backend.side_effect = lambda backend: backend
         mock.resolve_model.return_value = "mock-model"
         yield mock
 

@@ -54,7 +54,17 @@ matilda_brain = [ "setup.sh",]
 goobits_matilda_brain = [ "setup.sh",]
 
 [tool.pytest.ini_options]
-markers = [ "unit: unit tests", "requires_api: tests that require API keys", "integration: integration tests", "slow: slow tests", "benchmark: benchmark tests", "examples: example tests",]
+markers = [
+    "unit: unit tests",
+    "requires_credentials: tests that require API keys or credentials",
+    "requires_network: tests that require external network access",
+    "requires_service: tests that require local services running",
+    "requires_gpu: tests that require a GPU",
+    "integration: integration tests",
+    "slow: slow tests",
+    "benchmark: benchmark tests",
+    "examples: example tests",
+]
 cache_dir = ".artifacts/cache/pytest"
 asyncio_mode = "auto"
 testpaths = [ "tests",]

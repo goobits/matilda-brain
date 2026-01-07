@@ -35,7 +35,8 @@ def skip_if_no_api_keys():
     return pytest.mark.skipif(not has_keys, reason="No valid API keys available for integration testing")
 
 
-@pytest.mark.integration
+@pytest.mark.requires_credentials
+@pytest.mark.requires_network
 @skip_if_no_api_keys()
 class TestRealAPIIntegration:
     """Integration tests with real API calls."""
@@ -128,7 +129,8 @@ class TestRealAPIIntegration:
         assert response.backend == "cloud"
 
 
-@pytest.mark.integration
+@pytest.mark.requires_credentials
+@pytest.mark.requires_network
 @skip_if_no_api_keys()
 class TestProviderSpecificIntegration:
     """Test specific providers with real keys."""
@@ -174,7 +176,8 @@ class TestProviderSpecificIntegration:
                 pytest.fail(f"Unexpected error testing {model}: {type(e).__name__}: {e}")
 
 
-@pytest.mark.integration
+@pytest.mark.requires_credentials
+@pytest.mark.requires_network
 @pytest.mark.slow
 @skip_if_no_api_keys()
 class TestErrorHandlingIntegration:
@@ -210,7 +213,8 @@ class TestErrorHandlingIntegration:
 
 
 # Performance benchmarks (optional)
-@pytest.mark.integration
+@pytest.mark.requires_credentials
+@pytest.mark.requires_network
 @pytest.mark.benchmark
 @skip_if_no_api_keys()
 class TestPerformanceBenchmarks:
@@ -252,7 +256,8 @@ class TestPerformanceBenchmarks:
 
 
 # Usage examples for documentation
-@pytest.mark.integration
+@pytest.mark.requires_credentials
+@pytest.mark.requires_network
 @pytest.mark.examples
 @skip_if_no_api_keys()
 class TestUsageExamples:

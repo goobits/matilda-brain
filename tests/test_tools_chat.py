@@ -19,7 +19,7 @@ class TestChatSessionTools:
         def test_tool(x: int) -> int:
             return x * 2
 
-        session = ChatSession(tools=[test_tool])
+        session = ChatSession(tools=[test_tool], backend=Mock())
         assert session.tools == [test_tool]
 
     def test_chat_session_ask_with_tools(self):
@@ -47,7 +47,7 @@ class TestChatSessionTools:
         def test_tool(x: int) -> int:
             return x * 2
 
-        with chat(tools=[test_tool]) as session:
+        with chat(tools=[test_tool], backend=Mock()) as session:
             assert session.tools == [test_tool]
 
 
@@ -60,7 +60,7 @@ class TestPersistentChatSessionTools:
         def test_tool(x: int) -> int:
             return x * 2
 
-        session = PersistentChatSession(tools=[test_tool])
+        session = PersistentChatSession(tools=[test_tool], backend=Mock())
         assert session.tools == [test_tool]
         assert "tools_used" in session.metadata
 
@@ -116,14 +116,20 @@ class TestPersistentChatSessionTools:
             return x * 2
 
         # Create session with tools
-        session = PersistentChatSession(tools=[test_tool], system="Test system")
+        session = PersistentChatSession(tools=[test_tool], system="Test system", backend=Mock())
 
         # Save session
         save_path = tmp_path / "test_session.json"
         session.save(save_path)
 
         # Load session
-        loaded_session = PersistentChatSession.load(save_path)
+        with patch("matilda_brain.session.chat.router") as mock_router:
+            mock_backend = Mock()
+            mock_router.smart_route.return_value = (mock_backend, "mock-model")
+            mock_router.resolve_backend.return_value = mock_backend
+            mock_router.resolve_model.return_value = "mock-model"
+
+            loaded_session = PersistentChatSession.load(save_path)
 
         # Check tools were preserved (as names)
         assert loaded_session.tools is not None
@@ -140,7 +146,7 @@ class TestPersistentChatSessionTools:
             name = "mock_tool"
             description = "Mock tool"
 
-        session = PersistentChatSession(tools=[test_function, MockToolDef(), "string_tool"])
+        session = PersistentChatSession(tools=[test_function, MockToolDef(), "string_tool"], backend=Mock())
 
         serialized = session._serialize_tools()
 
@@ -173,7 +179,7 @@ class TestPersistentChatSessionTools:
         def test_tool(x: int) -> int:
             return x * 2
 
-        with chat(persist=True, tools=[test_tool]) as session:
+        with chat(persist=True, tools=[test_tool], backend=Mock()) as session:
             assert isinstance(session, PersistentChatSession)
             assert session.tools == [test_tool]
 

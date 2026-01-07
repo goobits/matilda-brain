@@ -171,7 +171,8 @@ class TestCLIParameterValidation(IntegrationTestBase):
         # Should either succeed or fail gracefully
         assert result.exit_code in [0, 1], f"{description} had unexpected exit code {result.exit_code}: {result.output}"
 
-    @pytest.mark.integration
+    @pytest.mark.requires_credentials
+    @pytest.mark.requires_network
     def test_ask_parameter_passing_with_json_validation(self):
         """Test ask command with comprehensive parameter validation via JSON output."""
         result = self.runner.invoke(
@@ -268,7 +269,8 @@ class TestCLIParameterValidation(IntegrationTestBase):
         assert result.exit_code == 0, f"Config get failed: {result.output}"
         assert "gpt-4" in result.output, f"Config get didn't return expected value: {result.output}"
 
-    @pytest.mark.integration
+    @pytest.mark.requires_credentials
+    @pytest.mark.requires_network
     def test_mocked_ask_parameter_validation(self):
         """Test ask command parameter conversion with mocked hooks to verify exact parameter passing."""
         with patch("matilda_brain.app_hooks.on_ask") as mock_ask:

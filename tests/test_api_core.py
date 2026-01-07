@@ -21,18 +21,18 @@ class TestPersistentChatSession:
     """Test the PersistentChatSession class."""
 
     @pytest.mark.unit
-    def test_chat_session_initialization(self):
+    def test_chat_session_initialization(self, mock_backend):
         """Test chat session initialization."""
-        session = PersistentChatSession(system="You are helpful", model="test-model")
+        session = PersistentChatSession(system="You are helpful", model="test-model", backend=mock_backend)
 
         assert session.system == "You are helpful"
         assert session.model == "test-model"
         assert session.history == []
 
     @pytest.mark.unit
-    def test_chat_session_clear(self):
+    def test_chat_session_clear(self, mock_backend):
         """Test clearing chat history."""
-        session = PersistentChatSession()
+        session = PersistentChatSession(backend=mock_backend)
         session.history = [{"role": "user", "content": "test"}]
 
         session.clear()

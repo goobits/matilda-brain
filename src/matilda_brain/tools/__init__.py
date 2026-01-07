@@ -19,6 +19,7 @@ Example usage:
 """
 
 import asyncio
+import inspect
 from functools import wraps
 from typing import Any, Callable, Optional
 
@@ -102,7 +103,7 @@ def tool(
         setattr(f, '_is_tool', True)
 
         # Create appropriate wrapper based on function type
-        if asyncio.iscoroutinefunction(f):
+        if inspect.iscoroutinefunction(f):
 
             @wraps(f)
             async def async_wrapper(*args: Any, **kwargs: Any) -> Any:

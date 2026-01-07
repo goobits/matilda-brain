@@ -32,7 +32,16 @@ class TestRouter:
     def test_get_backend_cloud(self):
         """Test getting cloud backend."""
         router = Router()
-        backend = router.get_backend("cloud")
+        class FakeCloudBackend:
+            def __init__(self, config):
+                self.name = "cloud"
+
+            @property
+            def is_available(self):
+                return True
+
+        with patch("matilda_brain.core.routing.CloudBackend", FakeCloudBackend):
+            backend = router.get_backend("cloud")
 
         assert backend is not None
         assert backend.name == "cloud"

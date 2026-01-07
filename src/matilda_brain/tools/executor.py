@@ -1,6 +1,7 @@
 """Enhanced tool execution system with recovery and retry capabilities."""
 
 import asyncio
+import inspect
 import logging
 import time
 from dataclasses import dataclass
@@ -168,7 +169,7 @@ class ToolExecutor:
         """Execute tool with recovery and retry logic."""
         try:
             # Execute the tool function
-            if asyncio.iscoroutinefunction(tool.function):
+            if inspect.iscoroutinefunction(tool.function):
                 result = await tool.function(**arguments)
             else:
                 result = tool.function(**arguments)
@@ -222,7 +223,7 @@ class ToolExecutor:
                     continue
 
                 # Execute fallback with limited retries
-                if asyncio.iscoroutinefunction(fallback_tool.function):
+                if inspect.iscoroutinefunction(fallback_tool.function):
                     result = await fallback_tool.function(**suggestion.arguments)
                 else:
                     result = fallback_tool.function(**suggestion.arguments)

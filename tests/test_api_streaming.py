@@ -146,7 +146,7 @@ class TestChatSession:
 
     def test_chat_session_initialization_resolves_backend_and_model_defaults(self):
         """Test ChatSession initialization with defaults."""
-        with patch("matilda_brain.core.routing.router") as mock_router:
+        with patch("matilda_brain.session.chat.router") as mock_router:
             mock_backend = MockBackend()
             # Mock the smart_route to return backend and model
             mock_router.smart_route.return_value = (mock_backend, "default-model")
@@ -164,7 +164,7 @@ class TestChatSession:
 
     def test_chat_session_initialization_with_params(self):
         """Test ChatSession initialization with parameters."""
-        with patch("matilda_brain.core.routing.router") as mock_router:
+        with patch("matilda_brain.session.chat.router") as mock_router:
             mock_backend = MockBackend("local")
             # Mock router to return our backend
             mock_router.resolve_backend.return_value = mock_backend

@@ -51,7 +51,8 @@ class TestCLIErrorHandling:
         """Set up test fixtures."""
         self.runner = CliRunner()
 
-    @pytest.mark.integration
+    @pytest.mark.requires_credentials
+    @pytest.mark.requires_network
     def test_invalid_command(self):
         """Test handling of invalid commands."""
         result = self.runner.invoke(main, ["invalid-command"])

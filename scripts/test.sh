@@ -109,8 +109,8 @@ check_api_keys() {
     fi
     
     if [[ $api_keys_found -eq 0 ]]; then
-        print_color $RED "❌ No API keys found!"
-        echo "Set one or more of these environment variables:"
+        print_color $YELLOW "⚠️  No API keys found!"
+        echo "Set one or more of these environment variables to enable credentialed tests:"
         echo "  - OPENAI_API_KEY"
         echo "  - ANTHROPIC_API_KEY"
         echo "  - OPENROUTER_API_KEY"
@@ -118,8 +118,9 @@ check_api_keys() {
         echo "Example:"
         echo "  export OPENROUTER_API_KEY='your-key-here'"
         echo "  $SCRIPT_NAME integration"
-        exit 1
+        return 1
     fi
+    return 0
 }
 
 # Check virtual environment
@@ -157,8 +158,8 @@ run_unit_tests() {
             pytest_cmd="$pytest_cmd tests/ -k $SPECIFIC_TEST"
         fi
     else
-        # Run all unit tests (exclude integration tests)
-        pytest_cmd="$pytest_cmd tests/ -m 'not integration'"
+        # Run all unit tests (exclude tests requiring credentials/network/services/GPU)
+        pytest_cmd="$pytest_cmd tests/ -m 'not requires_credentials and not requires_network and not requires_service and not requires_gpu'"
     fi
     
     # Add markers if specified
@@ -205,7 +206,9 @@ run_integration_tests() {
     echo
     
     # Check API keys
-    check_api_keys
+    if ! check_api_keys; then
+        print_color $YELLOW "⚠️  No API keys detected; tests requiring credentials will likely skip."
+    fi
     
     echo
     print_color $YELLOW "⚠️  WARNING: These tests will make real API calls and consume credits!"
@@ -227,7 +230,20 @@ run_integration_tests() {
     echo
     
     # Build pytest command for integration tests
-    local pytest_cmd="python3 -m pytest tests/test_integration.py -m integration"
+    local pytest_cmd="python3 -m pytest"
+
+    if [[ -n "$SPECIFIC_TEST" ]]; then
+        if [[ "$SPECIFIC_TEST" == *"test_"* ]]; then
+            if [[ "$SPECIFIC_TEST" != *".py" ]]; then
+                SPECIFIC_TEST="${SPECIFIC_TEST}.py"
+            fi
+            pytest_cmd="$pytest_cmd tests/$SPECIFIC_TEST"
+        else
+            pytest_cmd="$pytest_cmd tests/ -k $SPECIFIC_TEST"
+        fi
+    else
+        pytest_cmd="$pytest_cmd tests/ -m 'requires_credentials or requires_network or requires_service or requires_gpu'"
+    fi
     
     if [[ "$VERBOSE" == true ]]; then
         pytest_cmd="$pytest_cmd -v"

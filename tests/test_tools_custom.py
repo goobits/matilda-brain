@@ -267,7 +267,11 @@ class TestToolIntegration:
     @pytest.mark.asyncio
     async def test_cloud_backend_tool_integration(self):
         """Test tool integration with CloudBackend."""
-        backend = CloudBackend()
+        class FakeLiteLLM:
+            pass
+
+        with patch.dict("sys.modules", {"litellm": FakeLiteLLM()}):
+            backend = CloudBackend()
 
         # Create test tools
         @tool(register=False)

@@ -46,7 +46,9 @@ def run_ttt_command(args, input_text=None, timeout=10):
 class TestBasicAPICommands:
     """Test basic commands that require API calls."""
 
-    @pytest.mark.requires_api
+    @pytest.mark.requires_credentials
+
+    @pytest.mark.requires_network
     def test_ttt_direct_prompt_with_api(self):
         """Test: ttt 'prompt' - Tested 2025-07-24"""
         if not has_valid_api_key():
@@ -56,7 +58,9 @@ class TestBasicAPICommands:
         # Should either work or timeout (both acceptable for API calls)
         assert result.exit_code in [0, 124]
 
-    @pytest.mark.requires_api
+    @pytest.mark.requires_credentials
+
+    @pytest.mark.requires_network
     def test_ttt_ask_prompt(self):
         """Test: ttt ask 'prompt' - Tested 2025-07-24"""
         if not has_valid_api_key():
@@ -69,7 +73,9 @@ class TestBasicAPICommands:
 class TestModelSelectionOptions:
     """Test model selection options."""
 
-    @pytest.mark.requires_api
+    @pytest.mark.requires_credentials
+
+    @pytest.mark.requires_network
     def test_ask_model_gpt4(self):
         """Test: ttt ask --model gpt-4 'prompt' - Tested 2025-07-24"""
         if not has_valid_api_key():
@@ -78,7 +84,9 @@ class TestModelSelectionOptions:
         result = run_ttt_command(["ask", "--model", "gpt-4", "hello"])
         assert result.exit_code in [0, 124]
 
-    @pytest.mark.requires_api
+    @pytest.mark.requires_credentials
+
+    @pytest.mark.requires_network
     def test_ask_model_short_flag(self):
         """Test: ttt ask -m @claude 'prompt' - Tested 2025-07-24"""
         if not has_valid_api_key():
@@ -88,7 +96,9 @@ class TestModelSelectionOptions:
         # Accept success (0), timeout (124), or model unavailable error (1)
         assert result.exit_code in [0, 1, 124]
 
-    @pytest.mark.requires_api
+    @pytest.mark.requires_credentials
+
+    @pytest.mark.requires_network
     def test_ask_full_model_path(self):
         """Test: ttt ask --model openrouter/google/gemini-flash-1.5 'prompt' - Tested 2025-07-24"""
         if not has_valid_api_key():
@@ -101,7 +111,9 @@ class TestModelSelectionOptions:
 class TestSystemPromptOptions:
     """Test system prompt options."""
 
-    @pytest.mark.requires_api
+    @pytest.mark.requires_credentials
+
+    @pytest.mark.requires_network
     def test_ask_system_prompt(self):
         """Test: ttt ask --system 'system prompt' 'user prompt' - Tested 2025-07-24"""
         if not has_valid_api_key():
@@ -114,7 +126,9 @@ class TestSystemPromptOptions:
 class TestTemperatureControl:
     """Test temperature control options."""
 
-    @pytest.mark.requires_api
+    @pytest.mark.requires_credentials
+
+    @pytest.mark.requires_network
     def test_ask_temperature_long(self):
         """Test: ttt ask --temperature 0.7 'prompt' - Tested 2025-07-24"""
         if not has_valid_api_key():
@@ -123,7 +137,9 @@ class TestTemperatureControl:
         result = run_ttt_command(["ask", "--temperature", "0.7", "hello"])
         assert result.exit_code in [0, 124]
 
-    @pytest.mark.requires_api
+    @pytest.mark.requires_credentials
+
+    @pytest.mark.requires_network
     def test_ask_temperature_short(self):
         """Test: ttt ask -t 0.1 'prompt' - Tested 2025-07-24"""
         if not has_valid_api_key():
@@ -136,7 +152,9 @@ class TestTemperatureControl:
 class TestTokenLimits:
     """Test token limit options."""
 
-    @pytest.mark.requires_api
+    @pytest.mark.requires_credentials
+
+    @pytest.mark.requires_network
     def test_ask_max_tokens(self):
         """Test: ttt ask --max-tokens 100 'prompt' - Tested 2025-07-24"""
         if not has_valid_api_key():
@@ -149,7 +167,9 @@ class TestTokenLimits:
 class TestToolsOptions:
     """Test tools options."""
 
-    @pytest.mark.requires_api
+    @pytest.mark.requires_credentials
+
+    @pytest.mark.requires_network
     def test_ask_tools_basic_executes_with_tools_enabled(self):
         """Test: ttt ask --tools 'prompt' - Tested 2025-07-24"""
         if not has_valid_api_key():
@@ -162,7 +182,9 @@ class TestToolsOptions:
 class TestOutputModes:
     """Test output modes."""
 
-    @pytest.mark.requires_api
+    @pytest.mark.requires_credentials
+
+    @pytest.mark.requires_network
     def test_ask_stream(self):
         """Test: ttt ask --stream 'prompt' - Tested 2025-07-24"""
         if not has_valid_api_key():
@@ -171,7 +193,9 @@ class TestOutputModes:
         result = run_ttt_command(["ask", "--stream", "true", "hello"])
         assert result.exit_code in [0, 124]
 
-    @pytest.mark.requires_api
+    @pytest.mark.requires_credentials
+
+    @pytest.mark.requires_network
     def test_ask_json(self):
         """Test: ttt ask --json 'prompt' - Tested 2025-07-24"""
         if not has_valid_api_key():
@@ -184,7 +208,9 @@ class TestOutputModes:
 class TestChatCommands:
     """Test chat command options."""
 
-    @pytest.mark.requires_api
+    @pytest.mark.requires_credentials
+
+    @pytest.mark.requires_network
     def test_chat_command_basic(self):
         """Test: ttt chat - Basic chat command functionality"""
         if not has_valid_api_key():
@@ -198,7 +224,9 @@ class TestChatCommands:
 class TestPipelineUsage:
     """Test pipeline/stdin usage."""
 
-    @pytest.mark.requires_api
+    @pytest.mark.requires_credentials
+
+    @pytest.mark.requires_network
     def test_echo_pipe_ask(self):
         """Test: echo 'text' | ttt ask 'transform this' - Tested 2025-07-24"""
         if not has_valid_api_key():
@@ -207,7 +235,9 @@ class TestPipelineUsage:
         result = run_ttt_command(["ask", "transform this"], input_text="hello world")
         assert result.exit_code in [0, 124]
 
-    @pytest.mark.requires_api
+    @pytest.mark.requires_credentials
+
+    @pytest.mark.requires_network
     def test_echo_pipe_ask_specific(self):
         """Test: echo 'hello world' | ttt ask 'transform this' - Tested 2025-07-24"""
         if not has_valid_api_key():
@@ -220,7 +250,9 @@ class TestPipelineUsage:
 class TestModelAliases:
     """Test model aliases."""
 
-    @pytest.mark.requires_api
+    @pytest.mark.requires_credentials
+
+    @pytest.mark.requires_network
     def test_ask_alias_claude(self):
         """Test: ttt ask -m @claude 'prompt' - Tested 2025-07-24"""
         if not has_valid_api_key():
@@ -230,7 +262,9 @@ class TestModelAliases:
         # Accept success (0), timeout (124), or model unavailable error (1)
         assert result.exit_code in [0, 1, 124]
 
-    @pytest.mark.requires_api
+    @pytest.mark.requires_credentials
+
+    @pytest.mark.requires_network
     def test_ask_alias_gpt4(self):
         """Test: ttt ask -m @gpt4 'prompt' - Tested 2025-07-24"""
         if not has_valid_api_key():
@@ -239,7 +273,9 @@ class TestModelAliases:
         result = run_ttt_command(["ask", "-m", "@gpt4", "hello"])
         assert result.exit_code in [0, 124]
 
-    @pytest.mark.requires_api
+    @pytest.mark.requires_credentials
+
+    @pytest.mark.requires_network
     def test_ask_alias_fast(self):
         """Test: ttt ask -m @fast 'prompt' - Tested 2025-07-24"""
         if not has_valid_api_key():
@@ -248,7 +284,9 @@ class TestModelAliases:
         result = run_ttt_command(["ask", "-m", "@fast", "hello"])
         assert result.exit_code in [0, 124]
 
-    @pytest.mark.requires_api
+    @pytest.mark.requires_credentials
+
+    @pytest.mark.requires_network
     def test_ask_alias_best(self):
         """Test: ttt ask -m @best 'prompt' - Tested 2025-07-24"""
         if not has_valid_api_key():
@@ -257,7 +295,9 @@ class TestModelAliases:
         result = run_ttt_command(["ask", "-m", "@best", "hello"])
         assert result.exit_code in [0, 124]
 
-    @pytest.mark.requires_api
+    @pytest.mark.requires_credentials
+
+    @pytest.mark.requires_network
     def test_ask_alias_coding(self):
         """Test: ttt ask -m @coding 'prompt' - Tested 2025-07-24"""
         if not has_valid_api_key():
@@ -267,14 +307,18 @@ class TestModelAliases:
         # Accept success (0), timeout (124), or model unavailable error (1)
         assert result.exit_code in [0, 1, 124]
 
-    @pytest.mark.requires_api
+    @pytest.mark.requires_credentials
+
+    @pytest.mark.requires_network
     def test_ask_alias_local(self):
         """Test: ttt ask -m @local 'prompt' - Tested 2025-07-24"""
         # Local models might not be available, but structure should work
         result = run_ttt_command(["ask", "-m", "@local", "hello"])
         assert result.exit_code in [0, 1, 124]  # May fail if Ollama not running
 
-    @pytest.mark.requires_api
+    @pytest.mark.requires_credentials
+
+    @pytest.mark.requires_network
     def test_direct_alias_claude(self):
         """Test: ttt @claude 'prompt' - Direct alias usage"""
         if not has_valid_api_key():
@@ -288,7 +332,9 @@ class TestModelAliases:
 class TestComplexCombinations:
     """Test complex command combinations."""
 
-    @pytest.mark.requires_api
+    @pytest.mark.requires_credentials
+
+    @pytest.mark.requires_network
     def test_complex_claude_tools_json(self):
         """Test: ttt ask --model @claude --temperature 0.2 --tools --json 'write a function' - Tested 2025-07-24"""
         if not has_valid_api_key():
@@ -310,7 +356,9 @@ class TestComplexCombinations:
         # Accept success (0), timeout (124), or model unavailable error (1)
         assert result.exit_code in [0, 1, 124]
 
-    @pytest.mark.requires_api
+    @pytest.mark.requires_credentials
+
+    @pytest.mark.requires_network
     def test_complex_gpt4_max_tokens(self):
         """Test: ttt ask --json --model gpt-4 --max-tokens 500 'structured analysis' - Tested 2025-07-24"""
         if not has_valid_api_key():
@@ -329,7 +377,9 @@ class TestComplexCombinations:
         )
         assert result.exit_code in [0, 124]
 
-    @pytest.mark.requires_api
+    @pytest.mark.requires_credentials
+
+    @pytest.mark.requires_network
     def test_complex_stream_json(self):
         """Test: ttt ask -m @gpt4 --stream --json 'explain this algorithm' - Tested 2025-07-24"""
         if not has_valid_api_key():
@@ -338,7 +388,9 @@ class TestComplexCombinations:
         result = run_ttt_command(["ask", "-m", "@gpt4", "--stream", "true", "--json", "explain sorting"])
         assert result.exit_code in [0, 124]
 
-    @pytest.mark.requires_api
+    @pytest.mark.requires_credentials
+
+    @pytest.mark.requires_network
     def test_complex_pipeline_tools_json(self):
         """Test: echo 'data' | ttt ask --model @claude --tools --json 'analyze and research' - Tested 2025-07-24"""
         if not has_valid_api_key():
@@ -359,7 +411,9 @@ class TestComplexCombinations:
         # Accept success (0), timeout (124), or model unavailable error (1)
         assert result.exit_code in [0, 1, 124]
 
-    @pytest.mark.requires_api
+    @pytest.mark.requires_credentials
+
+    @pytest.mark.requires_network
     def test_complex_all_options(self):
         """Test: ttt ask --model @claude --temperature 0.7 --max-tokens 1000 --tools 'research topic' - Tested 2025-07-24"""
         if not has_valid_api_key():
@@ -382,7 +436,9 @@ class TestComplexCombinations:
         # Accept success (0), timeout (124), or model unavailable error (1)
         assert result.exit_code in [0, 1, 124]
 
-    @pytest.mark.requires_api
+    @pytest.mark.requires_credentials
+
+    @pytest.mark.requires_network
     def test_complex_fast_json_stream(self):
         """Test: ttt ask -m @fast --json --stream 'quick response in JSON format' - Tested 2025-07-24"""
         if not has_valid_api_key():
@@ -395,7 +451,9 @@ class TestComplexCombinations:
 class TestFilePipelineUsage:
     """Test file-based pipeline usage - tests real file I/O functionality."""
 
-    @pytest.mark.requires_api
+    @pytest.mark.requires_credentials
+
+    @pytest.mark.requires_network
     def test_file_content_analysis_demonstrates_pipeline_usage(self):
         """Test: cat file.txt | ttt ask 'summarize' - Demonstrates real file processing pipeline with validation"""
         if not has_valid_api_key():
@@ -443,7 +501,9 @@ The architecture follows modern best practices with clear separation of concerns
             # Clean up
             os.unlink(temp_file)
 
-    @pytest.mark.requires_api
+    @pytest.mark.requires_credentials
+
+    @pytest.mark.requires_network
     def test_json_file_pipe_ask(self):
         """Test: cat data.json | ttt ask 'analyze' - Tests JSON file processing"""
         if not has_valid_api_key():
@@ -468,7 +528,9 @@ The architecture follows modern best practices with clear separation of concerns
 class TestJSONInputPipeline:
     """Test JSON input pipeline - tests structured input parsing."""
 
-    @pytest.mark.requires_api
+    @pytest.mark.requires_credentials
+
+    @pytest.mark.requires_network
     def test_json_input_pipeline(self):
         """Test: echo '{"prompt": "hello"}' | ttt ask - Tests JSON input parsing"""
         if not has_valid_api_key():
@@ -478,7 +540,9 @@ class TestJSONInputPipeline:
         result = run_ttt_command(["ask", "extract the message from this JSON"], input_text=json_input)
         assert result.exit_code in [0, 124]
 
-    @pytest.mark.requires_api
+    @pytest.mark.requires_credentials
+
+    @pytest.mark.requires_network
     def test_json_array_input(self):
         """Test: echo '[1,2,3]' | ttt ask 'sum these' - Tests JSON array processing"""
         if not has_valid_api_key():
@@ -492,7 +556,9 @@ class TestJSONInputPipeline:
 class TestAdditionalCLIOptions:
     """Test additional CLI options for completeness."""
 
-    @pytest.mark.requires_api
+    @pytest.mark.requires_credentials
+
+    @pytest.mark.requires_network
     def test_system_prompt_short_flag(self):
         """Test: ttt ask -s 'system' 'user' - Tests short flag consistency"""
         if not has_valid_api_key():
@@ -502,7 +568,9 @@ class TestAdditionalCLIOptions:
         # May not be implemented, but test structure should work
         assert result.exit_code in [0, 1, 124]
 
-    @pytest.mark.requires_api
+    @pytest.mark.requires_credentials
+
+    @pytest.mark.requires_network
     def test_higher_max_tokens(self):
         """Test: ttt ask --max-tokens 2000 'prompt' - Tests higher token limits"""
         if not has_valid_api_key():

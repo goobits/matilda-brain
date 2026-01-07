@@ -150,6 +150,10 @@ def http_request(
                 return str(content)
 
     except urllib.error.HTTPError as e:
+        try:
+            e.close()
+        except Exception:
+            pass
         return f"HTTP Error {e.code}: {e.reason}"
     except urllib.error.URLError as e:
         return f"Network error: {str(e)}"

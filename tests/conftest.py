@@ -20,6 +20,7 @@ if env_path.exists():
     load_dotenv(env_path)
 
 
+
 # Configuration for rate limiting delays
 OPENROUTER_DEFAULT_DELAY = 1.0  # Default 1 second delay between OpenRouter API calls
 OPENAI_DEFAULT_DELAY = 0.5  # Default 0.5 second delay between OpenAI API calls
@@ -338,9 +339,15 @@ def smart_integration_mocking(request, monkeypatch):
     - Allows real API calls when --real-api flag or REAL_API_TESTS=1 is used
     - Preserves all business logic and error handling
     """
-    # Only apply to integration tests
-    markers = list(request.node.iter_markers(name="integration"))
-    if not markers:
+    # Only apply to tests that are marked as integration-style
+    marker_names = {marker.name for marker in request.node.iter_markers()}
+    if not (
+        "integration" in marker_names
+        or "requires_credentials" in marker_names
+        or "requires_network" in marker_names
+        or "requires_service" in marker_names
+        or "requires_gpu" in marker_names
+    ):
         yield None
         return
 
@@ -397,15 +404,6 @@ def mock_auth_error():
 
     with patch("litellm.acompletion", new=AsyncMock(side_effect=mock_acompletion)) as mock_litellm:
         yield mock_litellm
-
-
-# Hook for customizing test collection
-def pytest_collection_modifyitems(config, items):
-    """Add markers and customize test collection."""
-    for item in items:
-        # Add integration marker based on test file name or function name
-        if "integration" in item.nodeid or "test_integration" in item.module.__name__:
-            item.add_marker(pytest.mark.integration)
 
 
 # Command line options

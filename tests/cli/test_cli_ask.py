@@ -14,7 +14,8 @@ class TestAskCommand(IntegrationTestBase):
         result = self.runner.invoke(main, ["ask", "--help"])
         assert result.exit_code == 0
 
-    @pytest.mark.integration
+    @pytest.mark.requires_credentials
+    @pytest.mark.requires_network
     def test_ask_basic_prompt(self):
         """Test basic ask functionality with real hooks."""
         # This is a real integration test - it will make actual API calls
@@ -32,7 +33,8 @@ class TestAskCommand(IntegrationTestBase):
             # If failed due to API issues, that's expected in test environment
             assert "error" in result.output.lower() or "Error" in result.output
 
-    @pytest.mark.integration
+    @pytest.mark.requires_credentials
+    @pytest.mark.requires_network
     def test_ask_with_options(self):
         """Test ask with various options."""
         # Real integration test with options

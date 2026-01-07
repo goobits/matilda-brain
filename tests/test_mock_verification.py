@@ -1,10 +1,33 @@
 """Test to verify HTTP mocking is working correctly."""
 
+from unittest.mock import AsyncMock, patch
+
 import pytest
-from tests.utils.http_mocks import get_http_mocker
+from tests.utils.http_mocks import get_http_mocker, reset_http_mocker
 
 
-@pytest.mark.integration
+@pytest.fixture(autouse=True)
+def mock_litellm_acompletion():
+    """Ensure LiteLLM calls are mocked for this module."""
+    reset_http_mocker()
+    mocker = get_http_mocker()
+
+    async def mock_acompletion(*args, **kwargs):
+        return await mocker.mock_acompletion(*args, **kwargs)
+
+    class FakeLiteLLM:
+        def __init__(self):
+            self.acompletion = AsyncMock(side_effect=mock_acompletion)
+
+    with patch.dict("sys.modules", {"litellm": FakeLiteLLM()}):
+        from matilda_brain.backends.cloud import CloudBackend
+        from matilda_brain.core.routing import router
+
+        cloud_backend = CloudBackend()
+        with patch.object(router, "smart_route", return_value=(cloud_backend, "gpt-3.5-turbo")):
+            yield
+
+
 class TestMockVerification:
     """Verify that the HTTP mocking system works correctly."""
 
@@ -67,7 +90,6 @@ class TestMockVerification:
         assert mocker.call_count >= 2
 
 
-@pytest.mark.integration
 def test_real_api_bypass_env_var(monkeypatch):
     """Test that REAL_API_TESTS=1 bypasses mocking."""
     from tests.conftest import _should_use_real_api
@@ -80,7 +102,6 @@ def test_real_api_bypass_env_var(monkeypatch):
     assert _should_use_real_api()
 
 
-@pytest.mark.integration
 def test_real_api_bypass_config():
     """Test that --real-api flag bypasses mocking."""
     from tests.conftest import _should_use_real_api
