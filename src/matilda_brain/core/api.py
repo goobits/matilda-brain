@@ -6,7 +6,7 @@ from typing import Any, AsyncIterator, Iterator, List, Optional, Union
 from ..backends import BaseBackend
 from ..plugins import discover_plugins
 from ..session.chat import PersistentChatSession
-from ..utils import get_logger, run_async, run_coro_in_background
+from ..internal.utils import get_logger, run_async, run_coro_in_background
 from .models import AIResponse, ImageInput
 from .routing import router
 
@@ -443,7 +443,7 @@ def stateless(
     Returns:
         StatelessResponse with content, tool_calls, finish_reason, usage, model
     """
-    from ..stateless import StatelessRequest, execute_stateless
+    from ..internal.stateless import StatelessRequest, execute_stateless
 
     request = StatelessRequest(
         message=message,

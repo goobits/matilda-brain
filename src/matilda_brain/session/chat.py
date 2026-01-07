@@ -11,7 +11,7 @@ from ..backends import BaseBackend
 from ..core.exceptions import InvalidParameterError, SessionLoadError, SessionSaveError
 from ..core.models import AIResponse, ImageInput
 from ..core.routing import router
-from ..utils import get_logger, run_async
+from ..internal.utils import get_logger, run_async
 from .serialization import (
     deserialize_tools,
     estimate_tokens,

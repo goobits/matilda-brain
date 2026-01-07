@@ -8,7 +8,7 @@ from typing import Any, Dict, List, Optional, Type
 
 from ..backends.base import BaseBackend
 from ..core.exceptions import PluginLoadError, PluginValidationError
-from ..utils import get_logger
+from ..internal.utils import get_logger
 
 logger = get_logger(__name__)
 

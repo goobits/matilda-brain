@@ -2,7 +2,7 @@
 
 from unittest.mock import patch
 
-from matilda_brain.cli import main
+from matilda_brain.cli import cli as main
 from tests.cli.conftest import IntegrationTestBase
 
 
@@ -69,7 +69,7 @@ class TestConfigCommand(IntegrationTestBase):
         with patch("matilda_brain.config.manager.ConfigManager.get_merged_config") as mock_get:
             mock_get.return_value = {"model": "gpt-4", "api_key": "secret-key"}
 
-            result = self.runner.invoke(main, ["config", "list", "--show-secrets", "true"])
+            result = self.runner.invoke(main, ["config", "list", "--show-secrets"])
 
             assert result.exit_code == 0
             assert "secret-key" in result.output
@@ -94,7 +94,7 @@ class TestConfigCommand(IntegrationTestBase):
     def test_config_list_command_parameter_passing(self):
         """Test config list command passes show_secrets parameter correctly."""
         # Test config list with show-secrets flag
-        result = self.runner.invoke(main, ["config", "list", "--show-secrets", "true"])
+        result = self.runner.invoke(main, ["config", "list", "--show-secrets"])
 
         # Config list should succeed - validates CLI structure and parameter passing
         assert result.exit_code == 0, f"Config list failed with output: {result.output}"

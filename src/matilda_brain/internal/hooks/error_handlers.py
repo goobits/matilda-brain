@@ -59,7 +59,7 @@ def display_error_rich(
         RateLimitError,
         QuotaExceededError,
     )
-    from matilda_brain.utils.smart_suggestions import (
+    from matilda_brain.internal.utils.smart_suggestions import (
         suggest_model_alternatives,
         suggest_provider_alternatives,
         suggest_troubleshooting_steps,

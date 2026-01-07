@@ -8,7 +8,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from matilda_brain.cli import main
+from matilda_brain.cli import cli as main
 from .conftest import IntegrationTestBase
 
 

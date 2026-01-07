@@ -8,7 +8,7 @@ import os
 import warnings
 from typing import List
 
-from .utils import get_logger
+from .internal.utils import get_logger
 
 logger = get_logger(__name__)
 

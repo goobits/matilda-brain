@@ -40,8 +40,6 @@ class ConfigManager:
         # If no config found, use empty dict
         if self.default_config_path is None:
             # Only show warning in verbose mode and not in JSON mode
-            import os
-
             is_json_mode = os.environ.get("TTT_JSON_MODE", "").lower() == "true"
             is_verbose = (
                 os.environ.get("TTT_VERBOSE", "").lower() == "true" or os.environ.get("TTT_DEBUG", "").lower() == "true"

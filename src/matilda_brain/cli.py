@@ -219,7 +219,7 @@ def cli(ctx, verbose, debug, config):
 @click.argument('prompt', type=click.STRING)
 @click.option('--model', '-m', default=None,              help="LLM model to use")
 @click.option('--temperature', '-t', default=0.7,              help="Sampling temperature (0.0-2.0)")
-@click.option('--max-tokens', default=None,              help="Maximum response length")
+@click.option('--max-tokens', type=click.INT, default=None,              help="Maximum response length")
 @click.option('--tools', is_flag=True, default=False,              help="Enable tool usage")
 @click.option('--session', '-s', default=None,              help="Session ID for context")
 @click.option('--system', default=None,              help="System prompt to set AI behavior")

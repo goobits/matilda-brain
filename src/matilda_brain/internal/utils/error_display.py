@@ -242,7 +242,7 @@ def should_use_error_template(exception: Exception) -> bool:
         True if should use clean template, False for full traceback
     """
     # Import here to avoid circular imports
-    from ..core.exceptions import (
+    from ...core.exceptions import (
         APIKeyError,
         BackendConnectionError,
         BackendTimeoutError,

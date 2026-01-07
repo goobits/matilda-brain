@@ -14,7 +14,7 @@ from ..core.exceptions import (
     ResponseParsingError,
 )
 from ..core.models import AIResponse, ImageInput
-from ..utils import get_logger, run_async
+from ..internal.utils import get_logger, run_async
 from .base import BaseBackend
 
 logger = get_logger(__name__)

@@ -5,6 +5,8 @@ from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 
+import matilda_brain as ttt
+
 from matilda_brain import (
     APIKeyError,
     BackendNotAvailableError,

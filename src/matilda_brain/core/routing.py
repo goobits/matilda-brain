@@ -5,7 +5,7 @@ from typing import Any, Dict, List, Optional, Union, cast
 from ..backends import HAS_LOCAL_BACKEND, BaseBackend, CloudBackend
 from ..config.schema import get_config
 from ..plugins.loader import plugin_registry
-from ..utils import get_logger
+from ..internal.utils import get_logger
 from .exceptions import BackendNotAvailableError
 from .models import AIResponse, ImageInput
 
@@ -189,7 +189,7 @@ class Router:
         try:
             import httpx
 
-            from ..utils import run_async
+            from ..internal.utils import run_async
 
             async def fetch_local_models() -> List[str]:
                 """Fetch available local models using proper resource management."""

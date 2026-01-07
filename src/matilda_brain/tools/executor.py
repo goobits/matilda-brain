@@ -6,7 +6,7 @@ import time
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Union
 
-from ..utils import get_logger
+from ..internal.utils import get_logger
 from .base import ToolCall, ToolDefinition, ToolResult
 from .recovery import ErrorRecoverySystem, InputSanitizer, RetryConfig
 from .registry import get_tool, list_tools, register_tool

@@ -185,7 +185,7 @@ class TestCLIToolSupport:
         """Test that CLI with --tools flag is properly supported."""
         from click.testing import CliRunner
 
-        from matilda_brain.cli import main
+        from matilda_brain.cli import cli as main
 
         runner = CliRunner()
 
@@ -197,10 +197,12 @@ class TestCLIToolSupport:
         assert "Enable tool usage" in result.output
 
         # Test 2: Verify we can call the hook function directly with tools parameter
-        from matilda_brain.cli_handlers import on_ask
+        from matilda_brain.internal.hooks.core import on_ask
 
         # Mock the API functions to prevent real calls
-        with patch("matilda_brain.cli_handlers.ttt_stream") as mock_stream, patch("matilda_brain.cli_handlers.ttt_ask") as mock_ask:
+        with patch("matilda_brain.internal.hooks.core.ttt_stream") as mock_stream, patch(
+            "matilda_brain.internal.hooks.core.ttt_ask"
+        ) as mock_ask:
             mock_stream.return_value = iter(["Test response"])
             mock_ask.return_value = "Test response"
 
@@ -261,7 +263,7 @@ class TestCLIToolSupport:
 
     def test_resolve_tools_from_registry(self):
         """Test resolving tools from registry."""
-        from matilda_brain.cli_handlers import resolve_tools
+        from matilda_brain.internal.hooks.utils import resolve_tools
         from matilda_brain.tools.registry import clear_registry, register_tool
 
         # Register a test tool
@@ -278,10 +280,12 @@ class TestCLIToolSupport:
         assert callable(tools[0])
 
         clear_registry()
+        from matilda_brain.tools.builtins import load_builtin_tools
+        load_builtin_tools()
 
     def test_resolve_tools_from_module(self):
         """Test resolving tools from module imports."""
-        from matilda_brain.cli_handlers import resolve_tools
+        from matilda_brain.internal.hooks.utils import resolve_tools
         from matilda_brain.tools import register_tool, tool, unregister_tool
 
         # Register a test tool in a test category
@@ -304,7 +308,7 @@ class TestCLIToolSupport:
 
     def test_resolve_tools_handles_errors(self):
         """Test tool resolution handles errors gracefully."""
-        from matilda_brain.cli_handlers import resolve_tools
+        from matilda_brain.internal.hooks.utils import resolve_tools
 
         # Non-existent module
         tools = resolve_tools(["nonexistent:function"])

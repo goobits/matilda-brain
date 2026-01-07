@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 
 from ..core.exceptions import ConfigFileError
 from ..core.models import ConfigModel, ModelInfo
-from ..utils import get_logger
+from ..internal.utils import get_logger
 
 logger = get_logger(__name__)
 

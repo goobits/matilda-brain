@@ -17,9 +17,9 @@ from ..core.exceptions import (
     RateLimitError,
 )
 from ..core.models import AIResponse, ImageInput
-from ..utils import get_logger
-from ..utils.messages import build_message_list, extract_messages_from_kwargs
-from ..utils.providers import PROVIDER_ENV_VARS
+from ..internal.utils import get_logger
+from ..internal.utils.messages import build_message_list, extract_messages_from_kwargs
+from ..internal.utils.providers import PROVIDER_ENV_VARS
 from .base import BaseBackend
 
 logger = get_logger(__name__)
@@ -189,7 +189,7 @@ class CloudBackend(BaseBackend):
         Raises:
             Appropriate exception based on error type
         """
-        from ..utils.error_display import format_model_overload_error, get_model_suggestions
+        from ..internal.utils.error_display import format_model_overload_error, get_model_suggestions
 
         error_msg = str(e)
         logger.error(f"Cloud {request_type} failed: {error_msg}")

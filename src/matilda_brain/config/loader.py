@@ -7,7 +7,7 @@ from typing import Any, Dict, Optional
 
 import yaml
 
-from ..utils import get_logger
+from ..internal.utils import get_logger
 
 logger = get_logger(__name__)
 

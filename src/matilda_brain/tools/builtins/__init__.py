@@ -33,9 +33,34 @@ def load_builtin_tools() -> None:
     This function is automatically called when the module is imported,
     but can be called manually to reload tools.
     """
-    # The tools are already registered via the @tool decorator
-    # This function is here for explicit loading if needed
-    pass
+    from matilda_brain.tools import get_tool_definition, register_tool
+
+    builtin_tools = [
+        web_search,
+        http_request,
+        read_file,
+        write_file,
+        list_directory,
+        run_python,
+        calculate,
+        get_current_time,
+    ]
+
+    for tool_func in builtin_tools:
+        try:
+            tool_def = get_tool_definition(tool_func)
+            if tool_def:
+                register_tool(
+                    tool_func,
+                    name=tool_def.name,
+                    description=tool_def.description,
+                    category=tool_def.category,
+                )
+            else:
+                register_tool(tool_func)
+        except ValueError:
+            # Tool already registered, that's ok
+            continue
 
 
 # Tool categories mapping for easy discovery

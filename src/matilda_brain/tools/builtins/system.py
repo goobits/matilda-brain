@@ -35,7 +35,7 @@ def get_current_time(timezone: str = "UTC", format: str = "%Y-%m-%d %H:%M:%S %Z"
         available = ", ".join(sorted(zoneinfo.available_timezones())[:10])
         return f"Error: Unknown timezone '{timezone}'. Examples: {available}..."
     except Exception:
-        from matilda_brain.utils import get_logger
+        from matilda_brain.internal.utils import get_logger
 
         get_logger(__name__).exception("Error getting time")
         return "Error getting time - see logs for details"

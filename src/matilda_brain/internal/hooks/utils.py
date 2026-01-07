@@ -127,7 +127,7 @@ def resolve_model_alias(model: str) -> str:
                         return str(model_name)
 
             # Use smart suggestions for unknown aliases
-            from matilda_brain.utils.smart_suggestions import suggest_alias_fixes
+            from matilda_brain.internal.utils.smart_suggestions import suggest_alias_fixes
 
             console.print(f"[red]Error: Unknown model alias '@{alias}'[/red]")
 

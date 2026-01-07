@@ -783,7 +783,11 @@ class TestIntegration:
             or "does not exist" in error_text
             or "Resource Error" in error_text
         )
-        assert "💡" in error_text  # Should have suggestions
+        assert (
+            "Check the file path" in error_text
+            or "Suggestion" in error_text
+            or "Check the file" in error_text
+        )
 
     @pytest.mark.asyncio
     async def test_network_operation_with_retry(self):

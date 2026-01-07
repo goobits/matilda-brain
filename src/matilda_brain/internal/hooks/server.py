@@ -39,7 +39,7 @@ def on_stateless(
         max_tokens: Maximum tokens in response
         **kwargs: Additional parameters
     """
-    from matilda_brain.stateless import execute_stateless_protocol, StatelessRequest
+    from matilda_brain.internal.stateless import execute_stateless_protocol, StatelessRequest
 
     # Setup logging (JSON mode to avoid noise)
     setup_logging_level(json_output=True)

@@ -4,8 +4,8 @@ from dataclasses import dataclass, field
 from typing import Dict, List, Optional
 import json
 
-from .core.models import AIResponse
-from .core.routing import router
+from ..core.models import AIResponse
+from ..core.routing import router
 from .utils import get_logger, run_async
 from .protocol import Message, Proposal, Role, RiskLevel
 

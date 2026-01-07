@@ -10,7 +10,7 @@ from typing import Any, Dict, List, Optional
 from rich.console import Console
 from rich.table import Table
 
-from ..utils import get_logger
+from ..internal.utils import get_logger
 
 logger = get_logger(__name__)
 console = Console()

@@ -9,7 +9,7 @@ from unittest.mock import patch
 
 import pytest
 
-from matilda_brain.cli import main
+from matilda_brain.cli import cli as main
 from .conftest import IntegrationTestBase
 
 
@@ -31,10 +31,8 @@ class TestCLIParameterValidation(IntegrationTestBase):
             (["ask", "test", "--model", "gpt-4"], [0, 1], "Ask with model parameter"),
             (["ask", "test", "--temperature", "0.7"], [0, 1], "Ask with temperature parameter"),
             (["ask", "test", "--max-tokens", "100"], [0, 1], "Ask with max-tokens parameter"),
-            (["ask", "test", "--tools", "true"], [0, 1], "Ask with tools=true parameter"),
-            (["ask", "test", "--tools", "false"], [0, 1], "Ask with tools=false parameter"),
-            (["ask", "test", "--stream", "true"], [0, 1], "Ask with stream=true parameter"),
-            (["ask", "test", "--stream", "false"], [0, 1], "Ask with stream=false parameter"),
+            (["ask", "test", "--tools"], [0, 1], "Ask with tools flag"),
+            (["ask", "test", "--stream"], [0, 1], "Ask with stream flag"),
             (["ask", "test", "--session", "test-session"], [0, 1], "Ask with session parameter"),
             (["ask", "test", "--system", "You are helpful"], [0, 1], "Ask with system parameter"),
             (["ask", "test", "--json"], [0, 1], "Ask with JSON flag"),
@@ -42,12 +40,12 @@ class TestCLIParameterValidation(IntegrationTestBase):
             (["config", "get", "model"], [0, 1], "Config get with key parameter"),
             (["config", "set", "model", "gpt-4"], [0], "Config set with key-value parameters"),
             (["config", "list"], [0], "Config list command"),
-            (["config", "list", "--show-secrets", "true"], [0], "Config list with show-secrets"),
+            (["config", "list", "--show-secrets"], [0], "Config list with show-secrets"),
             # List command variations
             (["list", "models"], [0], "List models command"),
             (["list", "sessions"], [0], "List sessions command"),
             (["list", "models", "--format", "json"], [0], "List models with format parameter"),
-            (["list", "models", "--verbose", "true"], [0], "List models with verbose parameter"),
+            (["--verbose", "list", "models"], [0], "List models with verbose parameter"),
             # Status and info commands
             (["status"], [0], "Status command"),
             (["status", "--json"], [0], "Status with JSON flag"),
@@ -57,13 +55,13 @@ class TestCLIParameterValidation(IntegrationTestBase):
             (["info", "gpt-4", "--json"], [0, 1], "Info with model and JSON"),
             # Tools commands
             (["tools", "list"], [0], "Tools list command"),
-            (["tools", "list", "--show-disabled", "true"], [0], "Tools list with show-disabled"),
+            (["tools", "list", "--show-disabled"], [0], "Tools list with show-disabled"),
             (["tools", "enable", "web_search"], [0, 1], "Tools enable command"),
             (["tools", "disable", "calculator"], [0, 1], "Tools disable command"),
             # Export command
             (["export", "test-session"], [0, 1], "Export command with session"),
             (["export", "test-session", "--format", "json"], [0, 1], "Export with format parameter"),
-            (["export", "test-session", "--include-metadata", "true"], [0, 1], "Export with include-metadata"),
+            (["export", "test-session", "--include-metadata"], [0, 1], "Export with include-metadata"),
             # Chat command (interactive, limited testing)
             (["chat", "--model", "gpt-4"], [0, 1], "Chat with model parameter"),
         ],
@@ -73,7 +71,10 @@ class TestCLIParameterValidation(IntegrationTestBase):
         # Add empty input for chat command to exit gracefully
         input_data = "\n" if command_args[0] == "chat" else None
 
-        result = self.runner.invoke(main, command_args, input=input_data)
+        with patch("matilda_brain.app_hooks.on_ask") as mock_ask, patch("matilda_brain.app_hooks.on_chat") as mock_chat:
+            mock_ask.return_value = None
+            mock_chat.return_value = None
+            result = self.runner.invoke(main, command_args, input=input_data)
 
         # Critical: Parameter parsing should never fail (exit code 2 = Click argument error)
         assert result.exit_code != 2, f"{description} failed with argument parsing error: {result.output}"
@@ -88,8 +89,8 @@ class TestCLIParameterValidation(IntegrationTestBase):
         [
             ("float", ["ask", "test", "--temperature", "0.123"], float, 0.123),
             ("int", ["ask", "test", "--max-tokens", "2048"], int, 2048),
-            ("bool_true", ["ask", "test", "--tools", "true"], bool, True),
-            ("bool_false", ["ask", "test", "--stream", "false"], bool, False),
+            ("bool_true_tools", ["ask", "test", "--tools"], bool, True),
+            ("bool_true_stream", ["ask", "test", "--stream"], bool, True),
             ("str", ["ask", "test", "--model", "gpt-4"], str, "gpt-4"),
             ("str", ["ask", "test", "--session", "test-session"], str, "test-session"),
             ("str", ["ask", "test", "--system", "You are helpful"], str, "You are helpful"),
@@ -97,7 +98,7 @@ class TestCLIParameterValidation(IntegrationTestBase):
     )
     def test_click_type_conversions(self, data_type, param_args, expected_type, expected_value):
         """Test Click type conversions work correctly for all parameter types."""
-        with patch("matilda_brain.cli_handlers.on_ask") as mock_ask:
+        with patch("matilda_brain.app_hooks.on_ask") as mock_ask:
             mock_ask.return_value = None
 
             result = self.runner.invoke(main, param_args)
@@ -139,9 +140,7 @@ class TestCLIParameterValidation(IntegrationTestBase):
                     "--max-tokens",
                     "200",
                     "--tools",
-                    "true",
                     "--stream",
-                    "false",
                     "--session",
                     "complex-session",
                     "--system",
@@ -150,18 +149,21 @@ class TestCLIParameterValidation(IntegrationTestBase):
                 ],
                 "Complex ask command with all parameters",
             ),
-            (["config", "list", "--show-secrets", "true"], "Config list with show-secrets"),
-            (["list", "models", "--format", "json", "--verbose", "true"], "List models with format and verbose"),
+            (["config", "list", "--show-secrets"], "Config list with show-secrets"),
+            (["--verbose", "list", "models", "--format", "json"], "List models with format and verbose"),
             (
-                ["export", "test-session", "--format", "json", "--include-metadata", "true"],
+                ["export", "test-session", "--format", "json", "--include-metadata"],
                 "Export with multiple parameters",
             ),
-            (["tools", "list", "--show-disabled", "true"], "Tools list with show-disabled"),
+            (["tools", "list", "--show-disabled"], "Tools list with show-disabled"),
         ],
     )
     def test_complex_parameter_combinations(self, command_args, description):
         """Test complex combinations of parameters work together."""
-        result = self.runner.invoke(main, command_args)
+        with patch("matilda_brain.app_hooks.on_ask") as mock_ask, patch("matilda_brain.app_hooks.on_chat") as mock_chat:
+            mock_ask.return_value = None
+            mock_chat.return_value = None
+            result = self.runner.invoke(main, command_args)
 
         # Complex parameter combinations should not cause parsing errors
         assert result.exit_code != 2, f"{description} failed with argument parsing error: {result.output}"
@@ -183,8 +185,6 @@ class TestCLIParameterValidation(IntegrationTestBase):
                 "0.3",
                 "--max-tokens",
                 "400",
-                "--tools",
-                "false",
                 "--session",
                 "validation-session",
                 "--system",
@@ -271,7 +271,7 @@ class TestCLIParameterValidation(IntegrationTestBase):
     @pytest.mark.integration
     def test_mocked_ask_parameter_validation(self):
         """Test ask command parameter conversion with mocked hooks to verify exact parameter passing."""
-        with patch("matilda_brain.cli_handlers.on_ask") as mock_ask:
+        with patch("matilda_brain.app_hooks.on_ask") as mock_ask:
             mock_ask.return_value = None
 
             result = self.runner.invoke(
@@ -286,13 +286,10 @@ class TestCLIParameterValidation(IntegrationTestBase):
                     "--max-tokens",
                     "100",
                     "--tools",
-                    "true",
                     "--session",
                     "mock-test-session",
                     "--system",
                     "You are helpful for testing",
-                    "--stream",
-                    "false",
                 ],
             )
 
@@ -304,11 +301,11 @@ class TestCLIParameterValidation(IntegrationTestBase):
             kwargs = mock_ask.call_args[1]
 
             # Verify all parameters were passed correctly with proper types
-            assert kwargs["prompt"] == ("test prompt for mocked validation",)
+            assert kwargs["prompt"] == "test prompt for mocked validation"
             assert kwargs["model"] == "gpt-4"
             assert kwargs["temperature"] == 0.7  # Float conversion
             assert kwargs["max_tokens"] == 100  # Int conversion
             assert kwargs["tools"] is True  # Bool conversion
             assert kwargs["session"] == "mock-test-session"
             assert kwargs["system"] == "You are helpful for testing"
-            assert kwargs["stream"] is False  # Bool conversion
+            assert kwargs["stream"] is True  # Bool conversion

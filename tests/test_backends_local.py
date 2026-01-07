@@ -176,12 +176,7 @@ class TestLocalBackend:
     async def test_status(self, local_backend):
         """Test status method."""
         with patch.object(local_backend, "models", return_value=["model1", "model2"]):
-            with patch.object(
-                type(local_backend),
-                "is_available",
-                new_callable=PropertyMock,
-                return_value=True,
-            ):
+            with patch.object(local_backend, "ais_available", new=AsyncMock(return_value=True)):
                 status = await local_backend.status()
 
                 assert status["backend"] == "local"

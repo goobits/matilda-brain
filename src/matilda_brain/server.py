@@ -21,10 +21,10 @@ from aiohttp import web
 from aiohttp.web import Request, Response, StreamResponse
 
 from .core.api import ask_async, stream_async
-from .security import get_allowed_origins, is_origin_allowed
+from .internal.security import get_allowed_origins, is_origin_allowed
 from .session.manager import ChatSessionManager
-from .token_storage import get_or_create_token
-from .utils import get_logger
+from .internal.token_storage import get_or_create_token
+from .internal.utils import get_logger
 
 logger = get_logger(__name__)
 

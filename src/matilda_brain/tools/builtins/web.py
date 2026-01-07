@@ -154,7 +154,7 @@ def http_request(
     except urllib.error.URLError as e:
         return f"Network error: {str(e)}"
     except Exception:
-        from matilda_brain.utils import get_logger
+        from matilda_brain.internal.utils import get_logger
 
         get_logger(__name__).exception("Error making HTTP request")
         return "Error making request - see logs for details"

@@ -268,7 +268,7 @@ def calculate(expression: str) -> str:
     except ValueError as e:
         return f"Error: {str(e)}"
     except Exception:
-        from matilda_brain.utils import get_logger
+        from matilda_brain.internal.utils import get_logger
 
         get_logger(__name__).exception("Error evaluating expression")
         return "Error evaluating expression - see logs for details"

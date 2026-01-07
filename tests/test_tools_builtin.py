@@ -243,7 +243,7 @@ class TestTimeOperations:
         result = get_current_time("America/New_York")
 
         # Should contain time and timezone info, or an error message
-        assert len(result) > 0 and ("2025" in result or "Error" in result)
+        assert len(result) > 0 and ("EST" in result or "EDT" in result or "Error" in result)
 
     @pytest.mark.unit
     def test_get_current_time_custom_format(self):

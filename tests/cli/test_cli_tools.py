@@ -2,7 +2,7 @@
 
 from unittest.mock import Mock, patch
 
-from matilda_brain.cli import main
+from matilda_brain.cli import cli as main
 from tests.cli.conftest import IntegrationTestBase
 
 
@@ -84,7 +84,7 @@ class TestCLIToolsCommand(IntegrationTestBase):
     def test_tools_command_parameter_passing(self):
         """Test tools enable/disable/list commands pass parameters correctly."""
         # Test tools list - this should always work
-        result = self.runner.invoke(main, ["tools", "list", "--show-disabled", "true"])
+        result = self.runner.invoke(main, ["tools", "list", "--show-disabled"])
 
         # Tools list should succeed - validates CLI structure and parameter passing
         assert result.exit_code == 0, f"Tools list failed with output: {result.output}"

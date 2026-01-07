@@ -118,7 +118,7 @@ def _stop_background_loop() -> None:
         # Give more time for graceful shutdown
         if _background_thread:
             # Use thread join timeout from constants
-            from ..config.loader import get_config_value
+            from ...config.loader import get_config_value
 
             join_timeout = get_config_value("constants.timeouts.async_thread_join", 2.0)
             _background_thread.join(timeout=join_timeout)
@@ -147,9 +147,12 @@ def run_coro_in_background(coro: Awaitable[T]) -> T:
     Returns:
         The result of the coroutine
     """
+    start_loop = False
     with _lock:
         if _background_loop is None:
-            _start_background_loop()
+            start_loop = True
+    if start_loop:
+        _start_background_loop()
 
     # Submit the coroutine to the background loop
     if _background_loop is None:

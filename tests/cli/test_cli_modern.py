@@ -8,7 +8,7 @@ from unittest.mock import Mock, patch
 import pytest
 from click.testing import CliRunner
 
-from matilda_brain.cli import main
+from matilda_brain.cli import cli as main
 from .conftest import IntegrationTestBase
 
 
@@ -202,7 +202,7 @@ class TestConfigCommand(IntegrationTestBase):
         with patch("matilda_brain.config.manager.ConfigManager.get_merged_config") as mock_get:
             mock_get.return_value = {"model": "gpt-4", "api_key": "secret-key"}
 
-            result = self.runner.invoke(main, ["config", "list", "--show-secrets", "true"])
+            result = self.runner.invoke(main, ["config", "list", "--show-secrets"])
 
             assert result.exit_code == 0
             assert "secret-key" in result.output
@@ -309,7 +309,6 @@ class TestExportCommand(IntegrationTestBase):
                     "--output",
                     "output.json",
                     "--include-metadata",
-                    "true",
                 ],
             )
 
@@ -341,7 +340,7 @@ class TestCLIErrorHandling:
     def test_hook_exception_handling(self):
         """Test that exceptions from hooks are handled gracefully."""
         # Make the underlying API call fail to test exception handling
-        with patch("matilda_brain.core.api.ask", side_effect=Exception("Test error")):
+        with patch("matilda_brain.internal.hooks.core.ttt_stream", side_effect=Exception("Test error")):
             result = self.runner.invoke(main, ["ask", "test"])
 
             # Should handle exception gracefully - exact behavior depends on implementation

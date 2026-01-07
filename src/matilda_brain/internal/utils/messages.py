@@ -2,7 +2,7 @@
 
 from typing import Any, Dict, List, Optional, Union, cast
 
-from ..core.models import ImageInput
+from ...core.models import ImageInput
 
 
 def build_message_list(

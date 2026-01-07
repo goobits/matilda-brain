@@ -179,7 +179,7 @@ def list_directory(
     except PermissionError:
         return f"Error: Permission denied: {path}"
     except Exception:
-        from matilda_brain.utils import get_logger
+        from matilda_brain.internal.utils import get_logger
 
         get_logger(__name__).exception("Error listing directory")
         return "Error listing directory - see logs for details"
