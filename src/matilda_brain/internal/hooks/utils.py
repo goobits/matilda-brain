@@ -155,9 +155,7 @@ def resolve_model_alias(model: str) -> str:
             console.print("\nTip: Use [green]ttt models[/green] to see all available models")
 
             # Exit with error instead of proceeding
-            import sys
-
-            sys.exit(1)
+            raise ValueError(f"Model alias not found: {alias}")
         except (KeyError, ValueError, TypeError) as e:
             if is_verbose_mode():
                 console.print(f"[yellow]Warning: Could not resolve model alias: {e}[/yellow]")
@@ -310,4 +308,3 @@ def apply_coding_optimization(kwargs: Dict[str, Any]) -> None:
 
 
 # Main hook functions
-

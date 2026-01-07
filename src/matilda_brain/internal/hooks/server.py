@@ -57,7 +57,7 @@ def on_stateless(
             "message": "Missing argument 'message'"
         }
         print(json_module.dumps(error))
-        sys.exit(1)
+        raise RuntimeError("Missing argument 'message'")
 
     # Resolve model alias if needed
     if model:
@@ -77,7 +77,7 @@ def on_stateless(
                     "message": f"History file not found: {history}"
                 }
                 print(json_module.dumps(error))
-                sys.exit(1)
+                raise RuntimeError(f"History file not found: {history}")
 
             with open(history_path) as f:
                 history_data = json_module.load(f)
@@ -96,7 +96,7 @@ def on_stateless(
                 "message": str(e)
             }
             print(json_module.dumps(error))
-            sys.exit(1)
+            raise RuntimeError("Failed to load history") from e
 
     # Parse tools if provided
     tools_list = None
@@ -134,7 +134,7 @@ def on_stateless(
             "message": str(e)
         }
         print(json_module.dumps(error))
-        sys.exit(1)
+        raise RuntimeError("Stateless request failed") from e
 
 
 

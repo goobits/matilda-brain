@@ -195,4 +195,4 @@ def handle_error(
         display_error_rich(error, api_params, debug=debug, context=context)
 
     if exit_on_error:
-        sys.exit(1)
+        raise error

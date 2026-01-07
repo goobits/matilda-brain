@@ -81,7 +81,7 @@ def on_ask(
     # Handle missing prompt
     if prompt_text is None and sys.stdin.isatty():
         click.echo("Error: Missing argument 'prompt'", err=True)
-        sys.exit(1)
+        raise ValueError("Missing argument 'prompt'")
 
     # Handle stdin input
     stdin_content = None
@@ -94,7 +94,7 @@ def on_ask(
     if prompt_text == "-" or (prompt_text is None and stdin_content):
         if not stdin_content:
             click.echo("Error: No input provided", err=True)
-            sys.exit(1)
+            raise ValueError("No input provided")
 
         try:
             json_input = json_module.loads(stdin_content)
@@ -122,7 +122,7 @@ def on_ask(
 
     elif prompt_text is None:
         click.echo("Error: Missing argument 'prompt'", err=True)
-        sys.exit(1)
+        raise ValueError("Missing argument 'prompt'")
 
     # Get configured default model if not specified via CLI
     if not model:
@@ -343,4 +343,3 @@ def on_chat(
         # Only show error if it's not an empty exception
         if str(e).strip():
             console.print(f"[red]Error starting chat session: {e}[/red]")
-

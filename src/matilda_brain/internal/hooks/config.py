@@ -190,7 +190,7 @@ def on_export(
     chat_session = session_manager.load_session(session)
     if not chat_session:
         click.echo(f"Error: Session '{session}' not found", err=True)
-        sys.exit(1)
+        raise ValueError(f"Session '{session}' not found")
 
     # Export data
     export_data: Dict[str, Any] = {
@@ -218,7 +218,7 @@ def on_export(
             output_text = yaml.dump(export_data, default_flow_style=False)
         except ImportError:
             click.echo("Error: PyYAML is not installed. Use 'pip install pyyaml'", err=True)
-            sys.exit(1)
+            raise ImportError("PyYAML is not installed") from None
     else:  # markdown
         output_text = f"# Chat Session: {session}\n\n"
         if include_metadata:
@@ -241,4 +241,3 @@ def on_export(
         click.echo(f"Session exported to {output}")
     else:
         click.echo(output_text)
-
