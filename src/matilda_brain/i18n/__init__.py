@@ -22,12 +22,28 @@ Usage:
     set_language("es")
 """
 
+import os
 import sys
 from pathlib import Path
 
+def _find_i18n_root() -> Path | None:
+    env_path = os.environ.get("MATILDA_I18N_PATH")
+    if env_path:
+        candidate = Path(env_path)
+        if candidate.exists():
+            return candidate
+
+    for base in [Path(__file__).resolve(), Path.cwd()]:
+        for parent in [base, *base.parents]:
+            candidate = parent / "i18n"
+            if candidate.exists():
+                return candidate
+    return None
+
+
 # Add central i18n to path for base_loader import
-_I18N_PATH = Path("/workspace/i18n")
-if _I18N_PATH.exists() and str(_I18N_PATH) not in sys.path:
+_I18N_PATH = _find_i18n_root()
+if _I18N_PATH and str(_I18N_PATH) not in sys.path:
     sys.path.insert(0, str(_I18N_PATH))
 
 try:
@@ -40,10 +56,15 @@ except ImportError:
     import os
 
     def get_monorepo_locales_path() -> Path:
-        for p in [Path("/workspace/i18n/locales"), Path(__file__).parent / "locales"]:
-            if p.exists():
-                return p
-        return Path("/workspace/i18n/locales")
+        i18n_root = _find_i18n_root()
+        if i18n_root:
+            candidate = i18n_root / "locales"
+            if candidate.exists():
+                return candidate
+        local_path = Path(__file__).parent / "locales"
+        if local_path.exists():
+            return local_path
+        return local_path
 
     class I18nLoader:
         def __init__(self, locales_path=None, default_domain="common", default_language="en"):
