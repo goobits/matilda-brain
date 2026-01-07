@@ -1,16 +1,8 @@
-# 🧠 Matilda Brain
+# Matilda Brain
 
 CLI and Python library for AI providers: OpenRouter, OpenAI, Anthropic, Google, and Ollama.
 
-## ✨ Key Features
-
-- **🎯 Simple CLI** - `brain "your question"` with instant responses
-- **🔧 Function Calling** - AI invokes Python functions via `@tool` decorator
-- **🌐 Multi-Provider** - OpenRouter (100+ models), OpenAI, Anthropic, Google
-- **🤖 Local Models** - Ollama integration for offline/private usage
-- **🔄 Pipe Support** - `echo "text" | brain` works directly
-
-## 🚀 Quick Start
+## Quick Start
 
 ```bash
 # Install
@@ -23,11 +15,10 @@ export OPENAI_API_KEY=sk-your-key
 
 # Use
 brain "What is Python?"
-brain "What time is it in Tokyo?" --tools  # Enable built-in tools
 echo "print('Hello')" | brain "Explain this code"
 ```
 
-## 📚 Python Library
+## Python Library
 
 ```python
 from matilda_brain import ask, stream, chat
@@ -45,7 +36,7 @@ with chat() as session:
     session.ask("What's my name?")  # Remembers context
 ```
 
-## 🛠️ Function Calling
+## Function Calling
 
 ```python
 from matilda_brain import ask
@@ -67,7 +58,7 @@ def get_weather(city: str) -> str:
 response = ask("What's the weather in NYC?", tools=[get_weather])
 ```
 
-## ⚙️ Configuration
+## Configuration
 
 ```bash
 # View settings
@@ -83,26 +74,26 @@ brain -m @best "Complex analysis"   # openrouter/openai/gpt-4
 brain -m @claude "Explain this"     # openrouter/anthropic/claude-3-sonnet
 ```
 
-## 📖 Documentation
+## Documentation
 
 - **[Configuration Guide](docs/configuration.md)** - API keys, models, settings
 - **[API Reference](docs/api-reference.md)** - Python API documentation
 - **[Architecture](docs/architecture.md)** - System design and internals
 - **[Examples](examples/)** - Code examples and tutorials
 
-## 🔗 Related Projects
+## Related Projects
 
 - **[Matilda](https://github.com/goobits/matilda)** - Voice assistant orchestrator
 - **[Matilda Ears](https://github.com/goobits/matilda-ears)** - Speech-to-Text
 - **[Matilda Voice](https://github.com/goobits/matilda-voice)** - Text-to-Speech
 
-## 🧪 Development
+## Development
 
 ```bash
 ./setup.sh install --dev
 
 # Tests
-./test.sh                   # Run tests with coverage
+./test.sh
 
 # Code quality
 ruff check src/ tests/
@@ -110,6 +101,6 @@ ruff format src/ tests/
 mypy src/
 ```
 
-## 📝 License
+## License
 
 MIT License - see [LICENSE](LICENSE) for details.
