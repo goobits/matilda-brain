@@ -4,7 +4,7 @@ os: auto
 project:
   hostname: dev.ttt.local
   name: ttt
-  workspace_path: .
+  workspace_path: /workspace
 vm:
   box: '@vibe-box'
   cpus: 6
