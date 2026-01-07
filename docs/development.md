@@ -11,10 +11,10 @@ Setup, testing, and code quality for Matilda Brain.
 ## Testing
 
 ```bash
-make test
-make test-unit
+just brain test
+just brain test-unit
 export OPENROUTER_API_KEY=your-key-here
-make test-integration
+just brain test-integration
 ```
 
 ```bash
