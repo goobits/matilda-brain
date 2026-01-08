@@ -58,9 +58,9 @@ class TestBasicCommands:
         output_lower = result.output.lower()
         assert "gpt-4" in output_lower, f"Model name missing from output: {result.output}"
         assert any(word in output_lower for word in ["provider", "openai"]), f"Provider info missing: {result.output}"
-        assert any(word in output_lower for word in ["context", "token", "length"]), (
-            f"Context length info missing: {result.output}"
-        )
+        assert any(
+            word in output_lower for word in ["context", "token", "length"]
+        ), f"Context length info missing: {result.output}"
 
         # Verify output is structured and informative
         lines = [line.strip() for line in result.output.split("\n") if line.strip()]
@@ -73,14 +73,14 @@ class TestBasicCommands:
 
         output_lower = result.output.lower()
         # Should contain system status information
-        assert any(word in output_lower for word in ["status", "health", "system"]), (
-            f"Status header missing: {result.output}"
-        )
+        assert any(
+            word in output_lower for word in ["status", "health", "system"]
+        ), f"Status header missing: {result.output}"
 
         # Should report on backends or API availability
-        assert any(word in output_lower for word in ["backend", "api", "available", "configured"]), (
-            f"Backend status missing: {result.output}"
-        )
+        assert any(
+            word in output_lower for word in ["backend", "api", "available", "configured"]
+        ), f"Backend status missing: {result.output}"
 
         # Should be informative with multiple status indicators
         lines = [line.strip() for line in result.output.split("\n") if line.strip()]
@@ -96,9 +96,9 @@ class TestBasicCommands:
         assert any(word in output_lower for word in ["model", "available"]), f"Models header missing: {result.output}"
 
         # Should contain actual model names
-        assert any(model in output_lower for model in ["gpt", "claude", "gemini"]), (
-            f"No recognizable models found: {result.output}"
-        )
+        assert any(
+            model in output_lower for model in ["gpt", "claude", "gemini"]
+        ), f"No recognizable models found: {result.output}"
 
         # Should provide structured output with multiple entries
         lines = [line.strip() for line in result.output.split("\n") if line.strip()]
@@ -121,9 +121,9 @@ class TestConfigCommands:
             # Should contain expected configuration sections
             expected_keys = ["models", "api", "backend"]
             found_keys = [key for key in expected_keys if any(k.startswith(key) for k in config_data.keys())]
-            assert len(found_keys) > 0, (
-                f"Config should contain model/api/backend settings. Found keys: {list(config_data.keys())}"
-            )
+            assert (
+                len(found_keys) > 0
+            ), f"Config should contain model/api/backend settings. Found keys: {list(config_data.keys())}"
 
         except json.JSONDecodeError as e:
             pytest.fail(f"Config list should output valid JSON. Error: {e}. Output: {result.output}")
@@ -177,16 +177,16 @@ class TestConfigPersistence:
             # Verify the configuration was actually persisted
             verify_result = run_ttt_command(["config", "get", "models.default"])
             assert verify_result.exit_code == 0, f"Config verification failed: {verify_result.output}"
-            assert test_model in verify_result.output, (
-                f"Config was not persisted correctly. Expected '{test_model}' in: {verify_result.output}"
-            )
+            assert (
+                test_model in verify_result.output
+            ), f"Config was not persisted correctly. Expected '{test_model}' in: {verify_result.output}"
 
             # Verify config change is reflected in config list
             list_result = run_ttt_command(["config", "list"])
             if list_result.exit_code == 0:
-                assert test_model in list_result.output, (
-                    f"Config change not reflected in full config list: {list_result.output}"
-                )
+                assert (
+                    test_model in list_result.output
+                ), f"Config change not reflected in full config list: {list_result.output}"
 
             # Restore original configuration
             if original_value:
@@ -197,9 +197,9 @@ class TestConfigPersistence:
                     assert original_value in final_result.output, f"Config restoration failed: {final_result.output}"
         else:
             # If config set isn't available, verify config get provides useful information
-            assert "models.default" in original_result.output, (
-                f"Config get should show key information: {original_result.output}"
-            )
+            assert (
+                "models.default" in original_result.output
+            ), f"Config get should show key information: {original_result.output}"
             assert ":" in original_result.output, f"Config get should use key:value format: {original_result.output}"
 
     def test_config_invalid_key(self):

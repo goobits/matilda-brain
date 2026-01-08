@@ -7,21 +7,26 @@ import json
 
 PROTOCOL_VERSION = "v1"
 
+
 class Role(str, Enum):
     USER = "user"
     ASSISTANT = "assistant"
     SYSTEM = "system"
     TOOL = "tool"
 
+
 class RiskLevel(str, Enum):
     """The risk level associated with a proposal."""
+
     LOW = "low"
     MEDIUM = "medium"
     HIGH = "high"
     CRITICAL = "critical"
 
+
 class Proposal(BaseModel):
     """A request from an Agent to perform a sensitive action."""
+
     id: UUID = Field(default_factory=uuid4)
     timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     tool_name: str
@@ -30,11 +35,13 @@ class Proposal(BaseModel):
     risk_level: RiskLevel = RiskLevel.MEDIUM
     reasoning: str
 
+
 class ContentKind(str, Enum):
     TEXT = "text"
     PROPOSAL = "proposal"
     HANDOFF = "handoff"
     ERROR = "error"
+
 
 class Message(BaseModel):
     """
@@ -46,7 +53,7 @@ class Message(BaseModel):
         content: Content, // Content is tagged with "kind"
         metadata: HashMap<String, String>
     }
-    
+
     JSON Output:
     {
         "role": "user",
@@ -55,21 +62,22 @@ class Message(BaseModel):
         "metadata": {}
     }
     """
+
     role: Role
     kind: ContentKind
     metadata: Dict[str, str] = Field(default_factory=dict)
-    
+
     # Fields for Content::Text
     text: Optional[str] = None
-    
+
     # Fields for Content::Proposal
     proposal: Optional[Proposal] = None
-    
+
     # Fields for Content::Handoff
     target_agent: Optional[str] = None
     reason: Optional[str] = None
     context: Dict[str, str] = Field(default_factory=dict)
-    
+
     # Fields for Content::Error
     code: Optional[str] = None
     message: Optional[str] = None
@@ -96,17 +104,17 @@ class Message(BaseModel):
         # We need to manually construct the dict to ensure correct structure
         # because Pydantic's exclude_none=True might hide fields we want,
         # or include fields we don't (like all the optional ones).
-        
+
         base = {
             "version": PROTOCOL_VERSION,
             "role": self.role.value,
             "kind": self.kind.value,
-            "metadata": self.metadata
+            "metadata": self.metadata,
         }
-        
+
         if self.kind == ContentKind.TEXT:
             base["text"] = self.text
-            
+
         elif self.kind == ContentKind.PROPOSAL:
             if self.proposal:
                 prop_data = json.loads(self.proposal.model_dump_json())
@@ -126,16 +134,16 @@ class Message(BaseModel):
                 #
                 # So we must flatten 'proposal' fields into 'base'.
                 base.update(prop_data)
-                
+
         elif self.kind == ContentKind.HANDOFF:
             base["target_agent"] = self.target_agent
             base["reason"] = self.reason
             base["context"] = self.context
-            
+
         elif self.kind == ContentKind.ERROR:
             base["code"] = self.code
             base["message"] = self.message
             if self.details:
                 base["details"] = self.details
-                
+
         return json.dumps(base)

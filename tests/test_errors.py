@@ -214,6 +214,7 @@ class TestCloudBackendExceptions:
 
     def test_api_key_error(self):
         """Test that authentication errors raise APIKeyError."""
+
         class FakeLiteLLM:
             def __init__(self):
                 self.acompletion = AsyncMock(side_effect=Exception("api_key is required"))
@@ -241,6 +242,7 @@ class TestCloudBackendExceptions:
 
     def test_rate_limit_error(self):
         """Test that rate limit errors are handled properly."""
+
         class FakeLiteLLM:
             def __init__(self):
                 self.acompletion = AsyncMock(side_effect=Exception("Rate limit exceeded"))
@@ -795,11 +797,7 @@ class TestIntegration:
             or "does not exist" in error_text
             or "Resource Error" in error_text
         )
-        assert (
-            "Check the file path" in error_text
-            or "Suggestion" in error_text
-            or "Check the file" in error_text
-        )
+        assert "Check the file path" in error_text or "Suggestion" in error_text or "Check the file" in error_text
 
     @pytest.mark.asyncio
     async def test_network_operation_with_retry(self):

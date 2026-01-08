@@ -131,6 +131,7 @@ class TestCloudBackendMultiModal:
     @pytest.mark.asyncio
     async def test_cloud_backend_with_images(self):
         """Test cloud backend handles images correctly."""
+
         class FakeLiteLLM:
             pass
 
@@ -178,6 +179,7 @@ class TestCloudBackendMultiModal:
     @pytest.mark.asyncio
     async def test_cloud_backend_image_formats(self, tmp_path):
         """Test different image input formats."""
+
         class FakeLiteLLM:
             pass
 

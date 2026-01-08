@@ -140,9 +140,9 @@ class TestJSONOutputValidation(IntegrationTestBase):
                     if any(comp in str(key).lower() for key in data.keys())
                 ]
                 min_components = validation_checks.get("min_components", 1)
-                assert len(found_components) >= min_components, (
-                    f"Missing system components. Found: {found_components}, Expected min: {min_components}"
-                )
+                assert (
+                    len(found_components) >= min_components
+                ), f"Missing system components. Found: {found_components}, Expected min: {min_components}"
 
             if "required_fields" in validation_checks:
                 for field in validation_checks["required_fields"]:
@@ -154,9 +154,9 @@ class TestJSONOutputValidation(IntegrationTestBase):
 
             if "required_keys" in validation_checks:
                 for key in validation_checks["required_keys"]:
-                    assert any(key in str(k).lower() for k in data.keys()), (
-                        f"Missing key '{key}' in {list(data.keys())}"
-                    )
+                    assert any(
+                        key in str(k).lower() for k in data.keys()
+                    ), f"Missing key '{key}' in {list(data.keys())}"
 
             if "content_validation" in validation_checks:
                 assert validation_checks["content_validation"](data), f"Content validation failed for {data}"
@@ -181,9 +181,9 @@ class TestJSONOutputValidation(IntegrationTestBase):
                 output = result.output.strip()
                 assert len(output) > 0, f"Should provide some output even if not JSON: {output}"
                 output_lower = output.lower()
-                assert any(word in output_lower for word in validation_checks["model_indicators"]), (
-                    f"Output should contain model info: {output}"
-                )
+                assert any(
+                    word in output_lower for word in validation_checks["model_indicators"]
+                ), f"Output should contain model info: {output}"
             else:
                 pytest.fail(f"Invalid JSON output from {command_args}: {e}. Output: {result.output}")
 
@@ -262,15 +262,15 @@ class TestJSONOutputValidation(IntegrationTestBase):
 
             if regular_result.exit_code == 0 and json_result.exit_code == 0:
                 # Outputs should be different (JSON vs human-readable)
-                assert regular_result.output != json_result.output, (
-                    f"JSON and regular output identical for {regular_cmd}"
-                )
+                assert (
+                    regular_result.output != json_result.output
+                ), f"JSON and regular output identical for {regular_cmd}"
 
                 # JSON output should be parseable
                 try:
                     json.loads(json_result.output)
                 except json.JSONDecodeError:
                     # Some commands may not produce pure JSON, verify it contains JSON-like structure
-                    assert "{" in json_result.output or "[" in json_result.output, (
-                        f"JSON output not JSON-like for {json_cmd}: {json_result.output}"
-                    )
+                    assert (
+                        "{" in json_result.output or "[" in json_result.output
+                    ), f"JSON output not JSON-like for {json_cmd}: {json_result.output}"

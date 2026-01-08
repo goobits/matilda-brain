@@ -94,7 +94,6 @@ class TestCLIStatusCommand(IntegrationTestBase):
             assert result.exit_code == 0
             assert "TTT System Status" in result.output or "healthy" in result.output.lower()
 
-
     def test_status_command_parameter_passing(self):
         """Test status command passes json parameter correctly."""
         # Test status command with JSON output
@@ -138,7 +137,6 @@ class TestModelsCommand(IntegrationTestBase):
             assert result.exit_code == 0
             assert "gpt-4" in result.output
             mock_registry.assert_called_once()
-
 
     def test_models_command_parameter_passing(self):
         """Test models command passes json parameter correctly."""
@@ -198,7 +196,6 @@ class TestInfoCommand(IntegrationTestBase):
         if result.exit_code == 0:
             assert len(result.output.strip()) > 0
 
-
     def test_info_command_parameter_passing(self):
         """Test info command passes model and json parameters correctly."""
         # Test info command with model and JSON output
@@ -239,9 +236,10 @@ class TestExportCommand(IntegrationTestBase):
     def test_export_with_options(self):
         """Test export with various options."""
         # Mock the session manager methods used by export command
-        with patch("matilda_brain.session.manager.ChatSessionManager.load_session") as mock_load, patch(
-            "pathlib.Path.write_text"
-        ) as mock_write:
+        with (
+            patch("matilda_brain.session.manager.ChatSessionManager.load_session") as mock_load,
+            patch("pathlib.Path.write_text") as mock_write,
+        ):
             mock_session = Mock()
             mock_session.id = "session-1"
             mock_session.messages = [{"role": "user", "content": "Hello"}]
@@ -294,9 +292,7 @@ class TestExportCommand(IntegrationTestBase):
     def test_export_command_parameter_passing(self):
         """Test export command passes session_id, format, output, include_metadata parameters correctly."""
         # Test export with non-existent session (should handle gracefully)
-        result = self.runner.invoke(
-            main, ["export", "nonexistent-session", "--format", "json", "--include-metadata"]
-        )
+        result = self.runner.invoke(main, ["export", "nonexistent-session", "--format", "json", "--include-metadata"])
 
         # Export should either succeed (if session exists) or fail gracefully with exit code 1
         # The important thing is that it processes the arguments correctly (no exit code 2)

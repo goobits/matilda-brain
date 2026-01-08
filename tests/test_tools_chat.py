@@ -206,9 +206,10 @@ class TestCLIToolSupport:
         from matilda_brain.internal.hooks.core import on_ask
 
         # Mock the API functions to prevent real calls
-        with patch("matilda_brain.internal.hooks.core.ttt_stream") as mock_stream, patch(
-            "matilda_brain.internal.hooks.core.ttt_ask"
-        ) as mock_ask:
+        with (
+            patch("matilda_brain.internal.hooks.core.ttt_stream") as mock_stream,
+            patch("matilda_brain.internal.hooks.core.ttt_ask") as mock_ask,
+        ):
             mock_stream.return_value = iter(["Test response"])
             mock_ask.return_value = "Test response"
 
@@ -287,6 +288,7 @@ class TestCLIToolSupport:
 
         clear_registry()
         from matilda_brain.tools.builtins import load_builtin_tools
+
         load_builtin_tools()
 
     def test_resolve_tools_from_module(self):

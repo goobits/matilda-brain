@@ -47,7 +47,6 @@ class TestBasicAPICommands:
     """Test basic commands that require API calls."""
 
     @pytest.mark.requires_credentials
-
     @pytest.mark.requires_network
     def test_ttt_direct_prompt_with_api(self):
         """Test: ttt 'prompt' - Tested 2025-07-24"""
@@ -59,7 +58,6 @@ class TestBasicAPICommands:
         assert result.exit_code in [0, 124]
 
     @pytest.mark.requires_credentials
-
     @pytest.mark.requires_network
     def test_ttt_ask_prompt(self):
         """Test: ttt ask 'prompt' - Tested 2025-07-24"""
@@ -74,7 +72,6 @@ class TestModelSelectionOptions:
     """Test model selection options."""
 
     @pytest.mark.requires_credentials
-
     @pytest.mark.requires_network
     def test_ask_model_gpt4(self):
         """Test: ttt ask --model gpt-4 'prompt' - Tested 2025-07-24"""
@@ -85,7 +82,6 @@ class TestModelSelectionOptions:
         assert result.exit_code in [0, 124]
 
     @pytest.mark.requires_credentials
-
     @pytest.mark.requires_network
     def test_ask_model_short_flag(self):
         """Test: ttt ask -m @claude 'prompt' - Tested 2025-07-24"""
@@ -97,7 +93,6 @@ class TestModelSelectionOptions:
         assert result.exit_code in [0, 1, 124]
 
     @pytest.mark.requires_credentials
-
     @pytest.mark.requires_network
     def test_ask_full_model_path(self):
         """Test: ttt ask --model openrouter/google/gemini-flash-1.5 'prompt' - Tested 2025-07-24"""
@@ -112,7 +107,6 @@ class TestSystemPromptOptions:
     """Test system prompt options."""
 
     @pytest.mark.requires_credentials
-
     @pytest.mark.requires_network
     def test_ask_system_prompt(self):
         """Test: ttt ask --system 'system prompt' 'user prompt' - Tested 2025-07-24"""
@@ -127,7 +121,6 @@ class TestTemperatureControl:
     """Test temperature control options."""
 
     @pytest.mark.requires_credentials
-
     @pytest.mark.requires_network
     def test_ask_temperature_long(self):
         """Test: ttt ask --temperature 0.7 'prompt' - Tested 2025-07-24"""
@@ -138,7 +131,6 @@ class TestTemperatureControl:
         assert result.exit_code in [0, 124]
 
     @pytest.mark.requires_credentials
-
     @pytest.mark.requires_network
     def test_ask_temperature_short(self):
         """Test: ttt ask -t 0.1 'prompt' - Tested 2025-07-24"""
@@ -153,7 +145,6 @@ class TestTokenLimits:
     """Test token limit options."""
 
     @pytest.mark.requires_credentials
-
     @pytest.mark.requires_network
     def test_ask_max_tokens(self):
         """Test: ttt ask --max-tokens 100 'prompt' - Tested 2025-07-24"""
@@ -168,7 +159,6 @@ class TestToolsOptions:
     """Test tools options."""
 
     @pytest.mark.requires_credentials
-
     @pytest.mark.requires_network
     def test_ask_tools_basic_executes_with_tools_enabled(self):
         """Test: ttt ask --tools 'prompt' - Tested 2025-07-24"""
@@ -183,7 +173,6 @@ class TestOutputModes:
     """Test output modes."""
 
     @pytest.mark.requires_credentials
-
     @pytest.mark.requires_network
     def test_ask_stream(self):
         """Test: ttt ask --stream 'prompt' - Tested 2025-07-24"""
@@ -194,7 +183,6 @@ class TestOutputModes:
         assert result.exit_code in [0, 124]
 
     @pytest.mark.requires_credentials
-
     @pytest.mark.requires_network
     def test_ask_json(self):
         """Test: ttt ask --json 'prompt' - Tested 2025-07-24"""
@@ -209,7 +197,6 @@ class TestChatCommands:
     """Test chat command options."""
 
     @pytest.mark.requires_credentials
-
     @pytest.mark.requires_network
     def test_chat_command_basic(self):
         """Test: ttt chat - Basic chat command functionality"""
@@ -225,7 +212,6 @@ class TestPipelineUsage:
     """Test pipeline/stdin usage."""
 
     @pytest.mark.requires_credentials
-
     @pytest.mark.requires_network
     def test_echo_pipe_ask(self):
         """Test: echo 'text' | ttt ask 'transform this' - Tested 2025-07-24"""
@@ -236,7 +222,6 @@ class TestPipelineUsage:
         assert result.exit_code in [0, 124]
 
     @pytest.mark.requires_credentials
-
     @pytest.mark.requires_network
     def test_echo_pipe_ask_specific(self):
         """Test: echo 'hello world' | ttt ask 'transform this' - Tested 2025-07-24"""
@@ -251,7 +236,6 @@ class TestModelAliases:
     """Test model aliases."""
 
     @pytest.mark.requires_credentials
-
     @pytest.mark.requires_network
     def test_ask_alias_claude(self):
         """Test: ttt ask -m @claude 'prompt' - Tested 2025-07-24"""
@@ -263,7 +247,6 @@ class TestModelAliases:
         assert result.exit_code in [0, 1, 124]
 
     @pytest.mark.requires_credentials
-
     @pytest.mark.requires_network
     def test_ask_alias_gpt4(self):
         """Test: ttt ask -m @gpt4 'prompt' - Tested 2025-07-24"""
@@ -274,7 +257,6 @@ class TestModelAliases:
         assert result.exit_code in [0, 124]
 
     @pytest.mark.requires_credentials
-
     @pytest.mark.requires_network
     def test_ask_alias_fast(self):
         """Test: ttt ask -m @fast 'prompt' - Tested 2025-07-24"""
@@ -285,7 +267,6 @@ class TestModelAliases:
         assert result.exit_code in [0, 124]
 
     @pytest.mark.requires_credentials
-
     @pytest.mark.requires_network
     def test_ask_alias_best(self):
         """Test: ttt ask -m @best 'prompt' - Tested 2025-07-24"""
@@ -296,7 +277,6 @@ class TestModelAliases:
         assert result.exit_code in [0, 124]
 
     @pytest.mark.requires_credentials
-
     @pytest.mark.requires_network
     def test_ask_alias_coding(self):
         """Test: ttt ask -m @coding 'prompt' - Tested 2025-07-24"""
@@ -308,7 +288,6 @@ class TestModelAliases:
         assert result.exit_code in [0, 1, 124]
 
     @pytest.mark.requires_credentials
-
     @pytest.mark.requires_network
     def test_ask_alias_local(self):
         """Test: ttt ask -m @local 'prompt' - Tested 2025-07-24"""
@@ -317,7 +296,6 @@ class TestModelAliases:
         assert result.exit_code in [0, 1, 124]  # May fail if Ollama not running
 
     @pytest.mark.requires_credentials
-
     @pytest.mark.requires_network
     def test_direct_alias_claude(self):
         """Test: ttt @claude 'prompt' - Direct alias usage"""
@@ -333,7 +311,6 @@ class TestComplexCombinations:
     """Test complex command combinations."""
 
     @pytest.mark.requires_credentials
-
     @pytest.mark.requires_network
     def test_complex_claude_tools_json(self):
         """Test: ttt ask --model @claude --temperature 0.2 --tools --json 'write a function' - Tested 2025-07-24"""
@@ -357,7 +334,6 @@ class TestComplexCombinations:
         assert result.exit_code in [0, 1, 124]
 
     @pytest.mark.requires_credentials
-
     @pytest.mark.requires_network
     def test_complex_gpt4_max_tokens(self):
         """Test: ttt ask --json --model gpt-4 --max-tokens 500 'structured analysis' - Tested 2025-07-24"""
@@ -378,7 +354,6 @@ class TestComplexCombinations:
         assert result.exit_code in [0, 124]
 
     @pytest.mark.requires_credentials
-
     @pytest.mark.requires_network
     def test_complex_stream_json(self):
         """Test: ttt ask -m @gpt4 --stream --json 'explain this algorithm' - Tested 2025-07-24"""
@@ -389,7 +364,6 @@ class TestComplexCombinations:
         assert result.exit_code in [0, 124]
 
     @pytest.mark.requires_credentials
-
     @pytest.mark.requires_network
     def test_complex_pipeline_tools_json(self):
         """Test: echo 'data' | ttt ask --model @claude --tools --json 'analyze and research' - Tested 2025-07-24"""
@@ -412,7 +386,6 @@ class TestComplexCombinations:
         assert result.exit_code in [0, 1, 124]
 
     @pytest.mark.requires_credentials
-
     @pytest.mark.requires_network
     def test_complex_all_options(self):
         """Test: ttt ask --model @claude --temperature 0.7 --max-tokens 1000 --tools 'research topic' - Tested 2025-07-24"""
@@ -437,7 +410,6 @@ class TestComplexCombinations:
         assert result.exit_code in [0, 1, 124]
 
     @pytest.mark.requires_credentials
-
     @pytest.mark.requires_network
     def test_complex_fast_json_stream(self):
         """Test: ttt ask -m @fast --json --stream 'quick response in JSON format' - Tested 2025-07-24"""
@@ -452,7 +424,6 @@ class TestFilePipelineUsage:
     """Test file-based pipeline usage - tests real file I/O functionality."""
 
     @pytest.mark.requires_credentials
-
     @pytest.mark.requires_network
     def test_file_content_analysis_demonstrates_pipeline_usage(self):
         """Test: cat file.txt | ttt ask 'summarize' - Demonstrates real file processing pipeline with validation"""
@@ -494,15 +465,14 @@ The architecture follows modern best practices with clear separation of concerns
                 response_lower = response.lower()
                 expected_concepts = ["component", "module", "project", "architecture"]
                 found_concepts = [concept for concept in expected_concepts if concept in response_lower]
-                assert len(found_concepts) >= 2, (
-                    f"Analysis should reference key concepts from input. Found: {found_concepts}"
-                )
+                assert (
+                    len(found_concepts) >= 2
+                ), f"Analysis should reference key concepts from input. Found: {found_concepts}"
         finally:
             # Clean up
             os.unlink(temp_file)
 
     @pytest.mark.requires_credentials
-
     @pytest.mark.requires_network
     def test_json_file_pipe_ask(self):
         """Test: cat data.json | ttt ask 'analyze' - Tests JSON file processing"""
@@ -529,7 +499,6 @@ class TestJSONInputPipeline:
     """Test JSON input pipeline - tests structured input parsing."""
 
     @pytest.mark.requires_credentials
-
     @pytest.mark.requires_network
     def test_json_input_pipeline(self):
         """Test: echo '{"prompt": "hello"}' | ttt ask - Tests JSON input parsing"""
@@ -541,7 +510,6 @@ class TestJSONInputPipeline:
         assert result.exit_code in [0, 124]
 
     @pytest.mark.requires_credentials
-
     @pytest.mark.requires_network
     def test_json_array_input(self):
         """Test: echo '[1,2,3]' | ttt ask 'sum these' - Tests JSON array processing"""
@@ -557,7 +525,6 @@ class TestAdditionalCLIOptions:
     """Test additional CLI options for completeness."""
 
     @pytest.mark.requires_credentials
-
     @pytest.mark.requires_network
     def test_system_prompt_short_flag(self):
         """Test: ttt ask -s 'system' 'user' - Tests short flag consistency"""
@@ -569,7 +536,6 @@ class TestAdditionalCLIOptions:
         assert result.exit_code in [0, 1, 124]
 
     @pytest.mark.requires_credentials
-
     @pytest.mark.requires_network
     def test_higher_max_tokens(self):
         """Test: ttt ask --max-tokens 2000 'prompt' - Tests higher token limits"""

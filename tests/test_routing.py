@@ -32,6 +32,7 @@ class TestRouter:
     def test_get_backend_cloud(self):
         """Test getting cloud backend."""
         router = Router()
+
         class FakeCloudBackend:
             def __init__(self, config):
                 self.name = "cloud"

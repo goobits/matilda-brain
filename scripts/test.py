@@ -84,11 +84,9 @@ def check_virtual_env():
 
 def check_xdist():
     """Check if pytest-xdist is available."""
-    try:
-        import xdist
-        return True
-    except ImportError:
-        return False
+    import importlib.util
+
+    return importlib.util.find_spec("xdist") is not None
 
 
 def build_pytest_cmd(args, test_type):
@@ -97,13 +95,15 @@ def build_pytest_cmd(args, test_type):
 
     # Test path or pattern
     if args.test:
-        if "test_" in args.test:
-            test_file = args.test if args.test.endswith(".py") else f"{args.test}.py"
-            cmd.extend(["tests/", "-k", args.test])
-        else:
-            cmd.extend(["tests/", "-k", args.test])
+        cmd.extend(["tests/", "-k", args.test])
     elif test_type == "unit":
-        cmd.extend(["tests/", "-m", "not requires_credentials and not requires_network and not requires_service and not requires_gpu"])
+        cmd.extend(
+            [
+                "tests/",
+                "-m",
+                "not requires_credentials and not requires_network and not requires_service and not requires_gpu",
+            ]
+        )
     elif test_type == "integration":
         cmd.extend(["tests/", "-m", "requires_credentials or requires_network or requires_service or requires_gpu"])
     else:
@@ -207,23 +207,23 @@ def main():
         return 0
 
     parser = argparse.ArgumentParser(add_help=False)
-    parser.add_argument("command", nargs="?", default="unit",
-                        choices=["unit", "integration", "all", "help"],
-                        help="Test type to run")
-    parser.add_argument("--coverage", "-c", action="store_true",
-                        help="Generate coverage report")
-    parser.add_argument("--verbose", "-v", action="store_true",
-                        help="Verbose test output")
-    parser.add_argument("--parallel", "-p", nargs="?", const="auto", default="off",
-                        help="Run tests in parallel (N workers, default: auto)")
-    parser.add_argument("--test", "-t",
-                        help="Run specific test file or pattern")
-    parser.add_argument("--markers", "-m",
-                        help="Run tests matching marker expression")
-    parser.add_argument("--force", "-f", action="store_true",
-                        help="Skip confirmation prompts")
-    parser.add_argument("--version", action="store_true",
-                        help="Show version")
+    parser.add_argument(
+        "command", nargs="?", default="unit", choices=["unit", "integration", "all", "help"], help="Test type to run"
+    )
+    parser.add_argument("--coverage", "-c", action="store_true", help="Generate coverage report")
+    parser.add_argument("--verbose", "-v", action="store_true", help="Verbose test output")
+    parser.add_argument(
+        "--parallel",
+        "-p",
+        nargs="?",
+        const="auto",
+        default="off",
+        help="Run tests in parallel (N workers, default: auto)",
+    )
+    parser.add_argument("--test", "-t", help="Run specific test file or pattern")
+    parser.add_argument("--markers", "-m", help="Run tests matching marker expression")
+    parser.add_argument("--force", "-f", action="store_true", help="Skip confirmation prompts")
+    parser.add_argument("--version", action="store_true", help="Show version")
 
     args = parser.parse_args()
 
@@ -243,9 +243,9 @@ def main():
     print()
 
     # Check pytest is available
-    try:
-        import pytest
-    except ImportError:
+    import importlib.util
+
+    if importlib.util.find_spec("pytest") is None:
         print("❌ pytest not found!")
         print("Install with: pip install pytest pytest-asyncio pytest-cov")
         return 1

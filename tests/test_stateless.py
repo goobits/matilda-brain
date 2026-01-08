@@ -128,9 +128,7 @@ class TestExecuteStateless:
         with patch("matilda_brain.internal.stateless.router") as mock_router:
             mock_router.smart_route.return_value = (backend, "test-model")
 
-            req = StatelessRequest(
-                message="What is Python?", system="You are a programming expert"
-            )
+            req = StatelessRequest(message="What is Python?", system="You are a programming expert")
             response = execute_stateless(req)
 
             assert response.content == "Test response"
@@ -147,9 +145,7 @@ class TestExecuteStateless:
                 {"role": "user", "content": "Hello"},
                 {"role": "assistant", "content": "Hi!"},
             ]
-            req = StatelessRequest(
-                message="What was my first message?", history=history
-            )
+            req = StatelessRequest(message="What was my first message?", history=history)
             response = execute_stateless(req)
 
             assert response.content == "Test response"
@@ -162,9 +158,7 @@ class TestExecuteStateless:
         with patch("matilda_brain.internal.stateless.router") as mock_router:
             mock_router.smart_route.return_value = (backend, "test-model")
 
-            req = StatelessRequest(
-                message="Search for Python tutorials", tools=["web_search"]
-            )
+            req = StatelessRequest(message="Search for Python tutorials", tools=["web_search"])
             response = execute_stateless(req)
 
             assert response.content == "Test response"
@@ -177,9 +171,7 @@ class TestExecuteStateless:
         with patch("matilda_brain.internal.stateless.router") as mock_router:
             mock_router.smart_route.return_value = (backend, "test-model")
 
-            req = StatelessRequest(
-                message="Test", temperature=0.9, max_tokens=500, model="gpt-4"
-            )
+            req = StatelessRequest(message="Test", temperature=0.9, max_tokens=500, model="gpt-4")
             response = execute_stateless(req)
 
             assert response.content == "Test response"

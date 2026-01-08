@@ -37,9 +37,7 @@ def basic_chat_examples():
     print()
 
     print("2. Chat with system prompt:")
-    with chat(
-        system="You are an expert Python tutor who gives concise, practical answers"
-    ) as tutor:
+    with chat(system="You are an expert Python tutor who gives concise, practical answers") as tutor:
         response = tutor.ask("How do I create a dictionary in Python?")
         print("User: How do I create a dictionary in Python?")
         print(f"Tutor: {response}")
@@ -92,9 +90,7 @@ def advanced_session_management():
 
     # Build conversation
     session.ask("I need to plan a web application project")
-    session.ask(
-        "The app should have user authentication, a dashboard, and data visualization"
-    )
+    session.ask("The app should have user authentication, a dashboard, and data visualization")
     session.ask("We have 2 developers and 8 weeks")
 
     # Save in different formats
@@ -111,9 +107,7 @@ def advanced_session_management():
     print("\nSession Summary:")
     print(f"  ID: {summary['session_id']}")
     print(f"  Messages: {summary['message_count']}")
-    print(
-        f"  Tokens used: {summary['total_tokens_in']} in, {summary['total_tokens_out']} out"
-    )
+    print(f"  Tokens used: {summary['total_tokens_in']} in, {summary['total_tokens_out']} out")
     print(f"  Estimated cost: ${summary['total_cost']:.4f}")
 
     # Clean up
@@ -130,16 +124,12 @@ def multi_session_tracking():
 
     # Create different sessions for different purposes
     sessions = {
-        "coding": PersistentChatSession(
-            system="You are an expert Python developer", session_id="coding_helper"
-        ),
+        "coding": PersistentChatSession(system="You are an expert Python developer", session_id="coding_helper"),
         "learning": PersistentChatSession(
             system="You are a patient teacher who explains concepts clearly",
             session_id="learning_helper",
         ),
-        "planning": PersistentChatSession(
-            system="You are a strategic thinking partner", session_id="planning_helper"
-        ),
+        "planning": PersistentChatSession(system="You are a strategic thinking partner", session_id="planning_helper"),
     }
 
     # Use different sessions
@@ -159,9 +149,7 @@ def multi_session_tracking():
         path = sessions_dir / f"{name}_session.json"
         loaded_session = PersistentChatSession.load(path)
         summary = loaded_session.get_summary()
-        print(
-            f"  {name}: {summary['message_count']} messages, {summary['total_tokens_in']} tokens"
-        )
+        print(f"  {name}: {summary['message_count']} messages, {summary['total_tokens_in']} tokens")
 
     # Clean up
     import shutil
@@ -207,9 +195,7 @@ def incremental_conversation():
 
         # Save progress
         session.save(session_file)
-        print(
-            f"\nProgress saved. Run again to continue learning! ({len(topics) - topic_index - 1} topics remaining)"
-        )
+        print(f"\nProgress saved. Run again to continue learning! ({len(topics) - topic_index - 1} topics remaining)")
     else:
         print("\nAll topics covered! Here's your learning journey:")
         print(session.export_messages(format="text"))
@@ -306,9 +292,7 @@ def session_with_multimodal():
             )
 
             # Follow-up without image
-            response = session.ask(
-                "What programming language does this logo represent?"
-            )
+            response = session.ask("What programming language does this logo represent?")
             print("User: What programming language does this logo represent?")
             print(f"AI: {response}")
 

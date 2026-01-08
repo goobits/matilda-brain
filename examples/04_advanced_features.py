@@ -128,9 +128,7 @@ def chat_with_images():
             print(f"AI: {response1}")
 
             # Follow-up without image - AI remembers the previous image
-            response2 = session.ask(
-                "What are the main design elements and colors in that logo?"
-            )
+            response2 = session.ask("What are the main design elements and colors in that logo?")
             print(f"AI: {response2}")
 
             # Another follow-up
@@ -174,7 +172,7 @@ def handle_backend_errors():
 
     # 1. Backend not available
     try:
-        response = ask("Hello", backend="nonexistent")
+        ask("Hello", backend="nonexistent")  # Will raise BackendNotAvailableError
     except BackendNotAvailableError as e:
         print(f"Backend not available: {e}")
         print(f"  Details: {e.details}")
@@ -187,7 +185,7 @@ def handle_backend_errors():
 
         # Set wrong URL to trigger connection error
         os.environ["OLLAMA_BASE_URL"] = "http://localhost:99999"
-        response = ask("Hello", backend="local")
+        ask("Hello", backend="local")  # Will raise BackendConnectionError
 
     except BackendConnectionError as e:
         print(f"\nConnection error: {e}")
@@ -213,7 +211,7 @@ def handle_model_errors():
 
     # 1. Model not found
     try:
-        response = ask("Hello", model="nonexistent-model-xyz")
+        ask("Hello", model="nonexistent-model-xyz")  # Will raise ModelNotFoundError
     except ModelNotFoundError as e:
         print(f"Model not found: {e}")
         print(f"  Model: {e.details.get('model', 'unknown')}")
@@ -222,10 +220,10 @@ def handle_model_errors():
 
     # 2. Multi-modal error (using vision on non-vision model)
     try:
-        response = ask(
+        ask(
             ["What's in this image?", ImageInput("https://via.placeholder.com/150")],
             model="gpt-3.5-turbo",  # Non-vision model
-        )
+        )  # Will raise MultiModalError
     except MultiModalError as e:
         print(f"\nMulti-modal error: {e}")
         print(f"  Reason: {e.details.get('reason', 'Model does not support vision')}")
@@ -248,7 +246,7 @@ def handle_api_key_errors():
         # Set invalid API key
         os.environ["OPENAI_API_KEY"] = "invalid-key-123"
 
-        response = ask("Hello", model="gpt-3.5-turbo", backend="cloud")
+        ask("Hello", model="gpt-3.5-turbo", backend="cloud")  # Will raise APIKeyError
 
     except APIKeyError as e:
         print(f"API key error: {e}")
@@ -400,7 +398,7 @@ def config_error_handling():
     try:
         from matilda_brain.config import load_config
 
-        config = load_config(invalid_config)
+        load_config(invalid_config)  # Will raise ConfigFileError
 
     except ConfigFileError as e:
         print(f"Config file error: {e}")

@@ -410,7 +410,7 @@ class PersistentChatSession:
                 # Pickle support removed for security
                 if path.suffix in [".pkl", ".pickle"] or format == "pickle":
                     raise SessionLoadError(str(path), "Pickle format is no longer supported for security reasons.")
-                
+
                 # Default to JSON
                 with open(path) as f:
                     session_data = json.load(f)
@@ -489,16 +489,14 @@ class PersistentChatSession:
             return export_messages_text(self.history)
         elif format == "markdown":
             return export_messages_markdown(
-                self.history,
-                session_id=self.metadata.get("session_id", "Unknown"),
-                system=self.system
+                self.history, session_id=self.metadata.get("session_id", "Unknown"), system=self.system
             )
         elif format == "json":
             return export_messages_json(
                 self.history,
                 session_id=self.metadata.get("session_id"),
                 created_at=self.metadata.get("created_at"),
-                system=self.system
+                system=self.system,
             )
         else:
             raise ValueError(f"Unknown format: {format}")

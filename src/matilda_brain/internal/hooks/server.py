@@ -11,6 +11,7 @@ console = Console()
 
 from .utils import setup_logging_level, resolve_model_alias, parse_tools_arg
 
+
 def on_stateless(
     command_name: str,
     message: Tuple[str, ...],
@@ -49,12 +50,7 @@ def on_stateless(
     # Handle missing message
     if not message_text:
         # Instead of printing error, return Protocol Error
-        error = {
-            "version": "v1",
-            "kind": "error",
-            "code": "missing_message",
-            "message": "Missing argument 'message'"
-        }
+        error = {"version": "v1", "kind": "error", "code": "missing_message", "message": "Missing argument 'message'"}
         print(json_module.dumps(error))
         raise RuntimeError("Missing argument 'message'")
 
@@ -71,29 +67,24 @@ def on_stateless(
                 # We can't use console.print because we must output valid JSON for the Switchboard
                 error = {
                     "version": "v1",
-                    "kind": "error", 
+                    "kind": "error",
                     "code": "history_not_found",
-                    "message": f"History file not found: {history}"
+                    "message": f"History file not found: {history}",
                 }
                 print(json_module.dumps(error))
                 raise RuntimeError(f"History file not found: {history}")
 
             with open(history_path) as f:
                 history_data = json_module.load(f)
-            
+
             # Support multiple formats
             if isinstance(history_data, list):
                 history_messages = history_data
             elif isinstance(history_data, dict) and "messages" in history_data:
                 history_messages = history_data["messages"]
-            
+
         except Exception as e:
-            error = {
-                "version": "v1",
-                "kind": "error",
-                "code": "history_error",
-                "message": str(e)
-            }
+            error = {"version": "v1", "kind": "error", "code": "history_error", "message": str(e)}
             print(json_module.dumps(error))
             raise RuntimeError("Failed to load history") from e
 
@@ -105,6 +96,7 @@ def on_stateless(
             tools_list = tools_expanded.split(",")
         elif tools_expanded == "all":
             from matilda_brain.tools import list_tools
+
             available_tools = list_tools()
             tools_list = [tool.name for tool in available_tools]
 
@@ -126,15 +118,9 @@ def on_stateless(
         print(result_json)
 
     except Exception as e:
-        error = {
-            "version": "v1",
-            "kind": "error",
-            "code": "execution_failed",
-            "message": str(e)
-        }
+        error = {"version": "v1", "kind": "error", "code": "execution_failed", "message": str(e)}
         print(json_module.dumps(error))
         raise RuntimeError("Stateless request failed") from e
-
 
 
 def on_serve(

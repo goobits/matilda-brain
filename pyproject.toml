@@ -74,7 +74,7 @@ addopts = [ "--strict-markers", "--disable-warnings", "-ra",]
 data_file = ".artifacts/cache/.coverage"
 
 [tool.ruff.lint.per-file-ignores]
-"src/matilda_brain/hooks/*.py" = [ "E402",]
+"src/matilda_brain/internal/hooks/*.py" = [ "E402",]
 
 [tool.setuptools.packages.find]
 where = [ "src",]

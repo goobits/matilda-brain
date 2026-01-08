@@ -9,6 +9,7 @@ console = Console()
 
 from matilda_brain.config.manager import ConfigManager
 
+
 def on_tools_enable(command_name: str, tool_name: str, **kwargs) -> None:
     """Hook for 'tools enable' subcommand.
 
@@ -29,7 +30,6 @@ def on_tools_enable(command_name: str, tool_name: str, **kwargs) -> None:
         click.echo(f"Tool '{tool_name}' is already enabled")
 
 
-
 def on_tools_disable(command_name: str, tool_name: str, **kwargs) -> None:
     """Hook for 'tools disable' subcommand.
 
@@ -48,7 +48,6 @@ def on_tools_disable(command_name: str, tool_name: str, **kwargs) -> None:
         click.echo(f"Tool '{tool_name}' has been disabled")
     else:
         click.echo(f"Tool '{tool_name}' is already disabled")
-
 
 
 def on_tools_list(command_name: str, show_disabled: bool, **kwargs) -> None:
@@ -75,4 +74,3 @@ def on_tools_list(command_name: str, show_disabled: bool, **kwargs) -> None:
 
 
 # Additional helper functions needed by hooks
-

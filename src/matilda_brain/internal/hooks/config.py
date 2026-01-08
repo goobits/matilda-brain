@@ -14,9 +14,8 @@ from matilda_brain.config.manager import ConfigManager
 from matilda_brain.session.manager import ChatSessionManager
 from .models import show_models_list
 
-def on_list(
-    command_name: str, resource: Optional[str] = None, format: str = "table", **kwargs
-) -> None:
+
+def on_list(command_name: str, resource: Optional[str] = None, format: str = "table", **kwargs) -> None:
     """Hook for 'list' command.
 
     Lists various TTT resources like models, sessions, or tools in either
@@ -95,7 +94,6 @@ def on_list(
                 console.print(f"  • [cyan]{tool.name}[/cyan]: {tool.description}")
 
 
-
 def on_config_get(command_name: str, key: str, **kwargs) -> None:
     """Hook for 'config get' subcommand.
 
@@ -106,7 +104,6 @@ def on_config_get(command_name: str, key: str, **kwargs) -> None:
     """
     config_manager = ConfigManager()
     config_manager.show_value(key)
-
 
 
 def on_config_set(command_name: str, key: str, value: str, **kwargs) -> None:
@@ -121,7 +118,6 @@ def on_config_set(command_name: str, key: str, value: str, **kwargs) -> None:
     """
     config_manager = ConfigManager()
     config_manager.set_value(key, value)
-
 
 
 def on_config_list(command_name: str, show_secrets: bool, **kwargs) -> None:
@@ -152,7 +148,6 @@ def on_config_list(command_name: str, show_secrets: bool, **kwargs) -> None:
         merged_config = mask_sensitive(merged_config)
 
     click.echo(json_module.dumps(merged_config, indent=2))
-
 
 
 def on_export(

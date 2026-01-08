@@ -80,7 +80,6 @@ def show_models_list(json_output: bool = False) -> None:
             console.print(f"[red]Error listing models: {e}[/red]")
 
 
-
 def show_model_info(model_name: str, json_output: bool = False) -> None:
     """Show detailed information about a specific model.
 
@@ -146,7 +145,6 @@ def show_model_info(model_name: str, json_output: bool = False) -> None:
             click.echo(json_module.dumps(error_output))
         else:
             console.print(f"[red]Error getting model info: {e}[/red]")
-
 
 
 def show_backend_status(json_output: bool = False) -> None:
@@ -260,6 +258,7 @@ def show_backend_status(json_output: bool = False) -> None:
 
 # Add hook functions for missing commands that need to be added to CLI
 
+
 def on_status(command_name: str, json: bool, **kwargs) -> None:
     """Hook for 'status' command.
 
@@ -271,7 +270,6 @@ def on_status(command_name: str, json: bool, **kwargs) -> None:
     show_backend_status(json_output=json)
 
 
-
 def on_models(command_name: str, json: bool, **kwargs) -> None:
     """Hook for 'models' command.
 
@@ -281,7 +279,6 @@ def on_models(command_name: str, json: bool, **kwargs) -> None:
         json: If True, outputs JSON format; otherwise shows rich table
     """
     show_models_list(json_output=json)
-
 
 
 def on_info(command_name: str, model: Optional[str] = None, json: bool = False, **kwargs) -> None:
@@ -299,4 +296,3 @@ def on_info(command_name: str, model: Optional[str] = None, json: bool = False, 
         on_models(command_name="models", json=json)
     else:
         show_model_info(model, json_output=json)
-

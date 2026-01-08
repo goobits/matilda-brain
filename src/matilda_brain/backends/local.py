@@ -309,7 +309,7 @@ class LocalBackend(BaseBackend):
             # For streaming responses, read the response body to get error details
             try:
                 error_text = await e.response.aread()
-                error_text = error_text.decode('utf-8') if isinstance(error_text, bytes) else str(error_text)
+                error_text = error_text.decode("utf-8") if isinstance(error_text, bytes) else str(error_text)
             except Exception:
                 error_text = ""
 

@@ -80,9 +80,9 @@ class TestCLIParameterValidation(IntegrationTestBase):
         assert result.exit_code != 2, f"{description} failed with argument parsing error: {result.output}"
 
         # Command should either succeed or fail gracefully, not crash
-        assert result.exit_code in expected_exit_codes, (
-            f"{description} had unexpected exit code {result.exit_code}. Expected {expected_exit_codes}. Output: {result.output}"
-        )
+        assert (
+            result.exit_code in expected_exit_codes
+        ), f"{description} had unexpected exit code {result.exit_code}. Expected {expected_exit_codes}. Output: {result.output}"
 
     @pytest.mark.parametrize(
         "data_type,param_args,expected_type,expected_value",
@@ -120,9 +120,9 @@ class TestCLIParameterValidation(IntegrationTestBase):
 
             if param_name and param_name in kwargs:
                 actual_value = kwargs[param_name]
-                assert isinstance(actual_value, expected_type), (
-                    f"Expected {expected_type}, got {type(actual_value)} for {param_name}"
-                )
+                assert isinstance(
+                    actual_value, expected_type
+                ), f"Expected {expected_type}, got {type(actual_value)} for {param_name}"
                 assert actual_value == expected_value, f"Expected {expected_value}, got {actual_value} for {param_name}"
 
     @pytest.mark.parametrize(
@@ -225,9 +225,9 @@ class TestCLIParameterValidation(IntegrationTestBase):
                         # Validate system prompt
                         system_prompt = output_data.get("system") or output_data.get("system_prompt")
                         if system_prompt:
-                            assert "testing" in str(system_prompt).lower(), (
-                                f"System prompt not preserved: {system_prompt}"
-                            )
+                            assert (
+                                "testing" in str(system_prompt).lower()
+                            ), f"System prompt not preserved: {system_prompt}"
 
                         break
             except json.JSONDecodeError:

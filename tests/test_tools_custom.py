@@ -267,6 +267,7 @@ class TestToolIntegration:
     @pytest.mark.asyncio
     async def test_cloud_backend_tool_integration(self):
         """Test tool integration with CloudBackend."""
+
         class FakeLiteLLM:
             pass
 

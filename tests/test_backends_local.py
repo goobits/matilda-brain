@@ -1,6 +1,6 @@
 """Tests for the local backend."""
 
-from unittest.mock import AsyncMock, MagicMock, PropertyMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import httpx
 import pytest

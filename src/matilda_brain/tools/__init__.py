@@ -18,7 +18,6 @@ Example usage:
     response = ask("What's the weather in NYC?", tools=[get_weather])
 """
 
-import asyncio
 import inspect
 from functools import wraps
 from typing import Any, Callable, Optional
@@ -99,8 +98,8 @@ def tool(
                 pass
 
         # Add tool metadata to the function
-        setattr(f, '_tool_definition', tool_def)
-        setattr(f, '_is_tool', True)
+        setattr(f, "_tool_definition", tool_def)
+        setattr(f, "_is_tool", True)
 
         # Create appropriate wrapper based on function type
         if inspect.iscoroutinefunction(f):
@@ -111,8 +110,8 @@ def tool(
                 return await f(*args, **kwargs)
 
             # Preserve tool metadata on wrapper
-            setattr(async_wrapper, '_tool_definition', tool_def)
-            setattr(async_wrapper, '_is_tool', True)
+            setattr(async_wrapper, "_tool_definition", tool_def)
+            setattr(async_wrapper, "_is_tool", True)
 
             return async_wrapper
         else:
@@ -123,8 +122,8 @@ def tool(
                 return f(*args, **kwargs)
 
             # Preserve tool metadata on wrapper
-            setattr(wrapper, '_tool_definition', tool_def)
-            setattr(wrapper, '_is_tool', True)
+            setattr(wrapper, "_tool_definition", tool_def)
+            setattr(wrapper, "_is_tool", True)
 
             return wrapper
 

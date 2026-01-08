@@ -20,7 +20,6 @@ if env_path.exists():
     load_dotenv(env_path)
 
 
-
 # Configuration for rate limiting delays
 OPENROUTER_DEFAULT_DELAY = 1.0  # Default 1 second delay between OpenRouter API calls
 OPENAI_DEFAULT_DELAY = 0.5  # Default 0.5 second delay between OpenAI API calls

@@ -123,11 +123,7 @@ def export_messages_text(history: List[Dict[str, Any]]) -> str:
     return "\n\n".join(lines)
 
 
-def export_messages_markdown(
-    history: List[Dict[str, Any]],
-    session_id: str = "Unknown",
-    system: str = None
-) -> str:
+def export_messages_markdown(history: List[Dict[str, Any]], session_id: str = "Unknown", system: str = None) -> str:
     """Export messages as markdown.
 
     Args:
@@ -165,10 +161,7 @@ def export_messages_markdown(
 
 
 def export_messages_json(
-    history: List[Dict[str, Any]],
-    session_id: str = None,
-    created_at: str = None,
-    system: str = None
+    history: List[Dict[str, Any]], session_id: str = None, created_at: str = None, system: str = None
 ) -> str:
     """Export messages as JSON.
 

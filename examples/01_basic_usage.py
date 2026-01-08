@@ -65,9 +65,7 @@ def streaming_examples():
     print("2. Streaming with preferences:")
     print("AI (fast mode): ", end="", flush=True)
 
-    for chunk in stream(
-        "Explain machine learning in simple terms", model="gpt-3.5-turbo"
-    ):
+    for chunk in stream("Explain machine learning in simple terms", model="gpt-3.5-turbo"):
         print(chunk, end="", flush=True)
 
     print("\n\n")
@@ -143,9 +141,7 @@ def model_selection_examples():
     print(f"Math query model: {math_response.model}")
 
     # Complex analysis
-    analysis_response = ask(
-        "Provide a comprehensive analysis of renewable energy trends"
-    )
+    analysis_response = ask("Provide a comprehensive analysis of renewable energy trends")
     print(f"Analysis query model: {analysis_response.model}")
 
     print()
@@ -174,9 +170,7 @@ def main():
     print("Matilda Brain - Basic Usage Examples")
     print("=" * 50)
     print()
-    print(
-        "This example shows the core functionality: ask(), stream(), and basic chat()"
-    )
+    print("This example shows the core functionality: ask(), stream(), and basic chat()")
     print("For more advanced features, see the other numbered examples.")
     print()
 
@@ -197,9 +191,7 @@ def main():
         print("\n\nExamples interrupted by user.")
     except Exception as e:
         print(f"\nError running examples: {e}")
-        print(
-            "Make sure you have either Ollama running locally or cloud API keys configured."
-        )
+        print("Make sure you have either Ollama running locally or cloud API keys configured.")
 
 
 if __name__ == "__main__":

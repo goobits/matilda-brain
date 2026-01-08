@@ -21,6 +21,7 @@ from .utils import (
     resolve_tools,
 )
 
+
 def on_ask(
     command_name: str,
     prompt: Tuple[str, ...],
@@ -127,6 +128,7 @@ def on_ask(
     # Get configured default model if not specified via CLI
     if not model:
         from matilda_brain.config.schema import get_config
+
         config = get_config()
         if config.model:
             model = config.model
@@ -185,10 +187,7 @@ def on_ask(
         )
 
 
-
-def on_chat(
-    command_name: str, model: Optional[str], session: Optional[str], tools: bool, **kwargs
-) -> None:
+def on_chat(command_name: str, model: Optional[str], session: Optional[str], tools: bool, **kwargs) -> None:
     """Hook for 'chat' command.
 
     Starts an interactive chat session with an AI model. Supports session

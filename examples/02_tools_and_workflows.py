@@ -22,10 +22,10 @@ def demo_tool_discovery():
 
     # Group by category
     categories = {}
-    for tool in all_tools:
-        if tool.category not in categories:
-            categories[tool.category] = []
-        categories[tool.category].append(tool.name)
+    for t in all_tools:
+        if t.category not in categories:
+            categories[t.category] = []
+        categories[t.category].append(t.name)
 
     print("\nTools by category:")
     for category, tools in sorted(categories.items()):
@@ -48,9 +48,7 @@ def demo_file_operations():
 
     # List current directory
     print("1. Listing Python files:")
-    response = ask(
-        "List all Python files in the current directory", tools=["list_directory"]
-    )
+    response = ask("List all Python files in the current directory", tools=["list_directory"])
     print(f"Response: {response.response}")
 
     # Create a test file
@@ -90,8 +88,7 @@ def demo_time_operations():
     print("\n=== Time Operations Demo ===\n")
 
     response = ask(
-        "What time is it right now in Tokyo, London, and New York? "
-        "Show me in 24-hour format.",
+        "What time is it right now in Tokyo, London, and New York? " "Show me in 24-hour format.",
         tools=["get_current_time"],
     )
     print(f"Response: {response.response}")
@@ -198,12 +195,8 @@ def demo_chat_with_tools():
         print(f"Assistant: {response}")
 
         # Ask for something requiring both tools
-        response = session.ask(
-            "What's the weather in Tokyo, and if it's 68°F, what's that in Celsius?"
-        )
-        print(
-            "\nUser: What's the weather in Tokyo, and if it's 68°F, what's that in Celsius?"
-        )
+        response = session.ask("What's the weather in Tokyo, and if it's 68°F, what's that in Celsius?")
+        print("\nUser: What's the weather in Tokyo, and if it's 68°F, what's that in Celsius?")
         print(f"Assistant: {response}")
 
 
@@ -239,9 +232,7 @@ def demo_cli_examples():
     print()
 
     print("2. Using multiple tools:")
-    print(
-        '   brain "Search for weather data and calculate averages" --tools "web_search,calculate"'
-    )
+    print('   brain "Search for weather data and calculate averages" --tools "web_search,calculate"')
     print()
 
     print("3. Using custom tools from modules:")
@@ -253,9 +244,7 @@ def demo_cli_examples():
     print()
 
     print("5. Complex workflows:")
-    print(
-        '   brain "Research topic, analyze data, create report" --tools "web_search,calculate,write_file"'
-    )
+    print('   brain "Research topic, analyze data, create report" --tools "web_search,calculate,write_file"')
 
 
 def main():

@@ -66,7 +66,6 @@ def cloud_backend(mock_litellm):
     # Need to reload the module to pick up the mocked litellm
     import importlib
 
-
     importlib.reload(ttt.backends.cloud)
 
     backend = ttt.backends.cloud.CloudBackend()
@@ -81,7 +80,6 @@ class TestCloudBackendInitialization:
         """Test successful initialization with litellm available."""
         import importlib
 
-
         importlib.reload(ttt.backends.cloud)
 
         backend = ttt.backends.cloud.CloudBackend()
@@ -92,7 +90,6 @@ class TestCloudBackendInitialization:
         """Test initialization fails without litellm."""
         with patch.dict("sys.modules", {"litellm": None}):
             import importlib
-
 
             importlib.reload(ttt.backends.cloud)
 

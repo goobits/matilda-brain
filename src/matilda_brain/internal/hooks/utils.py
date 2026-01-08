@@ -14,6 +14,7 @@ from rich.logging import RichHandler
 
 from matilda_brain.config.manager import ConfigManager
 
+
 def is_verbose_mode() -> bool:
     """Check if verbose mode is enabled via environment variables or click context."""
     # Check environment variables first
@@ -33,10 +34,8 @@ def is_verbose_mode() -> bool:
     return False
 
 
-
 def setup_logging_level(verbose: bool = False, debug: bool = False, json_output: bool = False) -> None:
     """Setup logging level based on verbosity flags."""
-
 
     # Set environment variables for verbosity to be used by other parts of the system
     if verbose:
@@ -88,7 +87,6 @@ def setup_logging_level(verbose: bool = False, debug: bool = False, json_output:
             loop.set_exception_handler(custom_exception_handler)
         except RuntimeError:
             pass
-
 
 
 def resolve_model_alias(model: str) -> str:
@@ -187,7 +185,6 @@ def resolve_model_alias(model: str) -> str:
     return model
 
 
-
 def parse_tools_arg(tools: Optional[str]) -> Optional[str]:
     """Parse tools argument and expand categories.
 
@@ -226,7 +223,6 @@ def parse_tools_arg(tools: Optional[str]) -> Optional[str]:
             expanded_tools.append(item)
 
     return ",".join(expanded_tools) if expanded_tools else tools
-
 
 
 def resolve_tools(tool_specs: List[str]) -> List[Any]:
@@ -276,7 +272,6 @@ def resolve_tools(tool_specs: List[str]) -> List[Any]:
         console.print(f"[red]Error resolving tools: {e}[/red]")
 
     return tools
-
 
 
 def apply_coding_optimization(kwargs: Dict[str, Any]) -> None:

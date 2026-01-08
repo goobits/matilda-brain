@@ -33,13 +33,14 @@ _session_manager: Optional[ChatSessionManager] = None
 # Security: API Token Management
 API_TOKEN = get_or_create_token()
 
+
 @web.middleware
 async def auth_middleware(request: Request, handler):
     """Middleware to enforce token authentication."""
     # Allow public endpoints
     if request.path in ["/", "/health"]:
         return await handler(request)
-        
+
     # Allow CORS preflight options
     if request.method == "OPTIONS":
         return await handler(request)
@@ -47,19 +48,16 @@ async def auth_middleware(request: Request, handler):
     # Check Authorization header
     auth_header = request.headers.get("Authorization")
     if not auth_header or not auth_header.startswith("Bearer "):
-        return add_cors_headers(web.json_response(
-            {"error": "Unauthorized: Missing or invalid Authorization header"}, 
-            status=401
-        ), request)
-    
+        return add_cors_headers(
+            web.json_response({"error": "Unauthorized: Missing or invalid Authorization header"}, status=401), request
+        )
+
     token = auth_header.split(" ")[1]
     if not secrets.compare_digest(token, API_TOKEN):
-        return add_cors_headers(web.json_response(
-            {"error": "Forbidden: Invalid token"}, 
-            status=403
-        ), request)
+        return add_cors_headers(web.json_response({"error": "Forbidden: Invalid token"}, status=403), request)
 
     return await handler(request)
+
 
 def get_session_manager() -> ChatSessionManager:
     """Get or create the session manager singleton."""
@@ -311,7 +309,9 @@ async def handle_get_session(request: Request) -> Response:
         session = manager.load_session(session_id)
 
         if session is None:
-            return add_cors_headers(web.json_response({"error": f"Session '{session_id}' not found"}, status=404), request)
+            return add_cors_headers(
+                web.json_response({"error": f"Session '{session_id}' not found"}, status=404), request
+            )
 
         return add_cors_headers(web.json_response(session.to_dict()), request)
     except Exception as e:
@@ -339,7 +339,9 @@ async def handle_delete_session(request: Request) -> Response:
         if deleted:
             return add_cors_headers(web.json_response({"status": "deleted", "id": session_id}), request)
         else:
-            return add_cors_headers(web.json_response({"error": f"Session '{session_id}' not found"}, status=404), request)
+            return add_cors_headers(
+                web.json_response({"error": f"Session '{session_id}' not found"}, status=404), request
+            )
     except Exception as e:
         logger.exception(f"Error deleting session {session_id}")
         return add_cors_headers(web.json_response({"error": str(e)}, status=500), request)
@@ -356,11 +358,12 @@ async def handle_reload(request: Request) -> Response:
     """
     try:
         from .config.schema import load_config, set_config
+
         # Reload configuration from file
         new_config = load_config()
         # Update global config state
         set_config(new_config)
-        
+
         logger.info("Configuration reloaded via API")
         return add_cors_headers(web.json_response({"status": "ok", "message": "Configuration reloaded"}), request)
     except Exception as e:

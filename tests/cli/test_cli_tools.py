@@ -32,9 +32,10 @@ class TestCLIToolsCommand(IntegrationTestBase):
     def test_tools_enable(self):
         """Test tools enable subcommand."""
         # Mock the config manager methods that tools enable/disable uses
-        with patch("matilda_brain.config.manager.ConfigManager.get_merged_config") as mock_get, patch(
-            "matilda_brain.config.manager.ConfigManager.set_value"
-        ) as mock_set:
+        with (
+            patch("matilda_brain.config.manager.ConfigManager.get_merged_config") as mock_get,
+            patch("matilda_brain.config.manager.ConfigManager.set_value") as mock_set,
+        ):
             mock_get.return_value = {"tools": {"disabled": ["web_search"]}}
             mock_set.return_value = None
 
@@ -48,9 +49,10 @@ class TestCLIToolsCommand(IntegrationTestBase):
     def test_tools_disable(self):
         """Test tools disable subcommand."""
         # Mock the config manager methods that tools enable/disable uses
-        with patch("matilda_brain.config.manager.ConfigManager.get_merged_config") as mock_get, patch(
-            "matilda_brain.config.manager.ConfigManager.set_value"
-        ) as mock_set:
+        with (
+            patch("matilda_brain.config.manager.ConfigManager.get_merged_config") as mock_get,
+            patch("matilda_brain.config.manager.ConfigManager.set_value") as mock_set,
+        ):
             mock_get.return_value = {"tools": {"disabled": []}}
             mock_set.return_value = None
 
@@ -68,9 +70,10 @@ class TestCLIToolsCommand(IntegrationTestBase):
         mock_tool.name = "web_search"
         mock_tool.description = "Web search tool"
 
-        with patch("matilda_brain.tools.list_tools") as mock_list, patch(
-            "matilda_brain.config.manager.ConfigManager.get_merged_config"
-        ) as mock_get:
+        with (
+            patch("matilda_brain.tools.list_tools") as mock_list,
+            patch("matilda_brain.config.manager.ConfigManager.get_merged_config") as mock_get,
+        ):
             mock_list.return_value = [mock_tool]
             mock_get.return_value = {"tools": {"disabled": []}}
 

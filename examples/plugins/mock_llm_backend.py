@@ -61,15 +61,9 @@ class MockLLMBackend(BaseBackend):
 
         if any(word in prompt_lower for word in ["hello", "hi", "hey", "greetings"]):
             return "greeting"
-        elif any(
-            word in prompt_lower
-            for word in ["code", "function", "class", "debug", "python", "javascript"]
-        ):
+        elif any(word in prompt_lower for word in ["code", "function", "class", "debug", "python", "javascript"]):
             return "code"
-        elif any(
-            word in prompt_lower
-            for word in ["explain", "what is", "how does", "why", "describe"]
-        ):
+        elif any(word in prompt_lower for word in ["explain", "what is", "how does", "why", "describe"]):
             return "explanation"
         else:
             return "default"

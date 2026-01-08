@@ -163,7 +163,7 @@ def execute_stateless_protocol(req: StatelessRequest) -> str:
                 action_name=tool_name,
                 params=args,
                 risk_level=RiskLevel.MEDIUM,  # Default to Medium
-                reasoning="Agent requested this action."
+                reasoning="Agent requested this action.",
             )
 
             msg = Message.proposal_msg(proposal)
@@ -179,10 +179,5 @@ def execute_stateless_protocol(req: StatelessRequest) -> str:
     except Exception as e:
         logger.exception("Error during stateless protocol execution")
         # Return Protocol Error
-        error_msg = Message(
-            role=Role.SYSTEM,
-            kind="error",
-            code="execution_failed",
-            message=str(e)
-        )
+        error_msg = Message(role=Role.SYSTEM, kind="error", code="execution_failed", message=str(e))
         return error_msg.to_protocol_json()

@@ -34,9 +34,9 @@ class TestAskCommand(IntegrationTestBase):
             response_lower = response.lower()
             python_concepts = ["python", "language", "programming", "feature"]
             found_concepts = [concept for concept in python_concepts if concept in response_lower]
-            assert len(found_concepts) >= 2, (
-                f"Response should address Python programming concepts. Found: {found_concepts}"
-            )
+            assert (
+                len(found_concepts) >= 2
+            ), f"Response should address Python programming concepts. Found: {found_concepts}"
 
         else:
             # Graceful error handling should provide clear feedback
@@ -135,9 +135,9 @@ class TestConfigCommand(IntegrationTestBase):
             if output:  # If there's output, it should be informative
                 assert len(output) > 0, "Config get should provide value information"
                 # Should show the key being queried
-                assert "models.default" in output or "model" in output.lower(), (
-                    f"Should reference the config key: {output}"
-                )
+                assert (
+                    "models.default" in output or "model" in output.lower()
+                ), f"Should reference the config key: {output}"
 
     def test_config_set_demonstrates_configuration_management(self):
         """Test config set subcommand - demonstrates TTT's configuration modification capabilities."""
@@ -217,9 +217,10 @@ class TestModernToolsCommand(IntegrationTestBase):
     def test_tools_enable_demonstrates_tool_management(self):
         """Test tools enable subcommand - demonstrates TTT's tool activation and management capabilities."""
         # Test tool enablement with realistic tool management scenario
-        with patch("matilda_brain.config.manager.ConfigManager.get_merged_config") as mock_get, patch(
-            "matilda_brain.config.manager.ConfigManager.set_value"
-        ) as mock_set:
+        with (
+            patch("matilda_brain.config.manager.ConfigManager.get_merged_config") as mock_get,
+            patch("matilda_brain.config.manager.ConfigManager.set_value") as mock_set,
+        ):
             # Mock current state with web_search disabled
             mock_get.return_value = {"tools": {"disabled": ["web_search"], "enabled": ["calculator", "file_reader"]}}
             mock_set.return_value = True  # Successful update
@@ -234,9 +235,9 @@ class TestModernToolsCommand(IntegrationTestBase):
 
             # Verify configuration update removes tool from disabled list
             call_args = mock_set.call_args
-            assert "tools.disabled" in str(call_args) or "disabled" in str(call_args), (
-                f"Should update disabled tools list: {call_args}"
-            )
+            assert "tools.disabled" in str(call_args) or "disabled" in str(
+                call_args
+            ), f"Should update disabled tools list: {call_args}"
 
             # Should provide confirmation feedback
             output_lower = result.output.lower()
@@ -247,9 +248,10 @@ class TestModernToolsCommand(IntegrationTestBase):
     def test_tools_disable(self):
         """Test tools disable subcommand."""
         # Mock the config manager methods that tools enable/disable uses
-        with patch("matilda_brain.config.manager.ConfigManager.get_merged_config") as mock_get, patch(
-            "matilda_brain.config.manager.ConfigManager.set_value"
-        ) as mock_set:
+        with (
+            patch("matilda_brain.config.manager.ConfigManager.get_merged_config") as mock_get,
+            patch("matilda_brain.config.manager.ConfigManager.set_value") as mock_set,
+        ):
             mock_get.return_value = {"tools": {"disabled": []}}
             mock_set.return_value = None
 
@@ -267,9 +269,10 @@ class TestModernToolsCommand(IntegrationTestBase):
         mock_tool.name = "web_search"
         mock_tool.description = "Web search tool"
 
-        with patch("matilda_brain.tools.list_tools") as mock_list, patch(
-            "matilda_brain.config.manager.ConfigManager.get_merged_config"
-        ) as mock_get:
+        with (
+            patch("matilda_brain.tools.list_tools") as mock_list,
+            patch("matilda_brain.config.manager.ConfigManager.get_merged_config") as mock_get,
+        ):
             mock_list.return_value = [mock_tool]
             mock_get.return_value = {"tools": {"disabled": []}}
 
@@ -287,9 +290,10 @@ class TestExportCommand(IntegrationTestBase):
     def test_export_with_options(self):
         """Test export with various options."""
         # Mock the session manager methods used by export command
-        with patch("matilda_brain.session.manager.ChatSessionManager.load_session") as mock_load, patch(
-            "pathlib.Path.write_text"
-        ) as mock_write:
+        with (
+            patch("matilda_brain.session.manager.ChatSessionManager.load_session") as mock_load,
+            patch("pathlib.Path.write_text") as mock_write,
+        ):
             mock_session = Mock()
             mock_session.id = "session-1"
             mock_session.messages = [{"role": "user", "content": "Hello"}]

@@ -71,7 +71,9 @@ def display_error_rich(
         output_fn(f"[red]❌ API key error: {error.message}[/red]" if is_chat else f"❌ API key error: {error.message}")
         provider_suggestions = suggest_provider_alternatives(str(error), api_params.get("model"))
         if provider_suggestions:
-            output_fn("[cyan]💡 Try these alternatives:[/cyan]" if is_chat else "\n[cyan]💡 Try these alternatives:[/cyan]")
+            output_fn(
+                "[cyan]💡 Try these alternatives:[/cyan]" if is_chat else "\n[cyan]💡 Try these alternatives:[/cyan]"
+            )
             limit = 2 if is_chat else 3
             for suggestion in provider_suggestions[:limit]:
                 output_fn(f"   • [bold]{suggestion['provider']}[/bold]: {suggestion['description']}")
@@ -83,7 +85,11 @@ def display_error_rich(
         if "Model temporarily overloaded" in error_msg or "Service temporarily unavailable" in error_msg:
             output_fn(f"[yellow]⚠️  {error_msg}[/yellow]" if is_chat else f"⚠️  {error_msg}")
         else:
-            output_fn(f"[red]❌ Connection error: {error.message}[/red]" if is_chat else f"❌ Connection error: {error.message}")
+            output_fn(
+                f"[red]❌ Connection error: {error.message}[/red]"
+                if is_chat
+                else f"❌ Connection error: {error.message}"
+            )
 
         provider_suggestions = suggest_provider_alternatives(error_msg, api_params.get("model"))
         if provider_suggestions:
@@ -105,8 +111,11 @@ def display_error_rich(
 
     elif isinstance(error, BackendTimeoutError):
         timeout_val = error.details.get("timeout", "unknown")
-        output_fn(f"[yellow]⏱️  Request timed out after {timeout_val}s[/yellow]" if is_chat
-                  else f"⏱️  Request timed out after {timeout_val}s")
+        output_fn(
+            f"[yellow]⏱️  Request timed out after {timeout_val}s[/yellow]"
+            if is_chat
+            else f"⏱️  Request timed out after {timeout_val}s"
+        )
         if not is_chat:
             steps = suggest_troubleshooting_steps("timeout", str(error))
             if steps:
@@ -115,7 +124,9 @@ def display_error_rich(
                     output_fn(f"   {i}. {step}")
 
     elif isinstance(error, ModelNotFoundError):
-        output_fn(f"[red]❌ Model not found: {error.message}[/red]" if is_chat else f"❌ Model not found: {error.message}")
+        output_fn(
+            f"[red]❌ Model not found: {error.message}[/red]" if is_chat else f"❌ Model not found: {error.message}"
+        )
 
         if not is_chat:
             failed_model = error.details.get("model", "")
@@ -133,8 +144,11 @@ def display_error_rich(
             output_fn("\n[dim]Run 'ttt models' to see all available models[/dim]")
 
     elif isinstance(error, RateLimitError):
-        output_fn(f"[yellow]⚠️  Rate limit exceeded: {error.message}[/yellow]" if is_chat
-                  else f"⚠️  Rate limit exceeded: {error.message}")
+        output_fn(
+            f"[yellow]⚠️  Rate limit exceeded: {error.message}[/yellow]"
+            if is_chat
+            else f"⚠️  Rate limit exceeded: {error.message}"
+        )
         if error.details.get("retry_after") and not is_chat:
             output_fn(f"  Retry after {error.details['retry_after']} seconds")
 
@@ -146,7 +160,9 @@ def display_error_rich(
                     output_fn(f"   • [bold]{suggestion['provider']}[/bold]: {suggestion['description']}")
 
     elif isinstance(error, QuotaExceededError):
-        output_fn(f"[red]❌ Quota exceeded: {error.message}[/red]" if is_chat else f"❌ Quota exceeded: {error.message}")
+        output_fn(
+            f"[red]❌ Quota exceeded: {error.message}[/red]" if is_chat else f"❌ Quota exceeded: {error.message}"
+        )
         provider_suggestions = suggest_provider_alternatives(str(error))
         if provider_suggestions and not is_chat:
             output_fn("\n[cyan]💡 Alternative providers:[/cyan]")

@@ -70,9 +70,7 @@ class MockLiteLLMResponse:
         self.usage = self._create_usage()
 
         # Add hidden params for cost calculation (LiteLLM feature)
-        self._hidden_params = {
-            "response_cost": 0.001  # Mock cost
-        }
+        self._hidden_params = {"response_cost": 0.001}  # Mock cost
 
     def _create_choice(self):
         """Create a choice object matching LiteLLM structure."""
