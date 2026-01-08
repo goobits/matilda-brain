@@ -7,7 +7,6 @@ for various exception types encountered during CLI operations.
 
 import json as json_module
 import os
-import sys
 import traceback
 from typing import Any, Dict
 

@@ -13,7 +13,6 @@ Usage:
 
 import argparse
 import json
-import os
 import secrets
 from typing import Optional
 

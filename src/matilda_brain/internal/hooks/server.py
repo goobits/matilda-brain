@@ -2,7 +2,6 @@
 """Hook handlers for TTT CLI."""
 
 import json as json_module
-import sys
 from pathlib import Path
 from typing import Optional, Tuple
 
