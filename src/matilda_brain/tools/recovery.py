@@ -57,12 +57,13 @@ class RetryConfig:
         """Load defaults from config if not set."""
         from ..config.loader import get_config_value
 
+        # Use `or` to handle explicit null in config (which returns None, not the default)
         if self.max_attempts is None:
-            self.max_attempts = get_config_value("tools.retry.max_attempts", 3)
+            self.max_attempts = get_config_value("tools.retry.max_attempts", 3) or 3
         if self.base_delay is None:
-            self.base_delay = get_config_value("tools.retry.base_delay", 1.0)
+            self.base_delay = get_config_value("tools.retry.base_delay", 1.0) or 1.0
         if self.max_delay is None:
-            self.max_delay = get_config_value("tools.retry.max_delay", 60.0)
+            self.max_delay = get_config_value("tools.retry.max_delay", 60.0) or 60.0
 
 
 @dataclass
@@ -197,8 +198,9 @@ class InputSanitizer:
             cwd = Path.cwd().resolve()
             temp_dirs = [Path("/tmp").resolve(), Path("/var/tmp").resolve()]
 
-            is_in_cwd = str(resolved_path).startswith(str(cwd))
-            is_in_temp = any(str(resolved_path).startswith(str(temp_dir)) for temp_dir in temp_dirs)
+            # Use is_relative_to() to prevent directory traversal (e.g., /app vs /appdata)
+            is_in_cwd = resolved_path.is_relative_to(cwd)
+            is_in_temp = any(resolved_path.is_relative_to(temp_dir) for temp_dir in temp_dirs)
 
             if not (is_in_cwd or is_in_temp):
                 raise ValueError(f"Path outside allowed directory: {resolved_path}")
@@ -499,43 +501,46 @@ class ErrorRecoverySystem:
         """Execute a tool with automatic recovery and retry logic."""
         call_id = f"{tool_name}_{int(time.time() * 1000)}"
 
-        try:
-            # Sanitize inputs before execution
-            sanitized_args = self._sanitize_arguments(tool_name, arguments)
+        # Use iterative approach to avoid stack overflow on many retries
+        while True:
+            try:
+                # Sanitize inputs before execution
+                sanitized_args = self._sanitize_arguments(tool_name, arguments)
 
-            # Execute the tool
-            result = await tool_function(**sanitized_args)
+                # Execute the tool
+                result = await tool_function(**sanitized_args)
 
-            return ToolCall(id=call_id, name=tool_name, arguments=sanitized_args, result=result)
+                return ToolCall(id=call_id, name=tool_name, arguments=sanitized_args, result=result)
 
-        except Exception as e:
-            error_message = str(e)
-            error_pattern = self.classify_error(error_message)
+            except Exception as e:
+                error_message = str(e)
+                error_pattern = self.classify_error(error_message)
 
-            # Log the error
-            self.logger.warning(f"Tool {tool_name} failed (attempt {attempt}): {error_message}")
+                # Log the error
+                self.logger.warning(f"Tool {tool_name} failed (attempt {attempt}): {error_message}")
 
-            # Check if we should retry
-            if self.should_retry(error_pattern, attempt):
-                # Calculate delay and retry
-                delay = self.calculate_retry_delay(attempt, error_pattern)
-                self.logger.info(f"Retrying {tool_name} in {delay:.1f} seconds...")
+                # Check if we should retry
+                if self.should_retry(error_pattern, attempt):
+                    # Calculate delay and retry
+                    delay = self.calculate_retry_delay(attempt, error_pattern)
+                    self.logger.info(f"Retrying {tool_name} in {delay:.1f} seconds...")
 
-                await asyncio.sleep(delay)
-                return await self.execute_with_recovery(tool_function, tool_name, arguments, attempt + 1)
-            else:
-                # Create enhanced error message with recovery suggestions
-                recovery_message = self.create_recovery_message(
-                    ToolCall(call_id, tool_name, arguments, error=error_message),
-                    error_pattern,
-                )
+                    await asyncio.sleep(delay)
+                    attempt += 1
+                    continue  # Retry without recursion
+                else:
+                    # Create enhanced error message with recovery suggestions
+                    recovery_message = self.create_recovery_message(
+                        ToolCall(call_id, tool_name, arguments, error=error_message),
+                        error_pattern,
+                    )
 
-                return ToolCall(
-                    id=call_id,
-                    name=tool_name,
-                    arguments=arguments,
-                    error=recovery_message,
-                )
+                    return ToolCall(
+                        id=call_id,
+                        name=tool_name,
+                        arguments=arguments,
+                        error=recovery_message,
+                    )
 
     def _sanitize_arguments(self, tool_name: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
         """Sanitize tool arguments based on tool type."""
