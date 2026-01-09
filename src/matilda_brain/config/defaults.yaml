@@ -129,11 +129,20 @@ models:
     qwen-3-235b-a22b:
       provider: "cerebras"
       provider_name: "cerebras/qwen-3-235b-a22b"
-      aliases: ["cerebras", "qwen"]
+      aliases: ["qwen"]
       speed: "fast"
       quality: "high"
       capabilities: ["text", "reasoning", "code"]
       context_length: 40000
+
+    zai-glm-4.7:
+      provider: "cerebras"
+      provider_name: "cerebras/zai-glm-4.7"
+      aliases: ["cerebras", "zai", "glm"]
+      speed: "fast"
+      quality: "high"
+      capabilities: ["text", "reasoning", "code", "agentic"]
+      context_length: 128000
 
 # Backend configuration
 backends:
