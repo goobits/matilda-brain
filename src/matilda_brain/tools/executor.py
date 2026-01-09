@@ -172,7 +172,8 @@ class ToolExecutor:
             if inspect.iscoroutinefunction(tool.function):
                 result = await tool.function(**arguments)
             else:
-                result = tool.function(**arguments)
+                # Run sync functions in thread pool to avoid blocking event loop
+                result = await asyncio.to_thread(tool.function, **arguments)
 
             return ToolCall(id=call_id, name=tool.name, arguments=arguments, result=result)
 
@@ -368,11 +369,15 @@ class ToolExecutor:
         It temporarily registers any tools not in the global registry.
         """
         # Register any tools that aren't already in the registry
+        # Use try/except to avoid TOCTOU race condition
         temp_registered = []
         for tool_name, tool_def in tool_definitions.items():
-            if not get_tool(tool_name):
+            try:
                 register_tool(tool_def.function, tool_name, tool_def.description, "test")
                 temp_registered.append(tool_name)
+            except ValueError:
+                # Tool already registered by another concurrent task - that's fine
+                pass
 
         try:
             # Use the new execute_tools method

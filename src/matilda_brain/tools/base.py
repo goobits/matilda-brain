@@ -65,6 +65,8 @@ class ToolDefinition:
             }
             if param.enum:
                 properties[param.name]["enum"] = param.enum
+            if param.default is not None:
+                properties[param.name]["default"] = param.default
             if param.required:
                 required.append(param.name)
 
@@ -110,6 +112,8 @@ class ToolDefinition:
             }
             if param.enum:
                 input_schema["properties"][param.name]["enum"] = param.enum
+            if param.default is not None:
+                input_schema["properties"][param.name]["default"] = param.default
             if param.required:
                 input_schema["required"].append(param.name)
 
