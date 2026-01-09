@@ -75,6 +75,7 @@ data_file = ".artifacts/cache/.coverage"
 
 [tool.ruff.lint.per-file-ignores]
 "src/matilda_brain/internal/hooks/*.py" = [ "E402",]
+"tests/**/*.py" = [ "S101",]
 
 [tool.setuptools.packages.find]
 where = [ "src",]
