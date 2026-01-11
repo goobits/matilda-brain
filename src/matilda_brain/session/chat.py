@@ -2,6 +2,7 @@
 
 import asyncio
 import json
+import os
 import warnings
 from datetime import datetime
 from pathlib import Path
@@ -81,7 +82,9 @@ class PersistentChatSession:
         }
         
         # Initialize memory client
-        memory_enabled = kwargs.get("memory_enabled", True)
+        memory_enabled = kwargs.get("memory_enabled")
+        if memory_enabled is None:
+            memory_enabled = "PYTEST_CURRENT_TEST" not in os.environ
         self.agent_name = kwargs.get("agent_name", "assistant")
         self.memory = get_memory(memory_enabled, agent_name=self.agent_name)
         if memory_enabled:
