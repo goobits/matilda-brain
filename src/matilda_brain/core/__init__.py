@@ -32,6 +32,7 @@ from .exceptions import (
     ValidationError,
 )
 from .models import AIResponse, ImageInput, ModelInfo
+from .types import ContentKind, Message, Proposal, RiskLevel, Role
 from .routing import Router
 
 __all__ = [
@@ -43,6 +44,11 @@ __all__ = [
     "AIResponse",
     "ImageInput",
     "ModelInfo",
+    "Role",
+    "ContentKind",
+    "Message",
+    "Proposal",
+    "RiskLevel",
     "Router",
     # Exceptions
     "AIError",

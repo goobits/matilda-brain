@@ -5,6 +5,8 @@ A single, elegant interface for local and cloud AI models.
 """
 
 # ruff: noqa: I001 (import order critical for avoiding circular imports)
+from typing import TYPE_CHECKING
+
 from .core.api import ChatSession, achat, ask, ask_async, chat, stream, stream_async
 from .backends import CloudBackend, LocalBackend
 from .config import configure
@@ -39,9 +41,10 @@ from .core.exceptions import (
     ValidationError,
 )
 from .core.models import AIResponse, ConfigModel, ImageInput, ModelInfo
+from .core.types import ContentKind, Message, Proposal, RiskLevel, Role
 from .plugins import discover_plugins, load_plugin, register_backend
 from .session.chat import PersistentChatSession
-from .tools.builtins import load_builtin_tools
+from .tools.base import ToolCall, ToolDefinition, ToolResult
 
 
 # Import model_registry lazily to avoid import-time initialization
@@ -57,9 +60,11 @@ class _ModelRegistryProxy:
         return getattr(_get_model_registry(), name)
 
 
-model_registry = _ModelRegistryProxy()
+if TYPE_CHECKING:
+    from .config.schema import ModelRegistry
 
-load_builtin_tools()
+
+model_registry: "ModelRegistry" = _ModelRegistryProxy()  # type: ignore[assignment]
 
 __version__ = "1.0.3"
 __all__ = [
@@ -74,6 +79,14 @@ __all__ = [
     "ImageInput",
     "ConfigModel",
     "ModelInfo",
+    "Role",
+    "ContentKind",
+    "Message",
+    "Proposal",
+    "RiskLevel",
+    "ToolCall",
+    "ToolResult",
+    "ToolDefinition",
     "PersistentChatSession",
     "configure",
     "LocalBackend",

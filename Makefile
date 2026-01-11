@@ -8,13 +8,13 @@ help: ## Show this help message
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2}'
 
 test: ## Run all tests with smart rate limiting
-	@./scripts/test.sh
+	@./scripts/test.py
 
 test-unit: ## Run unit tests only (fast, no API calls)
-	@./scripts/test.sh unit
+	@./scripts/test.py unit
 
 test-integration: ## Run integration tests (real API calls)
-	@./scripts/test.sh integration
+	@./scripts/test.py integration
 
 test-fast: ## Run tests without rate limiting delays
 	@python3 -m pytest tests/ -x -q --fast

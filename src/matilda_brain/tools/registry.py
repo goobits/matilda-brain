@@ -116,6 +116,17 @@ class ToolRegistry:
 
 # Global registry instance
 _global_registry = ToolRegistry()
+_builtin_tools_loaded = False
+
+
+def _ensure_builtin_tools_loaded() -> None:
+    global _builtin_tools_loaded
+    if _builtin_tools_loaded:
+        return
+    from .builtins import load_builtin_tools
+
+    load_builtin_tools()
+    _builtin_tools_loaded = True
 
 
 def register_tool(
@@ -135,16 +146,22 @@ def unregister_tool(name: str) -> bool:
 
 def get_tool(name: str) -> Optional[ToolDefinition]:
     """Get a tool from the global registry."""
-    return _global_registry.get(name)
+    tool = _global_registry.get(name)
+    if tool is None:
+        _ensure_builtin_tools_loaded()
+        tool = _global_registry.get(name)
+    return tool
 
 
 def list_tools(category: Optional[str] = None) -> List[ToolDefinition]:
     """List tools from the global registry."""
+    _ensure_builtin_tools_loaded()
     return _global_registry.list_tools(category)
 
 
 def get_categories() -> List[str]:
     """Get all categories from the global registry."""
+    _ensure_builtin_tools_loaded()
     return _global_registry.get_categories()
 
 
@@ -152,12 +169,18 @@ def resolve_tools(
     tools: Union[List[str], List[Callable], List[ToolDefinition]],
 ) -> List[ToolDefinition]:
     """Resolve tool references using the global registry."""
-    return _global_registry.resolve_tools(tools)
+    try:
+        return _global_registry.resolve_tools(tools)
+    except ValueError:
+        _ensure_builtin_tools_loaded()
+        return _global_registry.resolve_tools(tools)
 
 
 def clear_registry() -> None:
     """Clear the global registry."""
+    global _builtin_tools_loaded
     _global_registry.clear()
+    _builtin_tools_loaded = False
 
 
 def get_registry() -> ToolRegistry:

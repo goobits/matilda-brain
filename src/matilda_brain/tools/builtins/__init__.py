@@ -72,10 +72,6 @@ TOOL_CATEGORIES = {
     "math": ["calculate"],
 }
 
-# Auto-load built-in tools when module is imported
-load_builtin_tools()
-
-
 __all__ = [
     # Web tools
     "web_search",
