@@ -860,11 +860,11 @@ show_dev_success_message() {
 Development workflow:
   - Edit code in src/matilda_brain/ directory
   - Test immediately with: brain --stream "test"
-  - Run tests with: ./test.sh
+  - Run tests with: make test
   - Format code with: ruff format src/matilda_brain/
   - Check types with: mypy src/matilda_brain/
 
-💡 No need to run ./setup.sh upgrade after code changes!
+💡 No need to run ./scripts/setup.sh upgrade after code changes!
 "
     echo
 }

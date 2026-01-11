@@ -9,35 +9,34 @@ Generated from: goobits.yaml
 """
 
 import sys
-import yaml
+import os
 import logging
 import traceback
 from pathlib import Path
-from typing import Any, Dict, Optional
-import click
+from typing import Any, Dict, Optional, List
 
+import click
+import yaml
 # ============================================================================
 # EMBEDDED LOGGER
 # ============================================================================
-
 
 class ColoredFormatter(logging.Formatter):
     """Custom formatter with color support."""
 
     COLORS = {
-        "DEBUG": "\033[36m",  # Cyan
-        "INFO": "\033[32m",  # Green
-        "WARNING": "\033[33m",  # Yellow
-        "ERROR": "\033[31m",  # Red
-        "CRITICAL": "\033[35m",  # Magenta
+        'DEBUG': '\033[36m',    # Cyan
+        'INFO': '\033[32m',     # Green
+        'WARNING': '\033[33m',  # Yellow
+        'ERROR': '\033[31m',    # Red
+        'CRITICAL': '\033[35m', # Magenta
     }
-    RESET = "\033[0m"
+    RESET = '\033[0m'
 
     def format(self, record):
         log_color = self.COLORS.get(record.levelname, self.RESET)
         record.levelname = f"{log_color}{record.levelname}{self.RESET}"
         return super().format(record)
-
 
 def setup_logging(level=logging.INFO, log_file=None):
     """Configure logging for the CLI."""
@@ -45,19 +44,24 @@ def setup_logging(level=logging.INFO, log_file=None):
 
     # Console handler with colors
     console_handler = logging.StreamHandler()
-    console_handler.setFormatter(
-        ColoredFormatter("%(asctime)s - %(levelname)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
-    )
+    console_handler.setFormatter(ColoredFormatter(
+        '%(asctime)s - %(levelname)s - %(message)s',
+        datefmt='%Y-%m-%d %H:%M:%S'
+    ))
     handlers.append(console_handler)
 
     # File handler if specified
     if log_file:
         file_handler = logging.FileHandler(log_file)
-        file_handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(name)s - %(message)s"))
+        file_handler.setFormatter(logging.Formatter(
+            '%(asctime)s - %(levelname)s - %(name)s - %(message)s'
+        ))
         handlers.append(file_handler)
 
-    logging.basicConfig(level=level, handlers=handlers)
-
+    logging.basicConfig(
+        level=level,
+        handlers=handlers
+    )
 
 logger = logging.getLogger(__name__)
 
@@ -65,24 +69,15 @@ logger = logging.getLogger(__name__)
 # EMBEDDED CONFIG MANAGER
 # ============================================================================
 
-
 class ConfigManager:
     """Manage CLI configuration."""
 
     def __init__(self, config_file: Optional[Path] = None):
         """Initialize configuration manager."""
         if config_file is None:
-            # Check for override via environment variable
-            import os
-
-            env_config_dir = os.environ.get("BRAIN_CONFIG_DIR")
-            if env_config_dir:
-                config_dir = Path(env_config_dir)
-            else:
-                config_dir = Path.home() / ".config" / "brain"
-
+            config_dir = Path.home() / '.config' / 'brain'
             config_dir.mkdir(parents=True, exist_ok=True)
-            config_file = config_dir / "config.yaml"
+            config_file = config_dir / 'config.yaml'
 
         self.config_file = Path(config_file)
         self.config = self._load_config()
@@ -91,7 +86,7 @@ class ConfigManager:
         """Load configuration from file."""
         if self.config_file.exists():
             try:
-                with open(self.config_file, "r") as f:
+                with open(self.config_file, 'r') as f:
                     return yaml.safe_load(f) or {}
             except Exception as e:
                 logger.warning(f"Failed to load config: {e}")
@@ -101,7 +96,7 @@ class ConfigManager:
     def save_config(self) -> bool:
         """Save configuration to file."""
         try:
-            with open(self.config_file, "w") as f:
+            with open(self.config_file, 'w') as f:
                 yaml.safe_dump(self.config, f, default_flow_style=False)
             return True
         except Exception as e:
@@ -110,7 +105,7 @@ class ConfigManager:
 
     def get(self, key: str, default: Any = None) -> Any:
         """Get configuration value."""
-        keys = key.split(".")
+        keys = key.split('.')
         value = self.config
         for k in keys:
             if isinstance(value, dict):
@@ -123,7 +118,7 @@ class ConfigManager:
 
     def set(self, key: str, value: Any):
         """Set configuration value."""
-        keys = key.split(".")
+        keys = key.split('.')
         config = self.config
         for k in keys[:-1]:
             if k not in config:
@@ -131,29 +126,21 @@ class ConfigManager:
             config = config[k]
         config[keys[-1]] = value
 
-
 # ============================================================================
 # EMBEDDED ERROR HANDLER
 # ============================================================================
 
-
 class CLIError(Exception):
     """Base exception for CLI errors."""
-
     exit_code = 1
-
 
 class UsageError(CLIError):
     """Exception for usage errors."""
-
     exit_code = 2
-
 
 class ConfigError(CLIError):
     """Exception for configuration errors."""
-
     exit_code = 3
-
 
 def handle_error(error: Exception, verbose: bool = False):
     """Handle CLI errors consistently."""
@@ -170,11 +157,9 @@ def handle_error(error: Exception, verbose: bool = False):
             logger.info("Run with --verbose for more details")
         sys.exit(1)
 
-
 # ============================================================================
 # CLI CONTEXT
 # ============================================================================
-
 
 class CLIContext:
     """Shared context for CLI commands."""
@@ -192,25 +177,20 @@ class CLIContext:
         else:
             setup_logging(logging.WARNING)
 
-
 # ============================================================================
 # HOOK SYSTEM
 # ============================================================================
-
-
 def load_hooks():
     """Load user-defined hooks."""
     try:
-        from matilda_brain import app_hooks
-
-        return app_hooks
+        import matilda_brain.app_hooks as hooks_module
+        return hooks_module
     except ImportError:
-        logger.warning("No app_hooks.py found. Please create one with your command implementations.")
+        logger.warning("No hooks module found. Please create one with your command implementations.")
         logger.warning("Example:")
         logger.warning("  def on_build(ctx, **kwargs):")
         logger.warning("      print('Build command implementation')")
         return None
-
 
 hooks = load_hooks()
 
@@ -218,11 +198,10 @@ hooks = load_hooks()
 # CLI COMMANDS
 # ============================================================================
 
-
 @click.group()
-@click.option("--verbose", "-v", is_flag=True, help="Enable verbose output")
-@click.option("--debug", is_flag=True, help="Enable debug output")
-@click.option("--config", type=click.Path(), help="Path to config file")
+@click.option('--verbose', '-v', is_flag=True, help='Enable verbose output')
+@click.option('--debug', is_flag=True, help='Enable debug output')
+@click.option('--config', type=click.Path(), help='Path to config file')
 @click.pass_context
 def cli(ctx, verbose, debug, config):
     """AI-powered conversations, straight from your command line"""
@@ -230,360 +209,271 @@ def cli(ctx, verbose, debug, config):
     config_manager = ConfigManager(config_path)
     ctx.obj = CLIContext(config_manager, verbose, debug)
 
-
-@cli.command("ask")
-@click.argument("prompt", type=click.STRING)
-@click.option("--model", "-m", default=None, help="LLM model to use")
-@click.option("--temperature", "-t", default=0.7, help="Sampling temperature (0.0-2.0)")
-@click.option("--max-tokens", type=click.INT, default=None, help="Maximum response length")
-@click.option("--tools", is_flag=True, default=False, help="Enable tool usage")
-@click.option("--session", "-s", default=None, help="Session ID for context")
-@click.option("--system", default=None, help="System prompt to set AI behavior")
-@click.option("--stream", is_flag=True, default=True, help="Stream the response")
-@click.option("--json", is_flag=True, default=None, help="Output response in JSON format")
+@cli.command('ask')
+@click.argument('prompt', type=click.STRING, nargs=-1, default=None)
+@click.option('--model', '-m', default=None,              help="LLM model to use")
+@click.option('--temperature', '-t', default=0.7,              help="Sampling temperature (0.0-2.0)")
+@click.option('--max-tokens', default=None,              help="Maximum response length")
+@click.option('--tools', is_flag=True, default=False,              help="Enable tool usage")
+@click.option('--session', '-s', default=None,              help="Session ID for context")
+@click.option('--system', default=None,              help="System prompt to set AI behavior")
+@click.option('--stream', is_flag=True, default=True,              help="Stream the response")
+@click.option('--json', is_flag=True, default=None,              help="Output response in JSON format")
 @click.pass_obj
 def ask(ctx, prompt, model, temperature, max_tokens, tools, session, system, stream, json):
     """Quickly ask one-off questions"""
     try:
-        if hooks and hasattr(hooks, "on_ask"):
-            kwargs = {
-                "prompt": prompt,
-                "model": model,
-                "temperature": temperature,
-                "max_tokens": max_tokens,
-                "tools": tools,
-                "session": session,
-                "system": system,
-                "stream": stream,
-                "json": json,
-            }
+        if hooks and hasattr(hooks, 'on_ask'):
+            kwargs = {                'prompt': prompt,                'model': model,                'temperature': temperature,                'max_tokens': max_tokens,                'tools': tools,                'session': session,                'system': system,                'stream': stream,                'json': json,            }
             hooks.on_ask(ctx=ctx, **kwargs)
         else:
-            logger.error("Hook 'on_ask' not implemented in cli_hooks.py")
+            logger.error(f"Hook 'on_ask' not implemented in cli_hooks.py")
             sys.exit(1)
     except Exception as e:
         handle_error(e, ctx.verbose)
-
-
-@cli.command("chat")
-@click.option("--model", "-m", default=None, help="LLM model to use")
-@click.option("--session", "-s", default=None, help="Session ID to resume or create")
-@click.option("--tools", is_flag=True, default=False, help="Enable tool usage in chat")
-@click.option("--markdown", is_flag=True, default=True, help="Render markdown in responses")
+@cli.command('chat')
+@click.option('--model', '-m', default=None,              help="LLM model to use")
+@click.option('--session', '-s', default=None,              help="Session ID to resume or create")
+@click.option('--tools', is_flag=True, default=False,              help="Enable tool usage in chat")
+@click.option('--markdown', is_flag=True, default=True,              help="Render markdown in responses")
 @click.pass_obj
 def chat(ctx, model, session, tools, markdown):
     """Chat interactively with AI"""
     try:
-        if hooks and hasattr(hooks, "on_chat"):
-            kwargs = {
-                "model": model,
-                "session": session,
-                "tools": tools,
-                "markdown": markdown,
-            }
+        if hooks and hasattr(hooks, 'on_chat'):
+            kwargs = {                'model': model,                'session': session,                'tools': tools,                'markdown': markdown,            }
             hooks.on_chat(ctx=ctx, **kwargs)
         else:
-            logger.error("Hook 'on_chat' not implemented in cli_hooks.py")
+            logger.error(f"Hook 'on_chat' not implemented in cli_hooks.py")
             sys.exit(1)
     except Exception as e:
         handle_error(e, ctx.verbose)
-
-
-@cli.command("stateless")
-@click.argument("message", type=click.STRING)
-@click.option("--system", default=None, help="System prompt to set context")
-@click.option("--history", default=None, help="Path to JSON file with conversation history")
-@click.option("--tools", default=None, help="Comma-separated tool names to enable")
-@click.option("--model", "-m", default=None, help="LLM model to use")
-@click.option("--temperature", "-t", default=0.7, help="Sampling temperature (0.0-2.0)")
-@click.option("--max-tokens", default=2048, help="Maximum response length")
+@cli.command('stateless')
+@click.argument('message', type=click.STRING, nargs=-1, default=None)
+@click.option('--system', default=None,              help="System prompt to set context")
+@click.option('--history', default=None,              help="Path to JSON file with conversation history")
+@click.option('--tools', default=None,              help="Comma-separated tool names to enable")
+@click.option('--model', '-m', default=None,              help="LLM model to use")
+@click.option('--temperature', '-t', default=0.7,              help="Sampling temperature (0.0-2.0)")
+@click.option('--max-tokens', default=2048,              help="Maximum response length")
 @click.pass_obj
 def stateless(ctx, message, system, history, tools, model, temperature, max_tokens):
     """Execute stateless AI request without session"""
     try:
-        if hooks and hasattr(hooks, "on_stateless"):
-            kwargs = {
-                "message": message,
-                "system": system,
-                "history": history,
-                "tools": tools,
-                "model": model,
-                "temperature": temperature,
-                "max_tokens": max_tokens,
-            }
+        if hooks and hasattr(hooks, 'on_stateless'):
+            kwargs = {                'message': message,                'system': system,                'history': history,                'tools': tools,                'model': model,                'temperature': temperature,                'max_tokens': max_tokens,            }
             hooks.on_stateless(ctx=ctx, **kwargs)
         else:
-            logger.error("Hook 'on_stateless' not implemented in cli_hooks.py")
+            logger.error(f"Hook 'on_stateless' not implemented in cli_hooks.py")
             sys.exit(1)
     except Exception as e:
         handle_error(e, ctx.verbose)
-
-
-@cli.command("list")
-@click.argument("resource", type=click.STRING)
-@click.option("--format", "-f", default="table", help="Output format")
+@cli.command('list')
+@click.argument('resource', type=click.STRING, required=False, default=None)
+@click.option('--format', '-f', default='table',              help="Output format")
 @click.pass_obj
 def list(ctx, resource, format):
     """See available resources"""
     try:
-        if hooks and hasattr(hooks, "on_list"):
-            kwargs = {
-                "resource": resource,
-                "format": format,
-            }
+        if hooks and hasattr(hooks, 'on_list'):
+            kwargs = {                'resource': resource,                'format': format,            }
             hooks.on_list(ctx=ctx, **kwargs)
         else:
-            logger.error("Hook 'on_list' not implemented in cli_hooks.py")
+            logger.error(f"Hook 'on_list' not implemented in cli_hooks.py")
             sys.exit(1)
     except Exception as e:
         handle_error(e, ctx.verbose)
-
-
-@cli.command("status")
-@click.option("--json", is_flag=True, default=None, help="Output status in JSON format")
+@cli.command('status')
+@click.option('--json', is_flag=True, default=None,              help="Output status in JSON format")
 @click.pass_obj
 def status(ctx, json):
     """Verify system and API health"""
     try:
-        if hooks and hasattr(hooks, "on_status"):
-            kwargs = {
-                "json": json,
-            }
+        if hooks and hasattr(hooks, 'on_status'):
+            kwargs = {                'json': json,            }
             hooks.on_status(ctx=ctx, **kwargs)
         else:
-            logger.error("Hook 'on_status' not implemented in cli_hooks.py")
+            logger.error(f"Hook 'on_status' not implemented in cli_hooks.py")
             sys.exit(1)
     except Exception as e:
         handle_error(e, ctx.verbose)
-
-
-@cli.command("models")
-@click.option("--json", is_flag=True, default=None, help="Output models in JSON format")
+@cli.command('models')
+@click.option('--json', is_flag=True, default=None,              help="Output models in JSON format")
 @click.pass_obj
 def models(ctx, json):
     """View AI models"""
     try:
-        if hooks and hasattr(hooks, "on_models"):
-            kwargs = {
-                "json": json,
-            }
+        if hooks and hasattr(hooks, 'on_models'):
+            kwargs = {                'json': json,            }
             hooks.on_models(ctx=ctx, **kwargs)
         else:
-            logger.error("Hook 'on_models' not implemented in cli_hooks.py")
+            logger.error(f"Hook 'on_models' not implemented in cli_hooks.py")
             sys.exit(1)
     except Exception as e:
         handle_error(e, ctx.verbose)
-
-
-@cli.command("info")
-@click.argument("model", type=click.STRING)
-@click.option("--json", is_flag=True, default=None, help="Output model info in JSON format")
+@cli.command('info')
+@click.argument('model', type=click.STRING, required=False, default=None)
+@click.option('--json', is_flag=True, default=None,              help="Output model info in JSON format")
 @click.pass_obj
 def info(ctx, model, json):
     """Detailed model information"""
     try:
-        if hooks and hasattr(hooks, "on_info"):
-            kwargs = {
-                "model": model,
-                "json": json,
-            }
+        if hooks and hasattr(hooks, 'on_info'):
+            kwargs = {                'model': model,                'json': json,            }
             hooks.on_info(ctx=ctx, **kwargs)
         else:
-            logger.error("Hook 'on_info' not implemented in cli_hooks.py")
+            logger.error(f"Hook 'on_info' not implemented in cli_hooks.py")
             sys.exit(1)
     except Exception as e:
         handle_error(e, ctx.verbose)
-
-
-@cli.command("export")
-@click.argument("session", type=click.STRING)
-@click.option("--format", "-f", default="markdown", help="Export format")
-@click.option("--output", "-o", default=None, help="Output file path")
-@click.option("--include-metadata", is_flag=True, default=False, help="Include timestamps and model info")
+@cli.command('export')
+@click.argument('session', type=click.STRING, required=False, default=None)
+@click.option('--format', '-f', default='markdown',              help="Export format")
+@click.option('--output', '-o', default=None,              help="Output file path")
+@click.option('--include-metadata', is_flag=True, default=False,              help="Include timestamps and model info")
 @click.pass_obj
 def export(ctx, session, format, output, include_metadata):
     """Save your chat history"""
     try:
-        if hooks and hasattr(hooks, "on_export"):
-            kwargs = {
-                "session": session,
-                "format": format,
-                "output": output,
-                "include_metadata": include_metadata,
-            }
+        if hooks and hasattr(hooks, 'on_export'):
+            kwargs = {                'session': session,                'format': format,                'output': output,                'include_metadata': include_metadata,            }
             hooks.on_export(ctx=ctx, **kwargs)
         else:
-            logger.error("Hook 'on_export' not implemented in cli_hooks.py")
+            logger.error(f"Hook 'on_export' not implemented in cli_hooks.py")
             sys.exit(1)
     except Exception as e:
         handle_error(e, ctx.verbose)
-
-
-@cli.group("config")
+@cli.group('config')
 @click.pass_obj
 def config_group(ctx):
     """Customize your setup"""
     pass
-
-
-@config_group.command("get")
-@click.argument("key", type=click.STRING)
+@config_group.command('get')
+@click.argument('key', type=click.STRING)
 @click.pass_obj
 def config_get(ctx, key):
     """Get a configuration value"""
     try:
-        if hooks and hasattr(hooks, "on_get"):
-            kwargs = {
-                "key": key,
-            }
+        if hooks and hasattr(hooks, 'on_get'):
+            kwargs = {                'key': key,            }
             hooks.on_get(ctx=ctx, **kwargs)
         else:
-            logger.error("Hook 'on_get' not implemented in cli_hooks.py")
+            logger.error(f"Hook 'on_get' not implemented in cli_hooks.py")
             sys.exit(1)
     except Exception as e:
         handle_error(e, ctx.verbose)
 
-
-@config_group.command("set")
-@click.argument("key", type=click.STRING)
-@click.argument("value", type=click.STRING)
+@config_group.command('set')
+@click.argument('key', type=click.STRING)
+@click.argument('value', type=click.STRING)
 @click.pass_obj
 def config_set(ctx, key, value):
     """Set a configuration value"""
     try:
-        if hooks and hasattr(hooks, "on_set"):
-            kwargs = {
-                "key": key,
-                "value": value,
-            }
+        if hooks and hasattr(hooks, 'on_set'):
+            kwargs = {                'key': key,                'value': value,            }
             hooks.on_set(ctx=ctx, **kwargs)
         else:
-            logger.error("Hook 'on_set' not implemented in cli_hooks.py")
+            logger.error(f"Hook 'on_set' not implemented in cli_hooks.py")
             sys.exit(1)
     except Exception as e:
         handle_error(e, ctx.verbose)
 
-
-@config_group.command("list")
-@click.option("--show-secrets", is_flag=True, default=False, help="Include API keys in output")
+@config_group.command('list')
+@click.option('--show-secrets', is_flag=True, default=False,              help="Include API keys in output")
 @click.pass_obj
 def config_list(ctx, show_secrets):
     """List all configuration"""
     try:
-        if hooks and hasattr(hooks, "on_list"):
-            kwargs = {
-                "show_secrets": show_secrets,
-            }
+        if hooks and hasattr(hooks, 'on_list'):
+            kwargs = {                'show_secrets': show_secrets,            }
             hooks.on_list(ctx=ctx, **kwargs)
         else:
-            logger.error("Hook 'on_list' not implemented in cli_hooks.py")
+            logger.error(f"Hook 'on_list' not implemented in cli_hooks.py")
             sys.exit(1)
     except Exception as e:
         handle_error(e, ctx.verbose)
-
-
-@cli.group("tools")
+@cli.group('tools')
 @click.pass_obj
 def tools_group(ctx):
     """Manage CLI tools and extensions"""
     pass
-
-
-@tools_group.command("enable")
-@click.argument("tool_name", type=click.STRING)
+@tools_group.command('enable')
+@click.argument('tool_name', type=click.STRING)
 @click.pass_obj
 def tools_enable(ctx, tool_name):
     """Enable a tool"""
     try:
-        if hooks and hasattr(hooks, "on_enable"):
-            kwargs = {
-                "tool_name": tool_name,
-            }
+        if hooks and hasattr(hooks, 'on_enable'):
+            kwargs = {                'tool_name': tool_name,            }
             hooks.on_enable(ctx=ctx, **kwargs)
         else:
-            logger.error("Hook 'on_enable' not implemented in cli_hooks.py")
+            logger.error(f"Hook 'on_enable' not implemented in cli_hooks.py")
             sys.exit(1)
     except Exception as e:
         handle_error(e, ctx.verbose)
 
-
-@tools_group.command("disable")
-@click.argument("tool_name", type=click.STRING)
+@tools_group.command('disable')
+@click.argument('tool_name', type=click.STRING)
 @click.pass_obj
 def tools_disable(ctx, tool_name):
     """Disable a tool"""
     try:
-        if hooks and hasattr(hooks, "on_disable"):
-            kwargs = {
-                "tool_name": tool_name,
-            }
+        if hooks and hasattr(hooks, 'on_disable'):
+            kwargs = {                'tool_name': tool_name,            }
             hooks.on_disable(ctx=ctx, **kwargs)
         else:
-            logger.error("Hook 'on_disable' not implemented in cli_hooks.py")
+            logger.error(f"Hook 'on_disable' not implemented in cli_hooks.py")
             sys.exit(1)
     except Exception as e:
         handle_error(e, ctx.verbose)
 
-
-@tools_group.command("list")
-@click.option("--show-disabled", is_flag=True, default=False, help="Include disabled tools")
+@tools_group.command('list')
+@click.option('--show-disabled', is_flag=True, default=False,              help="Include disabled tools")
 @click.pass_obj
 def tools_list(ctx, show_disabled):
     """List all tools"""
     try:
-        if hooks and hasattr(hooks, "on_list"):
-            kwargs = {
-                "show_disabled": show_disabled,
-            }
+        if hooks and hasattr(hooks, 'on_list'):
+            kwargs = {                'show_disabled': show_disabled,            }
             hooks.on_list(ctx=ctx, **kwargs)
         else:
-            logger.error("Hook 'on_list' not implemented in cli_hooks.py")
+            logger.error(f"Hook 'on_list' not implemented in cli_hooks.py")
             sys.exit(1)
     except Exception as e:
         handle_error(e, ctx.verbose)
-
-
-@cli.command("serve")
-@click.option("--host", default="0.0.0.0", help="Host address to bind to")
-@click.option("--port", "-p", default=8772, help="Port to listen on")
+@cli.command('serve')
+@click.option('--host', default='0.0.0.0',              help="Host address to bind to")
+@click.option('--port', '-p', default=8772,              help="Port to listen on")
 @click.pass_obj
 def serve(ctx, host, port):
     """Start TTT HTTP server for browser clients"""
     try:
-        if hooks and hasattr(hooks, "on_serve"):
-            kwargs = {
-                "host": host,
-                "port": port,
-            }
+        if hooks and hasattr(hooks, 'on_serve'):
+            kwargs = {                'host': host,                'port': port,            }
             hooks.on_serve(ctx=ctx, **kwargs)
         else:
-            logger.error("Hook 'on_serve' not implemented in cli_hooks.py")
+            logger.error(f"Hook 'on_serve' not implemented in cli_hooks.py")
             sys.exit(1)
     except Exception as e:
         handle_error(e, ctx.verbose)
 
-
 # ============================================================================
 # INTERACTIVE MODE (if enabled)
 # ============================================================================
-from .commands.memory import memory_group
-
-# ... (inside cli group)
-
-cli.add_command(memory_group)
-
 # ============================================================================
 # MAIN ENTRY POINT
 # ============================================================================
-
 
 def main():
     """Main entry point for the CLI."""
     try:
         cli()
     except Exception as e:
-        handle_error(e, "--verbose" in sys.argv or "--debug" in sys.argv)
+        handle_error(e, '--verbose' in sys.argv or '--debug' in sys.argv)
 
+# Alias for compatibility with different entry point names
+cli_entry = main
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()

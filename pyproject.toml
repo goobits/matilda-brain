@@ -23,7 +23,7 @@ dev = [ "pytest>=7.0,<9.0", "pytest-asyncio>=0.20.0,<1.0", "pytest-cov>=4.0,<6.0
 publish = [ "build>=1.0,<2.0", "twine>=4.0,<6.0",]
 
 [project.scripts]
-brain = "matilda_brain.cli:main"
+brain = "matilda_brain.cli:cli_entry"
 
 [project.urls]
 Homepage = "https://github.com/goobits/matilda-brain"
@@ -54,17 +54,7 @@ matilda_brain = [ "setup.sh",]
 goobits_matilda_brain = [ "setup.sh",]
 
 [tool.pytest.ini_options]
-markers = [
-    "unit: unit tests",
-    "requires_credentials: tests that require API keys or credentials",
-    "requires_network: tests that require external network access",
-    "requires_service: tests that require local services running",
-    "requires_gpu: tests that require a GPU",
-    "integration: integration tests",
-    "slow: slow tests",
-    "benchmark: benchmark tests",
-    "examples: example tests",
-]
+markers = [ "unit: unit tests", "requires_credentials: tests that require API keys or credentials", "requires_network: tests that require external network access", "requires_service: tests that require local services running", "requires_gpu: tests that require a GPU", "integration: integration tests", "slow: slow tests", "benchmark: benchmark tests", "examples: example tests",]
 cache_dir = ".artifacts/cache/pytest"
 asyncio_mode = "auto"
 testpaths = [ "tests",]
