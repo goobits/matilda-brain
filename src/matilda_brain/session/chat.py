@@ -12,6 +12,7 @@ from ..core.exceptions import InvalidParameterError, SessionLoadError, SessionSa
 from ..core.models import AIResponse, ImageInput
 from ..core.routing import router
 from ..internal.utils import get_logger, run_async
+from ..memory_client import get_memory, MemoryStore
 from .serialization import (
     deserialize_tools,
     estimate_tokens,
@@ -38,6 +39,7 @@ class PersistentChatSession:
     - Multiple persistence formats (JSON, pickle)
     - Session resumption
     - Tool persistence and execution
+    - Git-backed long-term memory via matilda-memory
     """
 
     def __init__(
@@ -76,6 +78,11 @@ class PersistentChatSession:
             "backend_usage": {},
             "tools_used": {},
         }
+        
+        # Initialize memory client
+        memory_enabled = kwargs.get("memory_enabled", True)
+        self.memory = get_memory(memory_enabled)
+        self.agent_name = kwargs.get("agent_name", "assistant")
 
         # Resolve backend using router
         if backend is None:
@@ -129,6 +136,26 @@ class PersistentChatSession:
         """
         # Record timestamp
         timestamp = datetime.now().isoformat()
+        
+        # Helper to extract text from prompt
+        user_text = ""
+        if isinstance(prompt, str):
+            user_text = prompt
+        elif isinstance(prompt, list):
+            for item in prompt:
+                if isinstance(item, str):
+                    user_text += item + " "
+        
+        # Query memory for context
+        memory_context = ""
+        if user_text:
+            try:
+                results = self.memory.query(self.agent_name, user_text.strip(), limit=3)
+                if results:
+                    context_items = [f"[{r.type}:{r.path}]\n{r.content[:500]}" for r in results]
+                    memory_context = "\n\nRelevant knowledge:\n" + "\n---\n".join(context_items)
+            except Exception as e:
+                logger.debug(f"Memory query failed: {e}")
 
         # Add user message to history
         self.history.append({"role": "user", "content": prompt, "timestamp": timestamp})
@@ -147,8 +174,17 @@ class PersistentChatSession:
 
         # Build messages for API
         messages = []
-        if self.system:
-            messages.append({"role": "system", "content": self.system})
+        
+        # Inject system prompt with memory context
+        system_content = self.system or ""
+        if memory_context:
+            if system_content:
+                system_content += "\n\n" + memory_context
+            else:
+                system_content = "You are a helpful AI assistant.\n\n" + memory_context
+        
+        if system_content:
+            messages.append({"role": "system", "content": system_content})
 
         for msg in self.history:
             messages.append({"role": msg["role"], "content": msg["content"]})
@@ -170,7 +206,7 @@ class PersistentChatSession:
             return await self.backend.ask(
                 full_prompt,
                 model=model or self.model,
-                system=self.system if len(self.history) == 1 else None,
+                system=system_content if len(self.history) == 1 else None,
                 messages=(messages if hasattr(self.backend, "supports_messages") else None),
                 tools=self.tools,
                 **params,
@@ -214,8 +250,61 @@ class PersistentChatSession:
 
         # Update metadata
         self._update_metadata(response)
+        
+        # Log to long-term memory
+        try:
+            self.memory.log_conversation(self.agent_name, [
+                {"role": "user", "content": user_text},
+                {"role": "assistant", "content": str(response)}
+            ])
+            # Auto-learning
+            run_async(self._extract_and_store_knowledge(user_text, str(response)))
+        except Exception as e:
+            logger.debug(f"Memory logging failed: {e}")
 
         return response
+
+    async def _extract_and_store_knowledge(self, user_input: str, response: str) -> None:
+        """Extract facts and store in memory."""
+        # Check for learning trigger words to avoid LLM call overhead on every turn
+        # Heuristic: only learn if user talks about themselves or preferences
+        triggers = ["my", "i like", "i prefer", "i don't", "remember", "keep in mind", "always", "never"]
+        if not any(t in user_input.lower() for t in triggers):
+            return
+
+        prompt = f"""Extract permanent facts about the user or project from this exchange.
+Return ONLY the facts as markdown bullet points. If nothing worth remembering, return empty string.
+
+User: {user_input}
+Assistant: {response}"""
+
+        try:
+            # We use a cheaper/faster model if possible, or same model
+            # For now reuse self.backend
+            extraction = await self.backend.ask(
+                prompt,
+                model=self.model,
+                system="You are a knowledge extraction system. Extract facts concisely.",
+                temperature=0.0
+            )
+            
+            facts = str(extraction).strip()
+            if facts and "no facts" not in facts.lower():
+                # Generate a slug
+                import re
+                slug = re.sub(r'[^a-z0-9]+', '-', user_input[:30].lower()).strip('-')
+                if not slug:
+                    slug = "general"
+                
+                path = f"facts/{datetime.now().strftime('%Y%m%d')}-{slug}.md"
+                self.memory.add_knowledge(
+                    self.agent_name, 
+                    path, 
+                    f"# Learned Facts\n\nSource: Conversation\nDate: {datetime.now().isoformat()}\n\n{facts}",
+                    commit_message=f"Learned facts about {slug}"
+                )
+        except Exception as e:
+            logger.debug(f"Knowledge extraction failed: {e}")
 
     def stream(
         self,
