@@ -14,14 +14,16 @@ Usage:
 import argparse
 import json
 import secrets
+from datetime import datetime
 from typing import Optional
 
 from aiohttp import web
 from aiohttp.web import Request, Response, StreamResponse
 
-from .core.api import ask_async, stream_async
+from .core.api import stream_async
 from .internal.security import get_allowed_origins, is_origin_allowed
 from .session.manager import ChatSessionManager
+from .session.chat import PersistentChatSession
 from .internal.token_storage import get_or_create_token
 from .internal.utils import get_logger
 
@@ -143,30 +145,40 @@ async def handle_ask(request: Request) -> Response:
     system = data.get("system")
     temperature = data.get("temperature")
     max_tokens = data.get("max_tokens")
+    agent_name = request.headers.get("X-Agent-Name") or data.get("agent_name") or "assistant"
+    memory_enabled = data.get("memory_enabled", True)
 
     try:
-        # Build messages list for the API
-        all_messages = []
+        if system is None and messages:
+            for msg in messages:
+                if msg.get("role") == "system" and isinstance(msg.get("content"), str):
+                    system = msg["content"]
+                    break
 
-        # Add system prompt if provided
-        if system:
-            all_messages.append({"role": "system", "content": system})
-
-        # Add conversation history
+        history_messages = []
         if messages:
-            all_messages.extend(messages)
+            timestamp = datetime.utcnow().isoformat()
+            for msg in messages:
+                if msg.get("role") == "system":
+                    continue
+                history_messages.append(
+                    {"role": msg.get("role"), "content": msg.get("content"), "timestamp": timestamp}
+                )
 
-        # Add current prompt
-        all_messages.append({"role": "user", "content": prompt})
+        session = PersistentChatSession(
+            system=system,
+            model=model,
+            agent_name=agent_name,
+            memory_enabled=memory_enabled,
+        )
+        if history_messages:
+            session.history = history_messages
 
-        # Make the request with full message history
-        response = await ask_async(
+        response = session.ask(
             prompt,
             model=model,
-            system=system if not messages else None,  # Only use system if no history
             temperature=temperature,
             max_tokens=max_tokens,
-            messages=all_messages if messages else None,  # Pass messages to backend
         )
 
         result = {
