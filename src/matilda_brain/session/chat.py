@@ -81,8 +81,8 @@ class PersistentChatSession:
         
         # Initialize memory client
         memory_enabled = kwargs.get("memory_enabled", True)
-        self.memory = get_memory(memory_enabled)
         self.agent_name = kwargs.get("agent_name", "assistant")
+        self.memory = get_memory(memory_enabled, agent_name=self.agent_name)
 
         # Resolve backend using router
         if backend is None:
