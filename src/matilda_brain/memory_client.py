@@ -6,6 +6,7 @@ Gracefully degrades to no-op if memory service unavailable.
 from typing import Protocol, Optional, List, Dict, Any
 import httpx
 from dataclasses import dataclass
+import time
 
 
 class MemoryStore(Protocol):
@@ -27,6 +28,9 @@ class MemoryStore(Protocol):
     def is_available(self) -> bool:
         ...
 
+    def get_identity(self, agent: str) -> Optional[Dict[str, Any]]:
+        ...
+
 
 @dataclass
 class MemoryResult:
@@ -46,6 +50,9 @@ class MemoryClient(MemoryStore):
         self.agent_name = agent_name
         self._client: Optional[httpx.Client] = None
         self._available: Optional[bool] = None
+        self._identity_cache: Optional[Dict[str, Any]] = None
+        self._identity_cache_time: float = 0.0
+        self._identity_cache_ttl: float = 60.0
 
     @property
     def client(self) -> httpx.Client:
@@ -125,8 +132,7 @@ class MemoryClient(MemoryStore):
             return []
         try:
             resp = self.client.get(
-                f"/vaults/{agent}/conversations",
-                params={"limit": n}
+                f"/vaults/{agent}/conversations/recent"
             )
             if resp.status_code != 200:
                 return []
@@ -134,6 +140,23 @@ class MemoryClient(MemoryStore):
             return data.get("messages", [])
         except Exception:
             return []
+
+    def get_identity(self, agent: str) -> Optional[Dict[str, Any]]:
+        """Get agent identity from memory vault (cached)."""
+        if not self.is_available():
+            return None
+        now = time.monotonic()
+        if self._identity_cache and (now - self._identity_cache_time) < self._identity_cache_ttl:
+            return self._identity_cache
+        try:
+            resp = self.client.get(f"/vaults/{agent}/identity")
+            if resp.status_code != 200:
+                return None
+            self._identity_cache = resp.json()
+            self._identity_cache_time = now
+            return self._identity_cache
+        except Exception:
+            return None
 
 
 class NullMemory(MemoryStore):
@@ -154,6 +177,9 @@ class NullMemory(MemoryStore):
 
     def get_recent_messages(self, agent: str, n: int = 10) -> List[Dict[str, str]]:
         return []
+
+    def get_identity(self, agent: str) -> Optional[Dict[str, Any]]:
+        return None
 
 
 def get_memory(enabled: bool = True, agent_name: str = "assistant") -> MemoryStore:

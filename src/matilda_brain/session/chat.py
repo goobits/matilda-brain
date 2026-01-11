@@ -68,6 +68,7 @@ class PersistentChatSession:
         self.kwargs = kwargs
         self.tools = tools
         self.history: List[Dict[str, Any]] = []
+        self.identity: Optional[Dict[str, Any]] = None
         self.metadata: Dict[str, Any] = {
             "session_id": session_id or self._generate_session_id(),
             "created_at": datetime.now().isoformat(),
@@ -83,6 +84,16 @@ class PersistentChatSession:
         memory_enabled = kwargs.get("memory_enabled", True)
         self.agent_name = kwargs.get("agent_name", "assistant")
         self.memory = get_memory(memory_enabled, agent_name=self.agent_name)
+        if memory_enabled:
+            try:
+                self.identity = self.memory.get_identity(self.agent_name)
+                if system is None and self.identity:
+                    persona = self.identity.get("persona", {})
+                    identity_prompt = persona.get("system_prompt")
+                    if isinstance(identity_prompt, str) and identity_prompt:
+                        self.system = identity_prompt
+            except Exception as e:
+                logger.debug(f"Identity lookup failed: {e}")
 
         # Resolve backend using router
         if backend is None:
