@@ -19,13 +19,14 @@ env_path = Path(__file__).parent.parent / ".env"
 if env_path.exists():
     load_dotenv(env_path)
 
+SHARED_CONFIG_PATH = Path(__file__).resolve().parents[2] / "matilda" / "config.toml"
+os.environ.setdefault("MATILDA_CONFIG", str(SHARED_CONFIG_PATH))
+
 
 @pytest.fixture(scope="session", autouse=True)
 def shared_config_env():
     """Point tests at the shared TOML config."""
-    config_path = Path(__file__).resolve().parents[2] / "matilda" / "config.toml"
-    os.environ.setdefault("MATILDA_CONFIG", str(config_path))
-    return config_path
+    return SHARED_CONFIG_PATH
 
 
 # Configuration for rate limiting delays

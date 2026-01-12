@@ -168,7 +168,7 @@ def load_config(config_file: Optional[Union[str, Path]] = None) -> ConfigModel:
 
     if config_path and config_path.exists():
         try:
-            with open(config_path) as f:
+            with open(config_path, "rb") as f:
                 if config_path.suffix.lower() != ".toml":
                     raise ConfigFileError(
                         str(config_path),

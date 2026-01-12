@@ -846,6 +846,7 @@ You can now use 'brain' from your terminal.
 
 Quick start:
   brain "Hello, how can I help you today?"
+  # Config: ~/.matilda/config.toml ([brain])
   brain status
   brain models
 "

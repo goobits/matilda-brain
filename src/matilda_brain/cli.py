@@ -16,7 +16,11 @@ from pathlib import Path
 from typing import Any, Dict, Optional, List
 
 import click
-import yaml
+try:
+    import tomllib
+except ImportError:  # pragma: no cover
+    import toml as tomllib
+import toml
 # ============================================================================
 # EMBEDDED LOGGER
 # ============================================================================
@@ -74,20 +78,25 @@ class ConfigManager:
 
     def __init__(self, config_file: Optional[Path] = None):
         """Initialize configuration manager."""
+        self.section = "brain"
         if config_file is None:
-            config_dir = Path.home() / '.config' / 'brain'
-            config_dir.mkdir(parents=True, exist_ok=True)
-            config_file = config_dir / 'config.yaml'
+            env_path = os.environ.get("MATILDA_CONFIG")
+            config_file = Path(env_path) if env_path else Path.home() / ".matilda" / "config.toml"
 
         self.config_file = Path(config_file)
+        self.config_file.parent.mkdir(parents=True, exist_ok=True)
         self.config = self._load_config()
 
     def _load_config(self) -> Dict[str, Any]:
         """Load configuration from file."""
         if self.config_file.exists():
             try:
-                with open(self.config_file, 'r') as f:
-                    return yaml.safe_load(f) or {}
+                with open(self.config_file, "rb") as f:
+                    full_config = tomllib.load(f)
+                section = full_config.get(self.section)
+                if isinstance(section, dict):
+                    return section
+                return {}
             except Exception as e:
                 logger.warning(f"Failed to load config: {e}")
                 return {}
@@ -96,8 +105,15 @@ class ConfigManager:
     def save_config(self) -> bool:
         """Save configuration to file."""
         try:
-            with open(self.config_file, 'w') as f:
-                yaml.safe_dump(self.config, f, default_flow_style=False)
+            if self.config_file.exists():
+                with open(self.config_file, "rb") as f:
+                    full_config = tomllib.load(f)
+            else:
+                full_config = {}
+
+            full_config[self.section] = self.config
+            with open(self.config_file, "w", encoding="utf-8") as f:
+                f.write(toml.dumps(full_config))
             return True
         except Exception as e:
             logger.error(f"Failed to save config: {e}")
@@ -105,7 +121,7 @@ class ConfigManager:
 
     def get(self, key: str, default: Any = None) -> Any:
         """Get configuration value."""
-        keys = key.split('.')
+        keys = key.split(".")
         value = self.config
         for k in keys:
             if isinstance(value, dict):
@@ -118,7 +134,7 @@ class ConfigManager:
 
     def set(self, key: str, value: Any):
         """Set configuration value."""
-        keys = key.split('.')
+        keys = key.split(".")
         config = self.config
         for k in keys[:-1]:
             if k not in config:
@@ -201,7 +217,7 @@ hooks = load_hooks()
 @click.group()
 @click.option('--verbose', '-v', is_flag=True, help='Enable verbose output')
 @click.option('--debug', is_flag=True, help='Enable debug output')
-@click.option('--config', type=click.Path(), help='Path to config file')
+@click.option('--config', type=click.Path(), help='Path to config file (default: ~/.matilda/config.toml)')
 @click.pass_context
 def cli(ctx, verbose, debug, config):
     """AI-powered conversations, straight from your command line"""
