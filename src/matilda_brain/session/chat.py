@@ -16,7 +16,6 @@ from ..internal.utils import get_logger, run_async
 from ..memory_client import get_memory
 from .serialization import (
     deserialize_tools,
-    estimate_tokens,
     export_messages_json,
     export_messages_markdown,
     export_messages_text,
@@ -26,8 +25,6 @@ from .serialization import (
 logger = get_logger(__name__)
 
 
-# Re-export for backwards compatibility
-_estimate_tokens = estimate_tokens
 
 
 class PersistentChatSession:
@@ -631,7 +628,6 @@ Assistant: {response}"""
             "backend": backend_name,
             "tools": self._serialize_tools() if self.tools else None,
             "messages": self.history,  # Use 'messages' for compatibility
-            "history": self.history,  # Keep 'history' for backward compatibility
             "metadata": self.metadata,
             "kwargs": self.kwargs,
         }

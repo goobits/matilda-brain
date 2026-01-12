@@ -16,7 +16,8 @@ from matilda_brain import (
     SessionSaveError,
     chat,
 )
-from matilda_brain.session.chat import PersistentChatSession, _estimate_tokens
+from matilda_brain.session.chat import PersistentChatSession
+from matilda_brain.session.serialization import estimate_tokens
 from tests.utils import MockBackend
 
 
@@ -151,7 +152,7 @@ class TestPersistentChatSession:
         assert data["version"] == "1.0"
         assert data["system"] == "Test system"
         assert data["model"] == "test-model"
-        assert len(data["history"]) == 1
+        assert len(data["messages"]) == 1
         assert data["metadata"]["session_id"] == "save_test"
 
     def test_save_pickle(self, tmp_path):
@@ -608,9 +609,9 @@ class TestTokenEstimation:
     def test_estimate_tokens_text(self):
         """Test token estimation for text."""
         # Estimate is len(text) // 4
-        assert _estimate_tokens("Hello world") == len("Hello world") // 4  # 11 // 4 = 2
+        assert estimate_tokens("Hello world") == len("Hello world") // 4  # 11 // 4 = 2
         assert (
-            _estimate_tokens("This is a longer sentence with more words")
+            estimate_tokens("This is a longer sentence with more words")
             == len("This is a longer sentence with more words") // 4
         )
 
@@ -619,10 +620,10 @@ class TestTokenEstimation:
         content = ["What's in this image?", ImageInput("test.jpg")]
 
         # Should estimate text tokens + fixed amount for image
-        tokens = _estimate_tokens(content)
+        tokens = estimate_tokens(content)
         assert tokens > 50  # Images add significant tokens
 
     def test_estimate_tokens_empty(self):
         """Test token estimation for empty input."""
-        assert _estimate_tokens("") == 0
-        assert _estimate_tokens([]) == 0
+        assert estimate_tokens("") == 0
+        assert estimate_tokens([]) == 0
