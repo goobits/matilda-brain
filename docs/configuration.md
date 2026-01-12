@@ -8,18 +8,14 @@ Highest to lowest precedence:
 
 1. Programmatic configuration via `configure()`
 2. Environment variables
-3. Configuration files (YAML)
+3. Configuration files (TOML)
 4. Defaults
 
 ## Configuration Files
 
-The library searches these locations:
+Configuration lives in a single shared file:
 
-1. `./ai.yaml` or `./ai.yml`
-2. `./.ai.yaml` or `./.ai.yml`
-3. `~/.config/matilda-brain/config.yaml` or `~/.config/matilda-brain/config.yml`
-4. `~/.ai.yaml` or `~/.ai.yml`
-5. `.env`
+- `~/.matilda/config.toml` (`[brain]` section)
 
 ## Environment Variables
 

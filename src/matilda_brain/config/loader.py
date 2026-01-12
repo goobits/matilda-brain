@@ -5,7 +5,7 @@ import sys
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-import yaml
+import tomllib
 
 from ..internal.utils import get_logger
 
@@ -33,9 +33,16 @@ def set_suppress_warnings(suppress: bool) -> None:
     _suppress_warnings = suppress
 
 
+def _default_config_path() -> Path:
+    env_path = os.environ.get("MATILDA_CONFIG")
+    if env_path:
+        return Path(env_path)
+    return Path.home() / ".matilda" / "config.toml"
+
+
 def get_project_config() -> Dict[str, Any]:
     """
-    Get the project configuration from config.yaml.
+    Get the project configuration from the shared TOML config.
 
     This function caches the configuration to avoid repeated file reads.
 
@@ -47,41 +54,29 @@ def get_project_config() -> Dict[str, Any]:
     if _project_config_cache is not None:
         return _project_config_cache
 
-    # Try to load project config.yaml from current directory (optional)
-    project_config_path = Path.cwd() / "config.yaml"
-    if project_config_path.exists():
+    config_path = _default_config_path()
+    if config_path.exists():
         try:
-            with open(project_config_path) as f:
-                _project_config_cache = yaml.safe_load(f)
-                logger.debug(f"Loaded project config from {project_config_path}")
-                return _project_config_cache
+            with open(config_path, "rb") as f:
+                full_config = tomllib.load(f)
+            brain_config = full_config.get("brain")
+            if brain_config is None:
+                raise KeyError("Missing [brain] section in matilda config")
+            _project_config_cache = brain_config
+            logger.debug(f"Loaded project config from {config_path}")
+            return _project_config_cache
         except Exception as e:
             if os.environ.get("TTT_JSON_MODE", "").lower() != "true" and not _is_pipe_mode():
-                logger.warning(f"Failed to load project config from {project_config_path}: {e}")
+                logger.warning(f"Failed to load project config from {config_path}: {e}")
 
-    # Fall back to bundled defaults (should always exist)
-    defaults_path = Path(__file__).parent / "defaults.yaml"
-    if defaults_path.exists():
-        try:
-            with open(defaults_path) as f:
-                _project_config_cache = yaml.safe_load(f)
-                logger.debug(f"Loaded project config from {defaults_path}")
-                return _project_config_cache
-        except Exception as e:
-            if os.environ.get("TTT_JSON_MODE", "").lower() != "true" and not _is_pipe_mode():
-                logger.warning(f"Failed to load bundled defaults from {defaults_path}: {e}")
-
-    # If we get here, even defaults.yaml is missing (should never happen)
-    # Check suppress warnings both from variable and environment
+    # If we get here, no config is available.
     json_mode = os.environ.get("TTT_JSON_MODE", "").lower() == "true"
     pipe_mode = _is_pipe_mode()
 
-    # Only warn if even the bundled defaults are missing (serious issue)
     if "--json" in getattr(sys, "argv", []) or json_mode or _suppress_warnings or pipe_mode:
-        # Suppress the warning - it will be included in JSON response or is not relevant in pipe mode
         pass
     else:
-        logger.warning("Bundled defaults.yaml is missing - this indicates a broken installation")
+        logger.warning("Matilda config not found - expected ~/.matilda/config.toml")
 
     _project_config_cache = {}
     return _project_config_cache

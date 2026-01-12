@@ -1,6 +1,6 @@
 """Tests for the configuration system."""
 
-import yaml
+import toml
 
 from matilda_brain import ConfigModel, ModelInfo
 from matilda_brain.config import configure, get_config, load_config, model_registry, save_config
@@ -11,7 +11,7 @@ class TestConfigManagement:
 
     def test_default_values(self):
         """Test default configuration values from loaded config."""
-        # Get config with defaults loaded from config.yaml
+        # Get config with defaults loaded from config.toml
         from matilda_brain.config import get_config
 
         config = get_config()
@@ -54,17 +54,19 @@ class TestConfigManagement:
 class TestConfigLoading:
     """Test configuration loading from files."""
 
-    def test_load_yaml_config(self, tmp_path):
-        """Test loading configuration from YAML file."""
-        config_file = tmp_path / "test_config.yaml"
+    def test_load_toml_config(self, tmp_path):
+        """Test loading configuration from TOML file."""
+        config_file = tmp_path / "test_config.toml"
         config_data = {
-            "default_backend": "cloud",
-            "timeout": 45,
-            "model_aliases": {"test": "gpt-3.5-turbo"},
+            "brain": {
+                "default_backend": "cloud",
+                "timeout": 45,
+                "model_aliases": {"test": "gpt-3.5-turbo"},
+            }
         }
 
         with open(config_file, "w") as f:
-            yaml.dump(config_data, f)
+            f.write(toml.dumps(config_data))
 
         config = load_config(config_file)
 
@@ -78,23 +80,25 @@ class TestConfigLoading:
 
     def test_load_config_with_models(self, tmp_path):
         """Test loading configuration with model definitions."""
-        config_file = tmp_path / "test_config.yaml"
+        config_file = tmp_path / "test_config.toml"
         config_data = {
-            "default_backend": "cloud",
-            "models": [
-                {
-                    "name": "test-model",
-                    "provider": "openai",
-                    "provider_name": "gpt-test",
-                    "aliases": ["test", "custom"],
-                    "speed": "fast",
-                    "quality": "medium",
-                }
-            ],
+            "brain": {
+                "default_backend": "cloud",
+                "models": [
+                    {
+                        "name": "test-model",
+                        "provider": "openai",
+                        "provider_name": "gpt-test",
+                        "aliases": ["test", "custom"],
+                        "speed": "fast",
+                        "quality": "medium",
+                    }
+                ],
+            }
         }
 
         with open(config_file, "w") as f:
-            yaml.dump(config_data, f)
+            f.write(toml.dumps(config_data))
 
         # Clear registry for clean test
         model_registry.models.clear()
@@ -117,11 +121,11 @@ class TestConfigLoading:
         monkeypatch.setenv("TIMEOUT", "90")
 
         # Create config file
-        config_file = tmp_path / "test_config.yaml"
-        config_data = {"timeout": 60, "default_backend": "local"}
+        config_file = tmp_path / "test_config.toml"
+        config_data = {"brain": {"timeout": 60, "default_backend": "local"}}
 
         with open(config_file, "w") as f:
-            yaml.dump(config_data, f)
+            f.write(toml.dumps(config_data))
 
         config = load_config(config_file)
 
@@ -131,9 +135,9 @@ class TestConfigLoading:
 
     def test_missing_config_file(self):
         """Test loading with non-existent config file uses project defaults."""
-        config = load_config("non_existent_file.yaml")
+        config = load_config("non_existent_file.toml")
 
-        # Should have loaded project defaults from config.yaml
+        # Should have loaded project defaults from config.toml
         assert config.backend_config is not None
         assert config.backend_config.get("default") == "cloud"
 
@@ -147,7 +151,7 @@ class TestConfigSaving:
 
     def test_save_config(self, tmp_path):
         """Test saving configuration to file."""
-        config_file = tmp_path / "saved_config.yaml"
+        config_file = tmp_path / "saved_config.toml"
 
         config = ConfigModel(default_backend="cloud", timeout=45, model_aliases={"saved": "gpt-4"})
 
@@ -155,15 +159,15 @@ class TestConfigSaving:
 
         # Read back and verify
         with open(config_file) as f:
-            saved_data = yaml.safe_load(f)
+            saved_data = toml.load(f)
 
-        assert saved_data["default_backend"] == "cloud"
-        assert saved_data["timeout"] == 45
-        assert saved_data["model_aliases"]["saved"] == "gpt-4"
+        assert saved_data["brain"]["default_backend"] == "cloud"
+        assert saved_data["brain"]["timeout"] == 45
+        assert saved_data["brain"]["model_aliases"]["saved"] == "gpt-4"
 
     def test_save_config_excludes_secrets(self, tmp_path):
         """Test that API keys are not saved."""
-        config_file = tmp_path / "saved_config.yaml"
+        config_file = tmp_path / "saved_config.toml"
 
         config = ConfigModel(
             default_backend="cloud",
@@ -175,11 +179,11 @@ class TestConfigSaving:
 
         # Read back and verify
         with open(config_file) as f:
-            saved_data = yaml.safe_load(f)
+            saved_data = toml.load(f)
 
-        assert "openai_api_key" not in saved_data
-        assert "anthropic_api_key" not in saved_data
-        assert "google_api_key" not in saved_data
+        assert "openai_api_key" not in saved_data["brain"]
+        assert "anthropic_api_key" not in saved_data["brain"]
+        assert "google_api_key" not in saved_data["brain"]
 
 
 class TestProgrammaticConfiguration:

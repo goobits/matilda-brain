@@ -20,6 +20,14 @@ if env_path.exists():
     load_dotenv(env_path)
 
 
+@pytest.fixture(scope="session", autouse=True)
+def shared_config_env():
+    """Point tests at the shared TOML config."""
+    config_path = Path(__file__).resolve().parents[2] / "matilda" / "config.toml"
+    os.environ.setdefault("MATILDA_CONFIG", str(config_path))
+    return config_path
+
+
 # Configuration for rate limiting delays
 OPENROUTER_DEFAULT_DELAY = 1.0  # Default 1 second delay between OpenRouter API calls
 OPENAI_DEFAULT_DELAY = 0.5  # Default 0.5 second delay between OpenAI API calls

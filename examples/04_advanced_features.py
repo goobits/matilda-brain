@@ -392,7 +392,7 @@ def config_error_handling():
     print("=== Configuration Error Handling ===\n")
 
     # Create an invalid config file
-    invalid_config = Path("invalid_config.yaml")
+    invalid_config = Path("invalid_config.toml")
     invalid_config.write_text("invalid: yaml: content: [}")
 
     try:

@@ -169,7 +169,7 @@ class ConfigModel(BaseModel):
     enable_fallbacks: bool = True
     fallback_order: List[str] = Field(default_factory=lambda: ["cloud", "local"])
 
-    # Top-level config sections from config.yaml
+    # Top-level config sections from config.toml
     models: Dict[str, Any] = Field(default_factory=dict)
     backends: Dict[str, Any] = Field(default_factory=dict)
     tools: Dict[str, Any] = Field(default_factory=dict)

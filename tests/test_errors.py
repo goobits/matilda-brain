@@ -615,19 +615,19 @@ class TestToolExecutor:
 class TestConfigExceptions:
     """Test configuration-related exceptions."""
 
-    def test_invalid_yaml_config(self, tmp_path):
-        """Test that invalid YAML raises ConfigFileError."""
+    def test_invalid_toml_config(self, tmp_path):
+        """Test that invalid TOML raises ConfigFileError."""
         from matilda_brain.config import load_config
 
-        # Create invalid YAML
-        config_file = tmp_path / "invalid.yaml"
-        config_file.write_text("invalid: yaml: {]}")
+        # Create invalid TOML
+        config_file = tmp_path / "invalid.toml"
+        config_file.write_text("invalid = {]")
 
         with pytest.raises(ConfigFileError) as exc_info:
             load_config(config_file)
 
         assert str(config_file) in exc_info.value.details["file_path"]
-        assert "YAML parsing error" in exc_info.value.details["reason"]
+        assert "TOML parsing error" in exc_info.value.details["reason"]
 
     def test_unsupported_config_format(self, tmp_path):
         """Test that unsupported formats raise ConfigFileError."""

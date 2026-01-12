@@ -5,7 +5,8 @@ import shutil
 from pathlib import Path
 from typing import Any, Dict
 
-import yaml
+import tomllib
+import toml
 from rich.console import Console
 from rich.syntax import Syntax
 from rich.table import Table
@@ -18,48 +19,12 @@ class ConfigManager:
 
     def __init__(self) -> None:
         """Initialize the config manager."""
-        # Allow overriding config directory via environment variable
-        config_dir = os.environ.get("BRAIN_CONFIG_DIR")
-        if config_dir:
-            self.user_config_path = Path(config_dir) / "config.yaml"
+        config_path = os.environ.get("MATILDA_CONFIG")
+        if config_path:
+            self.user_config_path = Path(config_path)
         else:
-            self.user_config_path = Path.home() / ".config" / "brain" / "config.yaml"
+            self.user_config_path = Path.home() / ".matilda" / "config.toml"
 
-        # Try multiple locations for default config
-        possible_config_paths = [
-            Path(__file__).parent / "defaults.yaml",  # Installed in package (preferred)
-            Path(__file__).parent.parent / "config.yaml",  # Development fallback
-        ]
-
-        self.default_config_path = None
-        for path in possible_config_paths:
-            if path.exists():
-                self.default_config_path = path
-                break
-
-        # If no config found, use empty dict
-        if self.default_config_path is None:
-            # Only show warning in verbose mode and not in JSON mode
-            is_json_mode = os.environ.get("TTT_JSON_MODE", "").lower() == "true"
-            is_verbose = (
-                os.environ.get("TTT_VERBOSE", "").lower() == "true" or os.environ.get("TTT_DEBUG", "").lower() == "true"
-            )
-
-            # Try to get debug flag from click context if available
-            if not is_verbose:
-                try:
-                    import click
-
-                    ctx = click.get_current_context(silent=True)
-                    if ctx and hasattr(ctx, "obj") and ctx.obj and ctx.obj.get("debug"):
-                        is_verbose = True
-                except (RuntimeError, AttributeError):
-                    pass
-
-            if not is_json_mode and is_verbose:
-                console.print("[yellow]Warning: Default config.yaml not found, using minimal defaults[/yellow]")
-
-        # Ensure user config directory exists
         self.user_config_path.parent.mkdir(parents=True, exist_ok=True)
 
         # Load API keys from config into environment variables if not already set
@@ -75,7 +40,7 @@ class ConfigManager:
                 env_key = key.upper()
                 if not os.environ.get(env_key):
                     os.environ[env_key] = value
-        except (OSError, IOError, yaml.YAMLError, KeyError, ValueError, TypeError):
+        except (OSError, IOError, KeyError, ValueError, TypeError):
             # Silently fail if config loading fails during initialization
             pass
 
@@ -83,8 +48,9 @@ class ConfigManager:
         """Load user configuration if it exists."""
         if self.user_config_path.exists():
             try:
-                with open(self.user_config_path) as f:
-                    return yaml.safe_load(f) or {}
+                with open(self.user_config_path, "rb") as f:
+                    full_config = tomllib.load(f)
+                return full_config.get("brain", {})
             except Exception as e:
                 console.print(f"[red]Error loading user config: {e}[/red]")
                 return {}
@@ -92,17 +58,10 @@ class ConfigManager:
 
     def get_default_config(self) -> Dict[str, Any]:
         """Load default configuration."""
-        if self.default_config_path and self.default_config_path.exists():
-            try:
-                with open(self.default_config_path) as f:
-                    return yaml.safe_load(f) or {}
-            except Exception as e:
-                console.print(f"[red]Error loading default config: {e}[/red]")
-                return self._get_minimal_defaults()
         return self._get_minimal_defaults()
 
     def _get_minimal_defaults(self) -> Dict[str, Any]:
-        """Provide minimal default configuration when config.yaml is not available."""
+        """Provide minimal default configuration when config.toml is not available."""
         return {
             "models": {
                 "default": "openrouter/google/gemini-flash-1.5",
@@ -271,7 +230,7 @@ class ConfigManager:
         """Reset configuration to defaults."""
         if self.user_config_path.exists():
             # Backup current config
-            backup_path = self.user_config_path.with_suffix(".yaml.bak")
+            backup_path = self.user_config_path.with_suffix(".toml.bak")
             shutil.copy(self.user_config_path, backup_path)
             console.print(f"[dim]Backed up current config to {backup_path}[/dim]")
 
@@ -284,15 +243,20 @@ class ConfigManager:
     def _save_user_config(self, config: Dict[str, Any]) -> None:
         """Save user configuration to file."""
         try:
-            with open(self.user_config_path, "w") as f:
-                yaml.safe_dump(config, f, default_flow_style=False, sort_keys=False)
+            if self.user_config_path.exists():
+                with open(self.user_config_path, "rb") as f:
+                    full_config = tomllib.load(f)
+            else:
+                full_config = {}
+
+            full_config["brain"] = config
+            with open(self.user_config_path, "w", encoding="utf-8") as f:
+                f.write(toml.dumps(full_config))
             console.print(f"[dim]Saved to {self.user_config_path}[/dim]")
         except PermissionError:
             console.print(f"[red]Error: Permission denied saving config to {self.user_config_path}[/red]")
         except OSError as e:
             console.print(f"[red]Error: Cannot save config to {self.user_config_path}: {e}[/red]")
-        except yaml.YAMLError as e:
-            console.print(f"[red]Error: YAML serialization failed: {e}[/red]")
         except Exception as e:
             console.print(f"[red]Error saving config: {e}[/red]")
 
@@ -315,10 +279,10 @@ class ConfigManager:
             is_user_set = user_current == current if not isinstance(current, dict) else bool(user_current)
 
             if isinstance(current, dict):
-                # Display as YAML
+                # Display as TOML
                 console.print(f"[bold blue]{key}:[/bold blue]")
-                yaml_str = yaml.safe_dump(current, default_flow_style=False, sort_keys=False)
-                syntax = Syntax(yaml_str, "yaml", theme="monokai")
+                toml_str = toml.dumps(current)
+                syntax = Syntax(toml_str, "toml", theme="monokai")
                 console.print(syntax)
             else:
                 console.print(

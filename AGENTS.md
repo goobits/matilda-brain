@@ -53,7 +53,7 @@ goobits build  # Regenerates src/matilda_brain/cli.py and setup.sh
 - **Dual Backend Architecture**: Automatic routing Cloud (LiteLLM) ↔ Local (Ollama)
 - **Tool Schema Auto-generation**: Python type hints → OpenAI function calling schemas
 - **Provider Auto-detection**: Model names automatically route to correct backend
-- **Configuration Hierarchy**: defaults → `config.yaml` → env vars → runtime params
+- **Configuration Hierarchy**: defaults → `config.toml` → env vars → runtime params
 
 ### Testing Notes
 

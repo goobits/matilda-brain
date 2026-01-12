@@ -60,7 +60,7 @@ class EarlyWarningCapture:
                 if any(
                     pattern in line
                     for pattern in [
-                        "config.yaml not found",
+                        "config.toml not found",
                         "No models loaded from config",
                         "using minimal defaults",
                     ]

@@ -4,7 +4,8 @@ import os
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
-import yaml
+import tomllib
+import toml
 from dotenv import load_dotenv
 
 from ..core.exceptions import ConfigFileError
@@ -19,9 +20,16 @@ _config: Optional[ConfigModel] = None
 _project_defaults_cache: Optional[Dict[str, Any]] = None
 
 
+def _default_config_path() -> Path:
+    env_path = os.environ.get("MATILDA_CONFIG")
+    if env_path:
+        return Path(env_path)
+    return Path.home() / ".matilda" / "config.toml"
+
+
 def load_project_defaults() -> Dict[str, Any]:
     """
-    Load default configuration from the project's config.yaml file.
+    Load default configuration from the shared TOML config.
 
     Returns:
         Dictionary containing default configuration values
@@ -40,9 +48,9 @@ def load_project_defaults() -> Dict[str, Any]:
         _project_defaults_cache = config
         return config
 
-    # Fallback to minimal defaults if config.yaml not found
+    # Fallback to minimal defaults if config.toml not found
     # No need to warn again - get_project_config already warned
-    # Note: These values should match the constants in config.yaml
+    # Note: These values should match the defaults in config.toml
     _project_defaults_cache = {
         "models": {"default": "openrouter/google/gemini-flash-1.5", "available": {}},
         "backends": {
@@ -147,7 +155,7 @@ def load_config(config_file: Optional[Union[str, Path]] = None) -> ConfigModel:
             logger.debug(f"Loaded environment from {env_path}")
             break
 
-    # Load defaults from project config.yaml
+    # Load defaults from shared TOML config
     defaults = load_project_defaults()
     config_data = {}
     models_data = []
@@ -161,13 +169,15 @@ def load_config(config_file: Optional[Union[str, Path]] = None) -> ConfigModel:
     if config_path and config_path.exists():
         try:
             with open(config_path) as f:
-                if config_path.suffix.lower() in [".yaml", ".yml"]:
-                    file_config = yaml.safe_load(f)
-                else:
+                if config_path.suffix.lower() != ".toml":
                     raise ConfigFileError(
                         str(config_path),
                         f"Unsupported config file format: {config_path.suffix}",
                     )
+                full_config = tomllib.load(f)
+                file_config = full_config.get("brain")
+                if file_config is None:
+                    raise ConfigFileError(str(config_path), "Missing [brain] section in matilda config")
 
             if file_config:
                 # Extract models separately - the models section has subsections
@@ -188,8 +198,8 @@ def load_config(config_file: Optional[Union[str, Path]] = None) -> ConfigModel:
 
                 config_data.update(file_config)
                 logger.debug(f"Loaded config from {config_path}")
-        except yaml.YAMLError as e:
-            raise ConfigFileError(str(config_path), f"YAML parsing error: {e}") from e
+        except tomllib.TOMLDecodeError as e:
+            raise ConfigFileError(str(config_path), f"TOML parsing error: {e}") from e
         except Exception as e:
             raise ConfigFileError(str(config_path), str(e)) from e
 
@@ -284,37 +294,10 @@ def find_config_file() -> Optional[Path]:
     Returns:
         Path to config file if found, None otherwise
     """
-    # Get search paths from project defaults if available
-    project_defaults = load_project_defaults()
-    path_configs = project_defaults.get("paths", {}).get("config_search", [])
-
-    # Convert paths and expand home directory
-    search_paths = []
-    for path_str in path_configs:
-        if path_str.startswith("~/"):
-            path_str = str(Path.home() / path_str[2:])
-        elif path_str.startswith("./"):
-            path_str = str(Path.cwd() / path_str[2:])
-        search_paths.append(Path(path_str))
-
-    # Fallback to hardcoded paths if config not available
-    if not search_paths:
-        search_paths = [
-            Path.cwd() / "ai.yaml",
-            Path.cwd() / "ai.yml",
-            Path.cwd() / ".ai.yaml",
-            Path.cwd() / ".ai.yml",
-            Path.home() / ".config" / "ai" / "config.yaml",
-            Path.home() / ".config" / "ai" / "config.yml",
-            Path.home() / ".ai.yaml",
-            Path.home() / ".ai.yml",
-        ]
-
-    for path in search_paths:
-        if path.exists():
-            logger.debug(f"Found config file: {path}")
-            return path
-
+    config_path = _default_config_path()
+    if config_path.exists():
+        logger.debug(f"Found config file: {config_path}")
+        return config_path
     logger.debug("No config file found")
     return None
 
@@ -331,15 +314,7 @@ def save_config(config: ConfigModel, config_file: Optional[Union[str, Path]] = N
         config_path = Path(config_file)
     else:
         # Get default save path from project config
-        project_defaults = load_project_defaults()
-        default_save_path = project_defaults.get("paths", {}).get("default_config_save", "~/.config/ttt/config.yaml")
-
-        # Expand home directory
-        if default_save_path.startswith("~/"):
-            config_path = Path.home() / default_save_path[2:]
-        else:
-            config_path = Path(default_save_path)
-
+        config_path = _default_config_path()
         config_path.parent.mkdir(parents=True, exist_ok=True)
 
     # Convert config to dict, excluding sensitive data
@@ -353,8 +328,15 @@ def save_config(config: ConfigModel, config_file: Optional[Union[str, Path]] = N
     )
 
     try:
-        with open(config_path, "w") as f:
-            yaml.safe_dump(config_dict, f, default_flow_style=False)
+        if config_path.exists():
+            with open(config_path, "rb") as f:
+                full_config = tomllib.load(f)
+        else:
+            full_config = {}
+
+        full_config["brain"] = config_dict
+        with open(config_path, "w", encoding="utf-8") as f:
+            f.write(toml.dumps(full_config))
         logger.info(f"Saved config to {config_path}")
     except Exception as e:
         raise ConfigFileError(str(config_path), f"Failed to save: {e}") from e
