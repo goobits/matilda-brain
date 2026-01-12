@@ -45,6 +45,7 @@ messages:
 
     Quick start:
       brain "Hello, how can I help you today?"
+      # Config: ~/.matilda/config.toml ([brain])
       brain status
       brain models
 
