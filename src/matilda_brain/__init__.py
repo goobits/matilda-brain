@@ -7,7 +7,7 @@ A single, elegant interface for local and cloud AI models.
 # ruff: noqa: I001 (import order critical for avoiding circular imports)
 from typing import TYPE_CHECKING
 
-from .core.api import ChatSession, achat, ask, ask_async, chat, stream, stream_async
+from .core.api import achat, ask, ask_async, chat, stream, stream_async
 from .backends import CloudBackend, LocalBackend
 from .config import configure
 from .core.exceptions import (
@@ -74,7 +74,6 @@ __all__ = [
     "ask_async",
     "stream_async",
     "achat",
-    "ChatSession",
     "AIResponse",
     "ImageInput",
     "ConfigModel",

@@ -10,8 +10,6 @@ from ..internal.utils import get_logger, run_async, run_coro_in_background
 from .models import AIResponse, ImageInput
 from .routing import router
 
-# Backward compatibility alias - prefer PersistentChatSession in new code
-ChatSession = PersistentChatSession
 
 
 logger = get_logger(__name__)
@@ -192,7 +190,7 @@ def chat(
     session_id: Optional[str] = None,
     tools: Optional[List] = None,
     **kwargs: Any,
-) -> Iterator[ChatSession]:
+) -> Iterator[PersistentChatSession]:
     """
     Context manager for chat sessions.
 
@@ -357,7 +355,7 @@ async def achat(
     session_id: Optional[str] = None,
     tools: Optional[List] = None,
     **kwargs: Any,
-) -> AsyncIterator[ChatSession]:
+) -> AsyncIterator[PersistentChatSession]:
     """
     Async context manager for chat sessions.
 

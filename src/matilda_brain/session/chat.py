@@ -13,7 +13,7 @@ from ..core.exceptions import InvalidParameterError, SessionLoadError, SessionSa
 from ..core.models import AIResponse, ImageInput
 from ..core.routing import router
 from ..internal.utils import get_logger, run_async
-from ..memory_client import get_memory, MemoryStore
+from ..memory_client import get_memory
 from .serialization import (
     deserialize_tools,
     estimate_tokens,

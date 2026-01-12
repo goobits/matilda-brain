@@ -569,7 +569,7 @@ def get_model_registry() -> ModelRegistry:
     return _model_registry
 
 
-# Backward compatibility - this will be lazily initialized when accessed
+# Lazy initialization - avoids import-time overhead
 class LazyModelRegistry:
     def __getattr__(self, name):
         return getattr(get_model_registry(), name)
