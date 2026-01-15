@@ -14,6 +14,7 @@ Usage:
 import argparse
 import json
 import secrets
+import os
 from datetime import datetime
 from typing import Optional
 
@@ -425,6 +426,9 @@ def run_server(host: str = "0.0.0.0", port: int = 8772):
     print()
 
     if transport.transport == "unix" and transport.endpoint:
+        os.makedirs(os.path.dirname(transport.endpoint), exist_ok=True)
+        if os.path.exists(transport.endpoint):
+            os.unlink(transport.endpoint)
         web.run_app(app, path=transport.endpoint, print=None)
         return
     if transport.transport == "pipe":

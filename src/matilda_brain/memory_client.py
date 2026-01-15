@@ -43,7 +43,7 @@ class MemoryResult:
 class MemoryClient(MemoryStore):
     """HTTP client for matilda-memory Rust service"""
 
-    def __init__(self, base_url: str = "http://localhost:3214",
+    def __init__(self, base_url: str = "http://localhost:3215",
                  timeout: float = 5.0, agent_name: str = "assistant"):
         self.base_url = base_url
         self.timeout = timeout
