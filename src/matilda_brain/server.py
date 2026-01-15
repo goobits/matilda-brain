@@ -14,7 +14,6 @@ Usage:
 import argparse
 import json
 import secrets
-import os
 from datetime import datetime
 from typing import Optional
 
@@ -27,7 +26,7 @@ from .session.manager import ChatSessionManager
 from .session.chat import PersistentChatSession
 from .internal.token_storage import get_or_create_token
 from .internal.utils import get_logger
-from .transport import resolve as resolve_transport
+from matilda_transport import prepare_unix_socket, resolve_transport
 
 logger = get_logger(__name__)
 
@@ -426,9 +425,7 @@ def run_server(host: str = "0.0.0.0", port: int = 8772):
     print()
 
     if transport.transport == "unix" and transport.endpoint:
-        os.makedirs(os.path.dirname(transport.endpoint), exist_ok=True)
-        if os.path.exists(transport.endpoint):
-            os.unlink(transport.endpoint)
+        prepare_unix_socket(transport.endpoint)
         web.run_app(app, path=transport.endpoint, print=None)
         return
     if transport.transport == "pipe":
