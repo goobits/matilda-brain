@@ -26,6 +26,7 @@ from .session.manager import ChatSessionManager
 from .session.chat import PersistentChatSession
 from .internal.token_storage import get_or_create_token
 from .internal.utils import get_logger
+from .transport import resolve as resolve_transport
 
 logger = get_logger(__name__)
 
@@ -406,6 +407,7 @@ def create_app() -> web.Application:
 def run_server(host: str = "0.0.0.0", port: int = 8772):
     """Run the HTTP server."""
     app = create_app()
+    transport = resolve_transport("MATILDA_BRAIN_TRANSPORT", "MATILDA_BRAIN_ENDPOINT", host, port)
 
     print(f"Starting Brain server on http://{host}:{port}")
     print()
@@ -422,7 +424,13 @@ def run_server(host: str = "0.0.0.0", port: int = 8772):
     print("  GET  /health - Health check")
     print()
 
-    web.run_app(app, host=host, port=port, print=None)
+    if transport.transport == "unix" and transport.endpoint:
+        web.run_app(app, path=transport.endpoint, print=None)
+        return
+    if transport.transport == "pipe":
+        raise RuntimeError("pipe transport is not supported for Brain yet")
+
+    web.run_app(app, host=transport.host, port=transport.port, print=None)
 
 
 def main():
