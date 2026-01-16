@@ -5,10 +5,18 @@ from typing import List, Optional
 from pydantic import BaseModel, ConfigDict
 
 
+class ErrorDetail(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    message: str
+    code: str
+
+
 class ErrorResponse(BaseModel):
     model_config = ConfigDict(extra="allow")
 
-    error: str
+    status: str
+    error: ErrorDetail
 
 
 class HealthResponse(BaseModel):
@@ -25,12 +33,19 @@ class TokenUsage(BaseModel):
     completion: int
 
 
-class AskResponse(BaseModel):
+class AskResult(BaseModel):
     model_config = ConfigDict(extra="allow")
 
     text: str
     model: Optional[str] = None
     tokens: Optional[TokenUsage] = None
+
+
+class AskResponse(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    status: str
+    result: AskResult
 
 
 class StreamChunk(BaseModel):
@@ -83,15 +98,41 @@ class SessionDetail(BaseModel):
     tools: Optional[List[str]] = None
 
 
+class SessionListResponse(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    status: str
+    result: List[SessionSummary]
+
+
+class SessionDetailResponse(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    status: str
+    result: SessionDetail
+
+
+class DeleteSessionResult(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    id: str
+
+
 class DeleteSessionResponse(BaseModel):
     model_config = ConfigDict(extra="allow")
 
     status: str
-    id: str
+    result: DeleteSessionResult
+
+
+class ReloadResult(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    message: str
 
 
 class ReloadResponse(BaseModel):
     model_config = ConfigDict(extra="allow")
 
     status: str
-    message: str
+    result: ReloadResult

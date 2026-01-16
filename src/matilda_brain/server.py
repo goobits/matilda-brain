@@ -100,6 +100,17 @@ def add_cors_headers(response: Response, request: Request = None) -> Response:
     return response
 
 
+def ok_response(payload: dict, request: Request) -> Response:
+    return add_cors_headers(web.json_response({"status": "ok", "result": payload}), request)
+
+
+def error_response(message: str, request: Request, status: int = 400, code: str = "bad_request") -> Response:
+    return add_cors_headers(
+        web.json_response({"status": "error", "error": {"message": message, "code": code}}, status=status),
+        request,
+    )
+
+
 async def handle_options(request: Request) -> Response:
     """Handle CORS preflight requests."""
     return add_cors_headers(Response(status=200), request)
@@ -137,11 +148,11 @@ async def handle_ask(request: Request) -> Response:
     try:
         data = await request.json()
     except json.JSONDecodeError:
-        return add_cors_headers(web.json_response({"error": "Invalid JSON"}, status=400), request)
+        return error_response("Invalid JSON", request)
 
     prompt = data.get("prompt")
     if not prompt:
-        return add_cors_headers(web.json_response({"error": "Missing 'prompt' field"}, status=400), request)
+        return error_response("Missing 'prompt' field", request)
 
     messages = data.get("messages", [])
     model = data.get("model")
@@ -196,11 +207,11 @@ async def handle_ask(request: Request) -> Response:
                 "completion": getattr(response.usage, "completion_tokens", 0),
             }
 
-        return add_cors_headers(web.json_response(result), request)
+        return ok_response(result, request)
 
     except Exception as e:
         logger.exception("Error processing request")
-        return add_cors_headers(web.json_response({"error": str(e)}, status=500), request)
+        return error_response(str(e), request, status=500, code="internal_error")
 
 
 async def handle_stream(request: Request) -> StreamResponse:
@@ -224,11 +235,11 @@ async def handle_stream(request: Request) -> StreamResponse:
     try:
         data = await request.json()
     except json.JSONDecodeError:
-        return add_cors_headers(web.json_response({"error": "Invalid JSON"}, status=400), request)
+        return error_response("Invalid JSON", request)
 
     prompt = data.get("prompt")
     if not prompt:
-        return add_cors_headers(web.json_response({"error": "Missing 'prompt' field"}, status=400), request)
+        return error_response("Missing 'prompt' field", request)
 
     # Build CORS headers safely - only include Access-Control-Allow-Origin if origin is allowed
     stream_headers = {
@@ -266,7 +277,7 @@ async def handle_stream(request: Request) -> StreamResponse:
 
     except Exception as e:
         logger.exception("Error during streaming")
-        error_data = json.dumps({"error": str(e)})
+        error_data = json.dumps({"error": {"message": str(e), "code": "stream_error"}})
         await response.write(f"data: {error_data}\n\n".encode())
 
     await response.write_eof()
@@ -294,10 +305,10 @@ async def handle_list_sessions(request: Request) -> Response:
     try:
         manager = get_session_manager()
         sessions = manager.list_sessions()
-        return add_cors_headers(web.json_response(sessions), request)
+        return ok_response(sessions, request)
     except Exception as e:
         logger.exception("Error listing sessions")
-        return add_cors_headers(web.json_response({"error": str(e)}, status=500), request)
+        return error_response(str(e), request, status=500, code="internal_error")
 
 
 async def handle_get_session(request: Request) -> Response:
@@ -317,21 +328,19 @@ async def handle_get_session(request: Request) -> Response:
     """
     session_id = request.match_info.get("id")
     if not session_id:
-        return add_cors_headers(web.json_response({"error": "Missing session ID"}, status=400), request)
+        return error_response("Missing session ID", request)
 
     try:
         manager = get_session_manager()
         session = manager.load_session(session_id)
 
         if session is None:
-            return add_cors_headers(
-                web.json_response({"error": f"Session '{session_id}' not found"}, status=404), request
-            )
+            return error_response(f"Session '{session_id}' not found", request, status=404, code="not_found")
 
-        return add_cors_headers(web.json_response(session.to_dict()), request)
+        return ok_response(session.to_dict(), request)
     except Exception as e:
         logger.exception(f"Error loading session {session_id}")
-        return add_cors_headers(web.json_response({"error": str(e)}, status=500), request)
+        return error_response(str(e), request, status=500, code="internal_error")
 
 
 async def handle_delete_session(request: Request) -> Response:
@@ -345,21 +354,19 @@ async def handle_delete_session(request: Request) -> Response:
     """
     session_id = request.match_info.get("id")
     if not session_id:
-        return add_cors_headers(web.json_response({"error": "Missing session ID"}, status=400), request)
+        return error_response("Missing session ID", request)
 
     try:
         manager = get_session_manager()
         deleted = manager.delete_session(session_id)
 
         if deleted:
-            return add_cors_headers(web.json_response({"status": "deleted", "id": session_id}), request)
+            return ok_response({"id": session_id}, request)
         else:
-            return add_cors_headers(
-                web.json_response({"error": f"Session '{session_id}' not found"}, status=404), request
-            )
+            return error_response(f"Session '{session_id}' not found", request, status=404, code="not_found")
     except Exception as e:
         logger.exception(f"Error deleting session {session_id}")
-        return add_cors_headers(web.json_response({"error": str(e)}, status=500), request)
+        return error_response(str(e), request, status=500, code="internal_error")
 
 
 async def handle_reload(request: Request) -> Response:
@@ -380,10 +387,10 @@ async def handle_reload(request: Request) -> Response:
         set_config(new_config)
 
         logger.info("Configuration reloaded via API")
-        return add_cors_headers(web.json_response({"status": "ok", "message": "Configuration reloaded"}), request)
+        return ok_response({"message": "Configuration reloaded"}, request)
     except Exception as e:
         logger.exception("Error reloading configuration")
-        return add_cors_headers(web.json_response({"error": str(e)}, status=500), request)
+        return error_response(str(e), request, status=500, code="internal_error")
 
 
 def create_app() -> web.Application:
