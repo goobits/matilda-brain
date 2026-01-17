@@ -22,13 +22,22 @@ from typing import Optional
 from aiohttp import web
 from aiohttp.web import Request, Response, StreamResponse
 
+from matilda_transport import ensure_pipe_supported, prepare_unix_socket, resolve_transport
+
 from .core.api import stream_async
 from .internal.security import get_allowed_origins, is_origin_allowed
 from .session.manager import ChatSessionManager
 from .session.chat import PersistentChatSession
 from .internal.token_storage import get_or_create_token
 from .internal.utils import get_logger
-from matilda_transport import ensure_pipe_supported, prepare_unix_socket, resolve_transport
+from .schemas.responses import (
+    AskResponse,
+    DeleteSessionResponse,
+    ErrorResponse,
+    ReloadResponse,
+    SessionDetailResponse,
+    SessionListResponse,
+)
 
 logger = get_logger(__name__)
 
@@ -100,15 +109,27 @@ def add_cors_headers(response: Response, request: Request = None) -> Response:
     return response
 
 
-def ok_response(payload: dict, request: Request) -> Response:
-    return add_cors_headers(web.json_response({"status": "ok", "result": payload}), request)
+def should_validate() -> bool:
+    return os.getenv("MATILDA_SCHEMA_VALIDATE", "").lower() in {"1", "true", "yes", "on"}
+
+
+def validate_response(model, payload: dict) -> None:
+    if not should_validate():
+        return
+    model.model_validate(payload)
+
+
+def ok_response(payload: dict, request: Request, model=None) -> Response:
+    response_payload = {"status": "ok", "result": payload}
+    if model is not None:
+        validate_response(model, response_payload)
+    return add_cors_headers(web.json_response(response_payload), request)
 
 
 def error_response(message: str, request: Request, status: int = 400, code: str = "bad_request") -> Response:
-    return add_cors_headers(
-        web.json_response({"status": "error", "error": {"message": message, "code": code}}, status=status),
-        request,
-    )
+    response_payload = {"status": "error", "error": {"message": message, "code": code}}
+    validate_response(ErrorResponse, response_payload)
+    return add_cors_headers(web.json_response(response_payload, status=status), request)
 
 
 async def handle_options(request: Request) -> Response:
@@ -207,7 +228,7 @@ async def handle_ask(request: Request) -> Response:
                 "completion": getattr(response.usage, "completion_tokens", 0),
             }
 
-        return ok_response(result, request)
+        return ok_response(result, request, AskResponse)
 
     except Exception as e:
         logger.exception("Error processing request")
@@ -305,7 +326,7 @@ async def handle_list_sessions(request: Request) -> Response:
     try:
         manager = get_session_manager()
         sessions = manager.list_sessions()
-        return ok_response(sessions, request)
+        return ok_response(sessions, request, SessionListResponse)
     except Exception as e:
         logger.exception("Error listing sessions")
         return error_response(str(e), request, status=500, code="internal_error")
@@ -337,7 +358,7 @@ async def handle_get_session(request: Request) -> Response:
         if session is None:
             return error_response(f"Session '{session_id}' not found", request, status=404, code="not_found")
 
-        return ok_response(session.to_dict(), request)
+        return ok_response(session.to_dict(), request, SessionDetailResponse)
     except Exception as e:
         logger.exception(f"Error loading session {session_id}")
         return error_response(str(e), request, status=500, code="internal_error")
@@ -361,7 +382,7 @@ async def handle_delete_session(request: Request) -> Response:
         deleted = manager.delete_session(session_id)
 
         if deleted:
-            return ok_response({"id": session_id}, request)
+            return ok_response({"id": session_id}, request, DeleteSessionResponse)
         else:
             return error_response(f"Session '{session_id}' not found", request, status=404, code="not_found")
     except Exception as e:
@@ -387,7 +408,7 @@ async def handle_reload(request: Request) -> Response:
         set_config(new_config)
 
         logger.info("Configuration reloaded via API")
-        return ok_response({"message": "Configuration reloaded"}, request)
+        return ok_response({"message": "Configuration reloaded"}, request, ReloadResponse)
     except Exception as e:
         logger.exception("Error reloading configuration")
         return error_response(str(e), request, status=500, code="internal_error")
