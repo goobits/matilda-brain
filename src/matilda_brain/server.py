@@ -16,6 +16,7 @@ import asyncio
 import json
 import os
 import secrets
+import uuid
 from datetime import datetime
 from typing import Optional
 
@@ -31,12 +32,12 @@ from .session.chat import PersistentChatSession
 from .internal.token_storage import get_or_create_token
 from .internal.utils import get_logger
 from .schemas.responses import (
-    AskResponse,
-    DeleteSessionResponse,
-    ErrorResponse,
-    ReloadResponse,
-    SessionDetailResponse,
-    SessionListResponse,
+    AskEnvelope,
+    DeleteSessionEnvelope,
+    ErrorEnvelope,
+    ReloadEnvelope,
+    SessionDetailEnvelope,
+    SessionListEnvelope,
 )
 
 logger = get_logger(__name__)
@@ -63,12 +64,40 @@ async def auth_middleware(request: Request, handler):
     auth_header = request.headers.get("Authorization")
     if not auth_header or not auth_header.startswith("Bearer "):
         return add_cors_headers(
-            web.json_response({"error": "Unauthorized: Missing or invalid Authorization header"}, status=401), request
+            web.json_response(
+                {
+                    "request_id": str(uuid.uuid4()),
+                    "service": "brain",
+                    "task": "auth",
+                    "error": {
+                        "message": "Unauthorized: Missing or invalid Authorization header",
+                        "code": "unauthorized",
+                        "retryable": False,
+                    },
+                },
+                status=401,
+            ),
+            request,
         )
 
     token = auth_header.split(" ")[1]
     if not secrets.compare_digest(token, API_TOKEN):
-        return add_cors_headers(web.json_response({"error": "Forbidden: Invalid token"}, status=403), request)
+        return add_cors_headers(
+            web.json_response(
+                {
+                    "request_id": str(uuid.uuid4()),
+                    "service": "brain",
+                    "task": "auth",
+                    "error": {
+                        "message": "Forbidden: Invalid token",
+                        "code": "forbidden",
+                        "retryable": False,
+                    },
+                },
+                status=403,
+            ),
+            request,
+        )
 
     return await handler(request)
 
@@ -119,16 +148,36 @@ def validate_response(model, payload: dict) -> None:
     model.model_validate(payload)
 
 
-def ok_response(payload: dict, request: Request, model=None) -> Response:
-    response_payload = {"status": "ok", "result": payload}
+def ok_response(task: str, payload: dict, request: Request, model=None) -> Response:
+    response_payload = {
+        "request_id": str(uuid.uuid4()),
+        "service": "brain",
+        "task": task,
+        "result": payload,
+    }
     if model is not None:
         validate_response(model, response_payload)
     return add_cors_headers(web.json_response(response_payload), request)
 
 
-def error_response(message: str, request: Request, status: int = 400, code: str = "bad_request") -> Response:
-    response_payload = {"status": "error", "error": {"message": message, "code": code}}
-    validate_response(ErrorResponse, response_payload)
+def error_response(
+    message: str,
+    request: Request,
+    status: int = 400,
+    code: str = "bad_request",
+    task: str = "unknown",
+) -> Response:
+    response_payload = {
+        "request_id": str(uuid.uuid4()),
+        "service": "brain",
+        "task": task,
+        "error": {
+            "message": message,
+            "code": code,
+            "retryable": status >= 500,
+        },
+    }
+    validate_response(ErrorEnvelope, response_payload)
     return add_cors_headers(web.json_response(response_payload, status=status), request)
 
 
@@ -139,7 +188,13 @@ async def handle_options(request: Request) -> Response:
 
 async def handle_health(request: Request) -> Response:
     """Health check endpoint."""
-    return add_cors_headers(web.json_response({"status": "ok", "service": "brain"}), request)
+    response_payload = {
+        "request_id": str(uuid.uuid4()),
+        "service": "brain",
+        "task": "health",
+        "result": {"status": "ok", "service": "brain"},
+    }
+    return add_cors_headers(web.json_response(response_payload), request)
 
 
 async def handle_ask(request: Request) -> Response:
@@ -169,11 +224,11 @@ async def handle_ask(request: Request) -> Response:
     try:
         data = await request.json()
     except json.JSONDecodeError:
-        return error_response("Invalid JSON", request)
+        return error_response("Invalid JSON", request, task="ask")
 
     prompt = data.get("prompt")
     if not prompt:
-        return error_response("Missing 'prompt' field", request)
+        return error_response("Missing 'prompt' field", request, task="ask")
 
     messages = data.get("messages", [])
     model = data.get("model")
@@ -228,11 +283,11 @@ async def handle_ask(request: Request) -> Response:
                 "completion": getattr(response.usage, "completion_tokens", 0),
             }
 
-        return ok_response(result, request, AskResponse)
+        return ok_response("ask", result, request, AskEnvelope)
 
     except Exception as e:
         logger.exception("Error processing request")
-        return error_response(str(e), request, status=500, code="internal_error")
+        return error_response(str(e), request, status=500, code="internal_error", task="ask")
 
 
 async def handle_stream(request: Request) -> StreamResponse:
@@ -256,11 +311,11 @@ async def handle_stream(request: Request) -> StreamResponse:
     try:
         data = await request.json()
     except json.JSONDecodeError:
-        return error_response("Invalid JSON", request)
+        return error_response("Invalid JSON", request, task="stream")
 
     prompt = data.get("prompt")
     if not prompt:
-        return error_response("Missing 'prompt' field", request)
+        return error_response("Missing 'prompt' field", request, task="stream")
 
     # Build CORS headers safely - only include Access-Control-Allow-Origin if origin is allowed
     stream_headers = {
@@ -283,6 +338,7 @@ async def handle_stream(request: Request) -> StreamResponse:
     await response.prepare(request)
 
     try:
+        request_id = str(uuid.uuid4())
         async for chunk in stream_async(
             prompt,
             model=data.get("model"),
@@ -290,15 +346,37 @@ async def handle_stream(request: Request) -> StreamResponse:
             temperature=data.get("temperature"),
             max_tokens=data.get("max_tokens"),
         ):
-            event_data = json.dumps({"chunk": chunk})
+            event_data = json.dumps(
+                {
+                    "request_id": request_id,
+                    "service": "brain",
+                    "task": "stream",
+                    "result": {"chunk": chunk},
+                }
+            )
             await response.write(f"data: {event_data}\n\n".encode())
 
         # Send done event
-        await response.write(b'data: {"done": true}\n\n')
+        done_event = json.dumps(
+            {
+                "request_id": request_id,
+                "service": "brain",
+                "task": "stream",
+                "result": {"done": True},
+            }
+        )
+        await response.write(f"data: {done_event}\n\n".encode())
 
     except Exception as e:
         logger.exception("Error during streaming")
-        error_data = json.dumps({"error": {"message": str(e), "code": "stream_error"}})
+        error_data = json.dumps(
+            {
+                "request_id": str(uuid.uuid4()),
+                "service": "brain",
+                "task": "stream",
+                "error": {"message": str(e), "code": "stream_error", "retryable": True},
+            }
+        )
         await response.write(f"data: {error_data}\n\n".encode())
 
     await response.write_eof()
@@ -326,10 +404,10 @@ async def handle_list_sessions(request: Request) -> Response:
     try:
         manager = get_session_manager()
         sessions = manager.list_sessions()
-        return ok_response(sessions, request, SessionListResponse)
+        return ok_response("sessions", sessions, request, SessionListEnvelope)
     except Exception as e:
         logger.exception("Error listing sessions")
-        return error_response(str(e), request, status=500, code="internal_error")
+        return error_response(str(e), request, status=500, code="internal_error", task="sessions")
 
 
 async def handle_get_session(request: Request) -> Response:
@@ -349,19 +427,21 @@ async def handle_get_session(request: Request) -> Response:
     """
     session_id = request.match_info.get("id")
     if not session_id:
-        return error_response("Missing session ID", request)
+        return error_response("Missing session ID", request, task="session")
 
     try:
         manager = get_session_manager()
         session = manager.load_session(session_id)
 
         if session is None:
-            return error_response(f"Session '{session_id}' not found", request, status=404, code="not_found")
+            return error_response(
+                f"Session '{session_id}' not found", request, status=404, code="not_found", task="session"
+            )
 
-        return ok_response(session.to_dict(), request, SessionDetailResponse)
+        return ok_response("session", session.to_dict(), request, SessionDetailEnvelope)
     except Exception as e:
         logger.exception(f"Error loading session {session_id}")
-        return error_response(str(e), request, status=500, code="internal_error")
+        return error_response(str(e), request, status=500, code="internal_error", task="session")
 
 
 async def handle_delete_session(request: Request) -> Response:
@@ -375,19 +455,21 @@ async def handle_delete_session(request: Request) -> Response:
     """
     session_id = request.match_info.get("id")
     if not session_id:
-        return error_response("Missing session ID", request)
+        return error_response("Missing session ID", request, task="delete_session")
 
     try:
         manager = get_session_manager()
         deleted = manager.delete_session(session_id)
 
         if deleted:
-            return ok_response({"id": session_id}, request, DeleteSessionResponse)
+            return ok_response("delete_session", {"id": session_id}, request, DeleteSessionEnvelope)
         else:
-            return error_response(f"Session '{session_id}' not found", request, status=404, code="not_found")
+            return error_response(
+                f"Session '{session_id}' not found", request, status=404, code="not_found", task="delete_session"
+            )
     except Exception as e:
         logger.exception(f"Error deleting session {session_id}")
-        return error_response(str(e), request, status=500, code="internal_error")
+        return error_response(str(e), request, status=500, code="internal_error", task="delete_session")
 
 
 async def handle_reload(request: Request) -> Response:
@@ -408,10 +490,10 @@ async def handle_reload(request: Request) -> Response:
         set_config(new_config)
 
         logger.info("Configuration reloaded via API")
-        return ok_response({"message": "Configuration reloaded"}, request, ReloadResponse)
+        return ok_response("reload", {"message": "Configuration reloaded"}, request, ReloadEnvelope)
     except Exception as e:
         logger.exception("Error reloading configuration")
-        return error_response(str(e), request, status=500, code="internal_error")
+        return error_response(str(e), request, status=500, code="internal_error", task="reload")
 
 
 def create_app() -> web.Application:

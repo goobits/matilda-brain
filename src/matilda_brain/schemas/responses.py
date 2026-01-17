@@ -10,20 +10,17 @@ class ErrorDetail(BaseModel):
 
     message: str
     code: str
+    retryable: bool
 
 
-class ErrorResponse(BaseModel):
+class EnvelopeBase(BaseModel):
     model_config = ConfigDict(extra="allow")
 
-    status: str
-    error: ErrorDetail
-
-
-class HealthResponse(BaseModel):
-    model_config = ConfigDict(extra="allow")
-
-    status: str
-    service: Optional[str] = None
+    request_id: str
+    service: str
+    task: str
+    result: Optional[object] = None
+    error: Optional[ErrorDetail] = None
 
 
 class TokenUsage(BaseModel):
@@ -41,10 +38,7 @@ class AskResult(BaseModel):
     tokens: Optional[TokenUsage] = None
 
 
-class AskResponse(BaseModel):
-    model_config = ConfigDict(extra="allow")
-
-    status: str
+class AskEnvelope(EnvelopeBase):
     result: AskResult
 
 
@@ -63,7 +57,7 @@ class StreamDone(BaseModel):
 class StreamError(BaseModel):
     model_config = ConfigDict(extra="allow")
 
-    error: str
+    message: str
 
 
 class SessionSummary(BaseModel):
@@ -98,17 +92,11 @@ class SessionDetail(BaseModel):
     tools: Optional[List[str]] = None
 
 
-class SessionListResponse(BaseModel):
-    model_config = ConfigDict(extra="allow")
-
-    status: str
+class SessionListEnvelope(EnvelopeBase):
     result: List[SessionSummary]
 
 
-class SessionDetailResponse(BaseModel):
-    model_config = ConfigDict(extra="allow")
-
-    status: str
+class SessionDetailEnvelope(EnvelopeBase):
     result: SessionDetail
 
 
@@ -118,10 +106,7 @@ class DeleteSessionResult(BaseModel):
     id: str
 
 
-class DeleteSessionResponse(BaseModel):
-    model_config = ConfigDict(extra="allow")
-
-    status: str
+class DeleteSessionEnvelope(EnvelopeBase):
     result: DeleteSessionResult
 
 
@@ -131,8 +116,9 @@ class ReloadResult(BaseModel):
     message: str
 
 
-class ReloadResponse(BaseModel):
-    model_config = ConfigDict(extra="allow")
-
-    status: str
+class ReloadEnvelope(EnvelopeBase):
     result: ReloadResult
+
+
+class ErrorEnvelope(EnvelopeBase):
+    error: ErrorDetail
