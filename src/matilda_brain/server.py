@@ -69,6 +69,9 @@ async def auth_middleware(request: Request, handler):
                     "request_id": str(uuid.uuid4()),
                     "service": "brain",
                     "task": "auth",
+                    "provider": None,
+                    "model": None,
+                    "usage": None,
                     "error": {
                         "message": "Unauthorized: Missing or invalid Authorization header",
                         "code": "unauthorized",
@@ -88,6 +91,9 @@ async def auth_middleware(request: Request, handler):
                     "request_id": str(uuid.uuid4()),
                     "service": "brain",
                     "task": "auth",
+                    "provider": None,
+                    "model": None,
+                    "usage": None,
                     "error": {
                         "message": "Forbidden: Invalid token",
                         "code": "forbidden",
@@ -148,15 +154,26 @@ def validate_response(model, payload: dict) -> None:
     model.model_validate(payload)
 
 
-def ok_response(task: str, payload: dict, request: Request, model=None) -> Response:
+def ok_response(
+    task: str,
+    payload: dict,
+    request: Request,
+    schema_model=None,
+    provider: Optional[str] = None,
+    model_name: Optional[str] = None,
+    usage: Optional[dict] = None,
+) -> Response:
     response_payload = {
         "request_id": str(uuid.uuid4()),
         "service": "brain",
         "task": task,
+        "provider": provider,
+        "model": model_name,
         "result": payload,
+        "usage": usage,
     }
-    if model is not None:
-        validate_response(model, response_payload)
+    if schema_model is not None:
+        validate_response(schema_model, response_payload)
     return add_cors_headers(web.json_response(response_payload), request)
 
 
@@ -171,6 +188,9 @@ def error_response(
         "request_id": str(uuid.uuid4()),
         "service": "brain",
         "task": task,
+        "provider": None,
+        "model": None,
+        "usage": None,
         "error": {
             "message": message,
             "code": code,
@@ -192,6 +212,9 @@ async def handle_health(request: Request) -> Response:
         "request_id": str(uuid.uuid4()),
         "service": "brain",
         "task": "health",
+        "provider": None,
+        "model": None,
+        "usage": None,
         "result": {"status": "ok", "service": "brain"},
     }
     return add_cors_headers(web.json_response(response_payload), request)
@@ -273,17 +296,34 @@ async def handle_ask(request: Request) -> Response:
 
         result = {
             "text": str(response),
-            "model": getattr(response, "model", None),
         }
 
-        # Add token usage if available
-        if hasattr(response, "usage") and response.usage:
-            result["tokens"] = {
-                "prompt": getattr(response.usage, "prompt_tokens", 0),
-                "completion": getattr(response.usage, "completion_tokens", 0),
-            }
+        provider = None
+        if hasattr(response, "metadata") and isinstance(response.metadata, dict):
+            provider = response.metadata.get("provider")
+        if provider is None:
+            provider = getattr(response, "backend", None)
 
-        return ok_response("ask", result, request, AskEnvelope)
+        model_name = getattr(response, "model", None)
+        usage = None
+        if hasattr(response, "tokens_in") or hasattr(response, "tokens_out"):
+            tokens_in = getattr(response, "tokens_in", None)
+            tokens_out = getattr(response, "tokens_out", None)
+            if tokens_in is not None or tokens_out is not None:
+                usage = {
+                    "prompt": tokens_in or 0,
+                    "completion": tokens_out or 0,
+                }
+
+        return ok_response(
+            "ask",
+            result,
+            request,
+            schema_model=AskEnvelope,
+            provider=provider,
+            model_name=model_name,
+            usage=usage,
+        )
 
     except Exception as e:
         logger.exception("Error processing request")
@@ -351,6 +391,9 @@ async def handle_stream(request: Request) -> StreamResponse:
                     "request_id": request_id,
                     "service": "brain",
                     "task": "stream",
+                    "provider": None,
+                    "model": data.get("model"),
+                    "usage": None,
                     "result": {"chunk": chunk},
                 }
             )
@@ -362,6 +405,9 @@ async def handle_stream(request: Request) -> StreamResponse:
                 "request_id": request_id,
                 "service": "brain",
                 "task": "stream",
+                "provider": None,
+                "model": data.get("model"),
+                "usage": None,
                 "result": {"done": True},
             }
         )
@@ -374,6 +420,9 @@ async def handle_stream(request: Request) -> StreamResponse:
                 "request_id": str(uuid.uuid4()),
                 "service": "brain",
                 "task": "stream",
+                "provider": None,
+                "model": data.get("model"),
+                "usage": None,
                 "error": {"message": str(e), "code": "stream_error", "retryable": True},
             }
         )
@@ -404,7 +453,7 @@ async def handle_list_sessions(request: Request) -> Response:
     try:
         manager = get_session_manager()
         sessions = manager.list_sessions()
-        return ok_response("sessions", sessions, request, SessionListEnvelope)
+        return ok_response("sessions", sessions, request, schema_model=SessionListEnvelope)
     except Exception as e:
         logger.exception("Error listing sessions")
         return error_response(str(e), request, status=500, code="internal_error", task="sessions")
@@ -438,7 +487,7 @@ async def handle_get_session(request: Request) -> Response:
                 f"Session '{session_id}' not found", request, status=404, code="not_found", task="session"
             )
 
-        return ok_response("session", session.to_dict(), request, SessionDetailEnvelope)
+        return ok_response("session", session.to_dict(), request, schema_model=SessionDetailEnvelope)
     except Exception as e:
         logger.exception(f"Error loading session {session_id}")
         return error_response(str(e), request, status=500, code="internal_error", task="session")
@@ -462,7 +511,7 @@ async def handle_delete_session(request: Request) -> Response:
         deleted = manager.delete_session(session_id)
 
         if deleted:
-            return ok_response("delete_session", {"id": session_id}, request, DeleteSessionEnvelope)
+            return ok_response("delete_session", {"id": session_id}, request, schema_model=DeleteSessionEnvelope)
         else:
             return error_response(
                 f"Session '{session_id}' not found", request, status=404, code="not_found", task="delete_session"
@@ -490,7 +539,7 @@ async def handle_reload(request: Request) -> Response:
         set_config(new_config)
 
         logger.info("Configuration reloaded via API")
-        return ok_response("reload", {"message": "Configuration reloaded"}, request, ReloadEnvelope)
+        return ok_response("reload", {"message": "Configuration reloaded"}, request, schema_model=ReloadEnvelope)
     except Exception as e:
         logger.exception("Error reloading configuration")
         return error_response(str(e), request, status=500, code="internal_error", task="reload")

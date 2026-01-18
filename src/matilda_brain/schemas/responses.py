@@ -19,23 +19,17 @@ class EnvelopeBase(BaseModel):
     request_id: str
     service: str
     task: str
+    provider: Optional[str] = None
+    model: Optional[str] = None
     result: Optional[object] = None
+    usage: Optional[object] = None
     error: Optional[ErrorDetail] = None
-
-
-class TokenUsage(BaseModel):
-    model_config = ConfigDict(extra="allow")
-
-    prompt: int
-    completion: int
 
 
 class AskResult(BaseModel):
     model_config = ConfigDict(extra="allow")
 
     text: str
-    model: Optional[str] = None
-    tokens: Optional[TokenUsage] = None
 
 
 class AskEnvelope(EnvelopeBase):
