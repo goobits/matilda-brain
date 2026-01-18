@@ -239,9 +239,13 @@ async def handle_ask(request: Request) -> Response:
 
     Response:
     {
-        "text": "Python is a programming language...",
+        "request_id": "req-123",
+        "service": "brain",
+        "task": "ask",
+        "provider": "openai",
         "model": "gpt-4",
-        "tokens": {"prompt": 10, "completion": 50}
+        "usage": {"prompt": 10, "completion": 50},
+        "result": {"text": "Python is a programming language..."}
     }
     """
     try:
@@ -343,10 +347,10 @@ async def handle_stream(request: Request) -> StreamResponse:
     }
 
     Response: Server-Sent Events (SSE)
-    data: {"chunk": "Once"}
-    data: {"chunk": " upon"}
-    data: {"chunk": " a time..."}
-    data: {"done": true}
+    data: {"request_id":"req-123","service":"brain","task":"stream","provider":null,"model":"gpt-4","usage":null,"result":{"chunk":"Once"}}
+    data: {"request_id":"req-123","service":"brain","task":"stream","provider":null,"model":"gpt-4","usage":null,"result":{"chunk":" upon"}}
+    data: {"request_id":"req-123","service":"brain","task":"stream","provider":null,"model":"gpt-4","usage":null,"result":{"chunk":" a time..."}}
+    data: {"request_id":"req-123","service":"brain","task":"stream","provider":null,"model":"gpt-4","usage":null,"result":{"done": true}}
     """
     try:
         data = await request.json()
@@ -439,16 +443,24 @@ async def handle_list_sessions(request: Request) -> Response:
     GET /api/sessions
 
     Response:
-    [
-        {
-            "id": "20250101_120000_abc12345",
-            "created_at": "2025-01-01T12:00:00",
-            "updated_at": "2025-01-01T12:05:00",
-            "message_count": 5,
-            "last_message": "What is Python?...",
-            "model": "gpt-4"
-        }
-    ]
+    {
+        "request_id": "req-123",
+        "service": "brain",
+        "task": "sessions",
+        "provider": null,
+        "model": null,
+        "usage": null,
+        "result": [
+            {
+                "id": "20250101_120000_abc12345",
+                "created_at": "2025-01-01T12:00:00",
+                "updated_at": "2025-01-01T12:05:00",
+                "message_count": 5,
+                "last_message": "What is Python?...",
+                "model": "gpt-4"
+            }
+        ]
+    }
     """
     try:
         manager = get_session_manager()
@@ -467,11 +479,19 @@ async def handle_get_session(request: Request) -> Response:
 
     Response:
     {
-        "id": "20250101_120000_abc12345",
-        "created_at": "2025-01-01T12:00:00",
-        "updated_at": "2025-01-01T12:05:00",
-        "messages": [...],
-        "model": "gpt-4"
+        "request_id": "req-123",
+        "service": "brain",
+        "task": "session",
+        "provider": null,
+        "model": null,
+        "usage": null,
+        "result": {
+            "id": "20250101_120000_abc12345",
+            "created_at": "2025-01-01T12:00:00",
+            "updated_at": "2025-01-01T12:05:00",
+            "messages": [...],
+            "model": "gpt-4"
+        }
     }
     """
     session_id = request.match_info.get("id")
@@ -500,7 +520,15 @@ async def handle_delete_session(request: Request) -> Response:
     DELETE /api/sessions/{id}
 
     Response:
-    {"status": "deleted", "id": "session_id"}
+    {
+        "request_id": "req-123",
+        "service": "brain",
+        "task": "delete_session",
+        "provider": null,
+        "model": null,
+        "usage": null,
+        "result": {"id": "session_id"}
+    }
     """
     session_id = request.match_info.get("id")
     if not session_id:
@@ -528,7 +556,15 @@ async def handle_reload(request: Request) -> Response:
     POST /reload
 
     Response:
-    {"status": "ok", "message": "Configuration reloaded"}
+    {
+        "request_id": "req-123",
+        "service": "brain",
+        "task": "reload",
+        "provider": null,
+        "model": null,
+        "usage": null,
+        "result": {"message": "Configuration reloaded"}
+    }
     """
     try:
         from .config.schema import load_config, set_config
