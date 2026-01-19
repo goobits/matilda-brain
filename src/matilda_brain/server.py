@@ -427,7 +427,7 @@ async def handle_stream(request: Request) -> StreamResponse:
                 "provider": None,
                 "model": data.get("model"),
                 "usage": None,
-                "error": {"message": str(e), "code": "stream_error", "retryable": True},
+                "error": {"message": str(e), "code": "internal_error", "retryable": True},
             }
         )
         await response.write(f"data: {error_data}\n\n".encode())
