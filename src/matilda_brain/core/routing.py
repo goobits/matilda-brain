@@ -2,7 +2,7 @@
 
 from typing import Any, Dict, List, Optional, Union, cast
 
-from ..backends import HAS_LOCAL_BACKEND, BaseBackend, CloudBackend
+from ..backends import HAS_LOCAL_BACKEND, BaseBackend, CloudBackend, HubBackend
 from ..config.schema import get_config
 from ..plugins.loader import plugin_registry
 from ..internal.utils import get_logger
@@ -52,6 +52,8 @@ class Router:
                 self._backends[backend_name] = LocalBackend(config_dict)
             elif backend_name == "cloud":
                 self._backends[backend_name] = CloudBackend(config_dict)
+            elif backend_name == "hub":
+                self._backends[backend_name] = HubBackend(config_dict)
             else:
                 # Try plugin registry
                 backend = plugin_registry.create_backend(backend_name, config_dict)

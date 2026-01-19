@@ -8,7 +8,7 @@ A single, elegant interface for local and cloud AI models.
 from typing import TYPE_CHECKING
 
 from .core.api import achat, ask, ask_async, chat, stream, stream_async
-from .backends import CloudBackend, LocalBackend
+from .backends import CloudBackend, HubBackend, LocalBackend
 from .config import configure
 from .core.exceptions import (
     AIError,
@@ -90,6 +90,7 @@ __all__ = [
     "configure",
     "LocalBackend",
     "CloudBackend",
+    "HubBackend",
     "model_registry",
     "register_backend",
     "discover_plugins",
