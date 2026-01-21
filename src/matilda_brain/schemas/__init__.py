@@ -17,7 +17,6 @@ from .responses import (
     StreamChunk,
     StreamDone,
     StreamError,
-    TokenUsage,
 )
 
 __all__ = [
@@ -41,5 +40,4 @@ __all__ = [
     "StreamChunk",
     "StreamDone",
     "StreamError",
-    "TokenUsage",
 ]
