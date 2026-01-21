@@ -139,7 +139,14 @@ def run_tests(cmd):
     """Run pytest with the given command."""
     print(f"Running: {' '.join(cmd)}")
     print()
-    result = subprocess.run(cmd)
+    env = os.environ.copy()
+    local_transport = os.path.abspath(
+        os.path.join(os.path.dirname(__file__), "..", "..", "matilda-transport", "src")
+    )
+    if os.path.isdir(local_transport):
+        existing = env.get("PYTHONPATH", "")
+        env["PYTHONPATH"] = f"{local_transport}{os.pathsep}{existing}" if existing else local_transport
+    result = subprocess.run(cmd, env=env)
     return result.returncode
 
 
