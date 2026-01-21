@@ -91,9 +91,9 @@ class HubBackend(BaseBackend):
                         continue
                     result = envelope.get("result") or {}
                     if isinstance(result, dict):
-                        chunk = result.get("chunk")
-                        if chunk:
-                            yield str(chunk)
+                        delta = result.get("delta")
+                        if delta:
+                            yield str(delta)
                         if result.get("done"):
                             break
 

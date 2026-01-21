@@ -347,10 +347,10 @@ async def handle_stream(request: Request) -> StreamResponse:
     }
 
     Response: Server-Sent Events (SSE)
-    data: {"request_id":"req-123","service":"brain","task":"stream","provider":null,"model":"gpt-4","usage":null,"result":{"chunk":"Once"}}
-    data: {"request_id":"req-123","service":"brain","task":"stream","provider":null,"model":"gpt-4","usage":null,"result":{"chunk":" upon"}}
-    data: {"request_id":"req-123","service":"brain","task":"stream","provider":null,"model":"gpt-4","usage":null,"result":{"chunk":" a time..."}}
-    data: {"request_id":"req-123","service":"brain","task":"stream","provider":null,"model":"gpt-4","usage":null,"result":{"done": true}}
+    data: {"request_id":"req-123","service":"brain","task":"stream","capability":"reason-over-context","provider":null,"model":"gpt-4","usage":null,"result":{"delta":"Once"}}
+    data: {"request_id":"req-123","service":"brain","task":"stream","capability":"reason-over-context","provider":null,"model":"gpt-4","usage":null,"result":{"delta":" upon"}}
+    data: {"request_id":"req-123","service":"brain","task":"stream","capability":"reason-over-context","provider":null,"model":"gpt-4","usage":null,"result":{"delta":" a time..."}}
+    data: {"request_id":"req-123","service":"brain","task":"stream","capability":"reason-over-context","provider":null,"model":"gpt-4","usage":null,"result":{"done": true}}
     """
     try:
         data = await request.json()
@@ -395,10 +395,11 @@ async def handle_stream(request: Request) -> StreamResponse:
                     "request_id": request_id,
                     "service": "brain",
                     "task": "stream",
+                    "capability": "reason-over-context",
                     "provider": None,
                     "model": data.get("model"),
                     "usage": None,
-                    "result": {"chunk": chunk},
+                    "result": {"delta": chunk},
                 }
             )
             await response.write(f"data: {event_data}\n\n".encode())
@@ -409,6 +410,7 @@ async def handle_stream(request: Request) -> StreamResponse:
                 "request_id": request_id,
                 "service": "brain",
                 "task": "stream",
+                "capability": "reason-over-context",
                 "provider": None,
                 "model": data.get("model"),
                 "usage": None,
