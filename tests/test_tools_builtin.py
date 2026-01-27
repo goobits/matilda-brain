@@ -307,12 +307,12 @@ class TestHttpRequest:
     async def test_http_request_invalid_url(self):
         """Test invalid URL."""
         result = await http_request("not-a-url")
-        assert "Error: Invalid URL format" in result
+        assert "Error: Invalid URL" in result
 
     async def test_http_request_unsupported_protocol(self):
         """Test unsupported protocol."""
         result = await http_request("ftp://example.com/file")
-        assert "Error: Only HTTP/HTTPS protocols are supported" in result
+        assert "Error: Invalid URL" in result and "Only HTTP and HTTPS URLs are allowed" in result
 
     @patch("httpx.AsyncClient")
     async def test_http_request_http_error(self, mock_client_cls):

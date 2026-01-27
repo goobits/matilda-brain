@@ -96,10 +96,17 @@ async def http_request(
     Returns:
         Response text or error message
     """
-    if timeout is None:
-        timeout = _get_web_timeout()
 
-    try:
+    async def _http_request_impl(
+        url: str,
+        method: str = "GET",
+        headers: Optional[Dict[str, str]] = None,
+        data: Optional[Union[str, Dict[str, Any]]] = None,
+        timeout: Optional[int] = None,
+    ) -> str:
+        if timeout is None:
+            timeout = _get_web_timeout()
+
         # Validate inputs
         if not url:
             return "Error: URL cannot be empty"
@@ -162,14 +169,27 @@ async def http_request(
 
             except httpx.HTTPStatusError as e:
                 return f"HTTP Error {e.response.status_code}: {e.response.reason_phrase}"
+            except httpx.RequestError as e:
+                 # Re-raise to allow _safe_execute_async to handle it, or stick to old behavior.
+                 # Old behavior was: return f"Network error: {str(e)}"
+                 # _safe_execute_async might format it differently.
+                 # To remain consistent with strict "don't break changes",
+                 # I'll re-raise and let the wrapper handle it, assuming standard tools behavior is desired.
+                 raise
+            except Exception:
+                from matilda_brain.internal.utils import get_logger
+                get_logger(__name__).exception("Error making HTTP request")
+                raise
 
-    except httpx.RequestError as e:
-        return f"Network error: {str(e)}"
-    except Exception:
-        from matilda_brain.internal.utils import get_logger
-
-        get_logger(__name__).exception("Error making HTTP request")
-        return "Error making request - see logs for details"
+    return await _safe_execute_async(
+        "http_request",
+        _http_request_impl,
+        url=url,
+        method=method,
+        headers=headers,
+        data=data,
+        timeout=timeout
+    )
 
 
 __all__ = ["web_search", "http_request"]
