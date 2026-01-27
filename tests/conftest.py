@@ -9,6 +9,14 @@ from pathlib import Path
 import pytest
 from dotenv import load_dotenv
 
+# Mock matilda_transport if not available (for local testing/CI without the private package)
+try:
+    import matilda_transport
+except ImportError:
+    from unittest.mock import MagicMock
+    import sys
+    sys.modules["matilda_transport"] = MagicMock()
+
 # Add the parent directory and src directory to Python path for imports
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root / "src"))

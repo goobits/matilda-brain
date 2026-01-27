@@ -1,9 +1,9 @@
 """Tests for built-in tools."""
 
 import json
-import urllib.error
-from unittest.mock import Mock, patch
+from unittest.mock import AsyncMock, Mock, patch
 
+import httpx
 import pytest
 
 from matilda_brain.tools import get_tool, list_tools
@@ -19,29 +19,29 @@ from matilda_brain.tools.builtins import (
 )
 
 
+@pytest.mark.asyncio
 class TestWebSearch:
     """Test web_search tool."""
 
-    @pytest.mark.unit
-    @patch("urllib.request.urlopen")
-    def test_web_search_returns_formatted_answer_and_topics(self, mock_urlopen):
+    @patch("httpx.AsyncClient")
+    async def test_web_search_returns_formatted_answer_and_topics(self, mock_client_cls):
         """Test successful web search."""
-        # Mock response
+        # Mock client and response
+        mock_client = AsyncMock()
         mock_response = Mock()
-        mock_response.read.return_value = json.dumps(
-            {
-                "Answer": "Test answer",
-                "Abstract": "Test abstract",
-                "AbstractURL": "https://example.com",
-                "RelatedTopics": [
-                    {"Text": "Topic 1", "FirstURL": "https://example.com/1"},
-                    {"Text": "Topic 2", "FirstURL": "https://example.com/2"},
-                ],
-            }
-        ).encode("utf-8")
-        mock_urlopen.return_value.__enter__.return_value = mock_response
+        mock_response.json.return_value = {
+            "Answer": "Test answer",
+            "Abstract": "Test abstract",
+            "AbstractURL": "https://example.com",
+            "RelatedTopics": [
+                {"Text": "Topic 1", "FirstURL": "https://example.com/1"},
+                {"Text": "Topic 2", "FirstURL": "https://example.com/2"},
+            ],
+        }
+        mock_client.get.return_value = mock_response
+        mock_client_cls.return_value.__aenter__.return_value = mock_client
 
-        result = web_search("test query")
+        result = await web_search("test query")
 
         assert "Answer: Test answer" in result
         assert "Summary: Test abstract" in result
@@ -49,30 +49,31 @@ class TestWebSearch:
         assert "Topic 1" in result
         assert "Topic 2" in result
 
-    @pytest.mark.unit
-    def test_web_search_empty_query(self):
+    async def test_web_search_empty_query(self):
         """Test web search with empty query."""
-        result = web_search("")
+        result = await web_search("")
         assert "Search query cannot be empty" in result
 
-    @pytest.mark.unit
-    @patch("urllib.request.urlopen")
-    def test_web_search_no_results(self, mock_urlopen):
+    @patch("httpx.AsyncClient")
+    async def test_web_search_no_results(self, mock_client_cls):
         """Test web search with no results."""
+        mock_client = AsyncMock()
         mock_response = Mock()
-        mock_response.read.return_value = json.dumps({}).encode("utf-8")
-        mock_urlopen.return_value.__enter__.return_value = mock_response
+        mock_response.json.return_value = {}
+        mock_client.get.return_value = mock_response
+        mock_client_cls.return_value.__aenter__.return_value = mock_client
 
-        result = web_search("obscure query")
+        result = await web_search("obscure query")
         assert "No results found" in result
 
-    @pytest.mark.unit
-    @patch("urllib.request.urlopen")
-    def test_web_search_network_error(self, mock_urlopen):
+    @patch("httpx.AsyncClient")
+    async def test_web_search_network_error(self, mock_client_cls):
         """Test web search with network error."""
-        mock_urlopen.side_effect = urllib.error.URLError("Network error")
+        mock_client = AsyncMock()
+        mock_client.get.side_effect = httpx.RequestError("Network error", request=Mock())
+        mock_client_cls.return_value.__aenter__.return_value = mock_client
 
-        result = web_search("test query")
+        result = await web_search("test query")
         assert "Network error" in result
 
 
@@ -263,62 +264,72 @@ class TestTimeOperations:
         assert "Examples:" in result
 
 
+@pytest.mark.asyncio
 class TestHttpRequest:
     """Test HTTP request tool."""
 
-    @pytest.mark.unit
-    @patch("urllib.request.urlopen")
-    def test_http_request_get(self, mock_urlopen):
+    @patch("httpx.AsyncClient")
+    async def test_http_request_get(self, mock_client_cls):
         """Test GET request."""
-        # Mock response
+        # Mock client and response
+        mock_client = AsyncMock()
         mock_response = Mock()
-        mock_response.read.return_value = b'{"status": "ok"}'
-        mock_urlopen.return_value.__enter__.return_value = mock_response
+        mock_response.text = '{"status": "ok"}'
+        mock_client.request.return_value = mock_response
+        mock_client_cls.return_value.__aenter__.return_value = mock_client
 
-        result = http_request("https://api.example.com/test")
+        result = await http_request("https://api.example.com/test")
 
         # Should pretty-print JSON
         assert '"status": "ok"' in result
 
-    @pytest.mark.unit
-    @patch("urllib.request.urlopen")
-    def test_http_request_post_json(self, mock_urlopen):
+    @patch("httpx.AsyncClient")
+    async def test_http_request_post_json(self, mock_client_cls):
         """Test POST request with JSON data."""
+        mock_client = AsyncMock()
         mock_response = Mock()
-        mock_response.read.return_value = b'{"result": "created"}'
-        mock_urlopen.return_value.__enter__.return_value = mock_response
+        mock_response.text = '{"result": "created"}'
+        mock_client.request.return_value = mock_response
+        mock_client_cls.return_value.__aenter__.return_value = mock_client
 
-        result = http_request("https://api.example.com/create", method="POST", data={"name": "test"})
+        result = await http_request("https://api.example.com/create", method="POST", data={"name": "test"})
 
         assert '"result": "created"' in result
 
         # Check request was made correctly
-        call_args = mock_urlopen.call_args[0][0]
-        assert call_args.method == "POST"
+        call_args = mock_client.request.call_args
+        assert call_args.kwargs["method"] == "POST"
         # Check Content-Type header (case-insensitive)
-        headers = call_args.headers
+        headers = call_args.kwargs["headers"]
         content_type = headers.get("Content-Type") or headers.get("Content-type")
         assert content_type == "application/json"
 
-    @pytest.mark.unit
-    def test_http_request_invalid_url(self):
+    async def test_http_request_invalid_url(self):
         """Test invalid URL."""
-        result = http_request("not-a-url")
+        result = await http_request("not-a-url")
         assert "Error: Invalid URL format" in result
 
-    @pytest.mark.unit
-    def test_http_request_unsupported_protocol(self):
+    async def test_http_request_unsupported_protocol(self):
         """Test unsupported protocol."""
-        result = http_request("ftp://example.com/file")
+        result = await http_request("ftp://example.com/file")
         assert "Error: Only HTTP/HTTPS protocols are supported" in result
 
-    @pytest.mark.unit
-    @patch("urllib.request.urlopen")
-    def test_http_request_http_error(self, mock_urlopen):
+    @patch("httpx.AsyncClient")
+    async def test_http_request_http_error(self, mock_client_cls):
         """Test HTTP error response."""
-        mock_urlopen.side_effect = urllib.error.HTTPError("https://api.example.com", 404, "Not Found", {}, None)
+        mock_client = AsyncMock()
+        mock_response = Mock()
+        mock_response.status_code = 404
+        mock_response.reason_phrase = "Not Found"
 
-        result = http_request("https://api.example.com/missing")
+        # raise_for_status raises HTTPStatusError
+        error = httpx.HTTPStatusError("404 Not Found", request=Mock(), response=mock_response)
+        mock_response.raise_for_status.side_effect = error
+
+        mock_client.request.return_value = mock_response
+        mock_client_cls.return_value.__aenter__.return_value = mock_client
+
+        result = await http_request("https://api.example.com/missing")
         assert "HTTP Error 404" in result
 
 
