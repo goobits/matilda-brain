@@ -7,6 +7,7 @@ import ast
 import math
 import operator
 import os
+import shutil
 import subprocess
 import tempfile
 from typing import Any, Callable, Optional
@@ -14,6 +15,17 @@ from typing import Any, Callable, Optional
 from matilda_brain.tools import tool
 
 from .config import _get_code_timeout, _get_timeout_bounds, _safe_execute
+
+_PYTHON_CMD: Optional[str] = None
+
+
+def _get_python_cmd() -> str:
+    """Get the python command to use (python3 or python), caching the result."""
+    global _PYTHON_CMD
+    if _PYTHON_CMD is None:
+        _PYTHON_CMD = "python3" if shutil.which("python3") else "python"
+    return _PYTHON_CMD
+
 
 # Allowed math functions and constants
 ALLOWED_MATH_NAMES = {
@@ -191,9 +203,7 @@ def run_python(code: str, timeout: Optional[int] = None) -> str:
         try:
             # Run code in subprocess with timeout
             # Try python3 first, then python
-            python_cmd = (
-                "python3" if subprocess.run(["which", "python3"], capture_output=True).returncode == 0 else "python"
-            )
+            python_cmd = _get_python_cmd()
 
             result = subprocess.run(
                 [python_cmd, temp_file],
