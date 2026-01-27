@@ -3,12 +3,14 @@
 This module provides tools for web searches and HTTP requests.
 """
 
+import asyncio
 import json
 import urllib.error
 import urllib.parse
 import urllib.request
 from typing import Any, Dict, Optional, Union
 
+import aiohttp
 from matilda_brain.tools import tool
 
 from .config import _get_timeout_bounds, _get_web_timeout, _safe_execute
@@ -74,7 +76,7 @@ def web_search(query: str, num_results: int = 5) -> str:
 
 
 @tool(category="web", description="Make HTTP requests to APIs or websites")
-def http_request(
+async def http_request(
     url: str,
     method: str = "GET",
     headers: Optional[Dict[str, str]] = None,
@@ -134,28 +136,25 @@ def http_request(
             else:
                 body_data = str(data).encode("utf-8")
 
-        # Create request
-        req = urllib.request.Request(url, data=body_data, headers=normalized_headers, method=method.upper())
-
         # Make request
-        with urllib.request.urlopen(req, timeout=timeout) as response:
-            # Read response
-            content = response.read().decode("utf-8", errors="replace")
+        timeout_obj = aiohttp.ClientTimeout(total=timeout)
+        async with aiohttp.ClientSession(timeout=timeout_obj) as session:
+            async with session.request(
+                method.upper(), url, headers=normalized_headers, data=body_data, raise_for_status=True
+            ) as response:
+                # Read response
+                content = await response.text(errors="replace")
 
-            # Try to parse JSON if possible
-            try:
-                parsed_json = json.loads(content)
-                return json.dumps(parsed_json, indent=2)
-            except json.JSONDecodeError:
-                return str(content)
+                # Try to parse JSON if possible
+                try:
+                    parsed_json = json.loads(content)
+                    return json.dumps(parsed_json, indent=2)
+                except json.JSONDecodeError:
+                    return str(content)
 
-    except urllib.error.HTTPError as e:
-        try:
-            e.close()
-        except Exception:
-            pass
-        return f"HTTP Error {e.code}: {e.reason}"
-    except urllib.error.URLError as e:
+    except aiohttp.ClientResponseError as e:
+        return f"HTTP Error {e.status}: {e.message}"
+    except (aiohttp.ClientError, asyncio.TimeoutError) as e:
         return f"Network error: {str(e)}"
     except Exception:
         from matilda_brain.internal.utils import get_logger
