@@ -2,9 +2,10 @@
 
 import json
 import urllib.error
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, patch, AsyncMock
 
 import pytest
+import aiohttp
 
 from matilda_brain.tools import get_tool, list_tools
 from matilda_brain.tools.builtins import (
@@ -267,58 +268,74 @@ class TestHttpRequest:
     """Test HTTP request tool."""
 
     @pytest.mark.unit
-    @patch("urllib.request.urlopen")
-    def test_http_request_get(self, mock_urlopen):
+    @pytest.mark.asyncio
+    @patch("aiohttp.ClientSession.request")
+    async def test_http_request_get(self, mock_request):
         """Test GET request."""
         # Mock response
-        mock_response = Mock()
-        mock_response.read.return_value = b'{"status": "ok"}'
-        mock_urlopen.return_value.__enter__.return_value = mock_response
+        mock_response = AsyncMock()
+        mock_response.text.return_value = '{"status": "ok"}'
+        mock_response.status = 200
+        mock_request.return_value.__aenter__.return_value = mock_response
 
-        result = http_request("https://api.example.com/test")
+        result = await http_request("https://api.example.com/test")
 
         # Should pretty-print JSON
         assert '"status": "ok"' in result
 
     @pytest.mark.unit
-    @patch("urllib.request.urlopen")
-    def test_http_request_post_json(self, mock_urlopen):
+    @pytest.mark.asyncio
+    @patch("aiohttp.ClientSession.request")
+    async def test_http_request_post_json(self, mock_request):
         """Test POST request with JSON data."""
-        mock_response = Mock()
-        mock_response.read.return_value = b'{"result": "created"}'
-        mock_urlopen.return_value.__enter__.return_value = mock_response
+        mock_response = AsyncMock()
+        mock_response.text.return_value = '{"result": "created"}'
+        mock_response.status = 200
+        mock_request.return_value.__aenter__.return_value = mock_response
 
-        result = http_request("https://api.example.com/create", method="POST", data={"name": "test"})
+        result = await http_request("https://api.example.com/create", method="POST", data={"name": "test"})
 
         assert '"result": "created"' in result
 
         # Check request was made correctly
-        call_args = mock_urlopen.call_args[0][0]
-        assert call_args.method == "POST"
-        # Check Content-Type header (case-insensitive)
-        headers = call_args.headers
+        call_args = mock_request.call_args
+        assert call_args[0][0] == "POST"  # Method
+        assert call_args[0][1] == "https://api.example.com/create" # URL
+
+        # Check Content-Type header
+        headers = call_args[1].get("headers", {})
         content_type = headers.get("Content-Type") or headers.get("Content-type")
         assert content_type == "application/json"
 
     @pytest.mark.unit
-    def test_http_request_invalid_url(self):
+    @pytest.mark.asyncio
+    async def test_http_request_invalid_url(self):
         """Test invalid URL."""
-        result = http_request("not-a-url")
+        result = await http_request("not-a-url")
         assert "Error: Invalid URL format" in result
 
     @pytest.mark.unit
-    def test_http_request_unsupported_protocol(self):
+    @pytest.mark.asyncio
+    async def test_http_request_unsupported_protocol(self):
         """Test unsupported protocol."""
-        result = http_request("ftp://example.com/file")
+        result = await http_request("ftp://example.com/file")
         assert "Error: Only HTTP/HTTPS protocols are supported" in result
 
     @pytest.mark.unit
-    @patch("urllib.request.urlopen")
-    def test_http_request_http_error(self, mock_urlopen):
+    @pytest.mark.asyncio
+    @patch("aiohttp.ClientSession.request")
+    async def test_http_request_http_error(self, mock_request):
         """Test HTTP error response."""
-        mock_urlopen.side_effect = urllib.error.HTTPError("https://api.example.com", 404, "Not Found", {}, None)
+        # Mock ClientResponseError
+        error = aiohttp.ClientResponseError(
+            request_info=Mock(),
+            history=(),
+            status=404,
+            message="Not Found",
+        )
+        mock_request.side_effect = error
 
-        result = http_request("https://api.example.com/missing")
+        result = await http_request("https://api.example.com/missing")
         assert "HTTP Error 404" in result
 
 
