@@ -189,38 +189,39 @@ class TestFileOperations:
         assert "subdir/file2.txt" in result
 
 
+@pytest.mark.asyncio
 class TestCodeExecution:
     """Test code execution tool."""
 
     @pytest.mark.unit
-    def test_run_python_executes_code_and_captures_output(self):
+    async def test_run_python_executes_code_and_captures_output(self):
         """Test successful Python code execution."""
         code = "print('Hello, World!')\nprint(2 + 2)"
-        result = run_python(code)
+        result = await run_python(code)
 
         assert "Hello, World!" in result
         assert "4" in result
 
     @pytest.mark.unit
-    def test_run_python_error(self):
+    async def test_run_python_error(self):
         """Test Python code with error."""
         code = "print(undefined_variable)"
-        result = run_python(code)
+        result = await run_python(code)
 
         assert "Error" in result.lower() or "NameError" in result
 
     @pytest.mark.unit
-    def test_run_python_timeout(self):
+    async def test_run_python_timeout(self):
         """Test Python code timeout."""
         code = "import time\ntime.sleep(10)"
-        result = run_python(code, timeout=1)
+        result = await run_python(code, timeout=1)
 
         assert "timed out" in result
 
     @pytest.mark.unit
-    def test_run_python_empty_code(self):
+    async def test_run_python_empty_code(self):
         """Test empty code."""
-        result = run_python("")
+        result = await run_python("")
         assert "Code cannot be empty" in result
 
 
