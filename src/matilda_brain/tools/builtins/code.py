@@ -4,16 +4,18 @@ This module provides tools for running Python code and mathematical calculations
 """
 
 import ast
+import asyncio
 import math
 import operator
 import os
+import shutil
 import subprocess
 import tempfile
 from typing import Any, Callable, Optional
 
 from matilda_brain.tools import tool
 
-from .config import _get_code_timeout, _get_timeout_bounds, _safe_execute
+from .config import _get_code_timeout, _get_timeout_bounds, _safe_execute_async
 
 # Allowed math functions and constants
 ALLOWED_MATH_NAMES = {
@@ -160,7 +162,7 @@ class MathEvaluator(ast.NodeVisitor):
 
 
 @tool(category="code", description="Execute Python code safely in a sandboxed environment")
-def run_python(code: str, timeout: Optional[int] = None) -> str:
+async def run_python(code: str, timeout: Optional[int] = None) -> str:
     """Execute Python code safely.
 
     Args:
@@ -171,7 +173,7 @@ def run_python(code: str, timeout: Optional[int] = None) -> str:
         Output of the code execution or error message
     """
 
-    def _run_python_impl(code: str, timeout: Optional[int] = None) -> str:
+    async def _run_python_impl(code: str, timeout: Optional[int] = None) -> str:
         if timeout is None:
             timeout = _get_code_timeout()
 
@@ -191,34 +193,42 @@ def run_python(code: str, timeout: Optional[int] = None) -> str:
         try:
             # Run code in subprocess with timeout
             # Try python3 first, then python
-            python_cmd = (
-                "python3" if subprocess.run(["which", "python3"], capture_output=True).returncode == 0 else "python"
+            python_cmd = shutil.which("python3") or "python"
+
+            proc = await asyncio.create_subprocess_exec(
+                python_cmd,
+                temp_file,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
             )
 
-            result = subprocess.run(
-                [python_cmd, temp_file],
-                capture_output=True,
-                text=True,
-                timeout=timeout,
-                check=False,
-            )
+            try:
+                stdout_data, stderr_data = await asyncio.wait_for(proc.communicate(), timeout=timeout)
+            except asyncio.TimeoutError:
+                proc.kill()
+                await proc.communicate()
+                stdout_data, stderr_data = b"", b"Execution timed out"
+
+            stdout = stdout_data.decode()
+            stderr = stderr_data.decode()
 
             output = []
-            if result.stdout:
-                output.append(result.stdout)
-            if result.stderr:
-                output.append(f"Errors:\n{result.stderr}")
+            if stdout:
+                output.append(stdout)
+            if stderr:
+                output.append(f"Errors:\n{stderr}")
 
-            if result.returncode != 0:
-                output.append(f"Exit code: {result.returncode}")
+            if proc.returncode is not None and proc.returncode != 0:
+                output.append(f"Exit code: {proc.returncode}")
 
             return "\n".join(output) if output else "Code executed successfully (no output)"
 
         finally:
             # Clean up
-            os.unlink(temp_file)
+            if os.path.exists(temp_file):
+                os.unlink(temp_file)
 
-    return _safe_execute("run_python", _run_python_impl, code=code, timeout=timeout)
+    return await _safe_execute_async("run_python", _run_python_impl, code=code, timeout=timeout)
 
 
 @tool(category="math", description="Perform mathematical calculations safely")

@@ -5,9 +5,13 @@ import sys
 import time
 from contextlib import contextmanager
 from pathlib import Path
+from unittest.mock import MagicMock
 
 import pytest
 from dotenv import load_dotenv
+
+# Mock matilda_transport
+sys.modules["matilda_transport"] = MagicMock()
 
 # Add the parent directory and src directory to Python path for imports
 project_root = Path(__file__).parent.parent
