@@ -4,18 +4,17 @@ This module provides tools for web searches and HTTP requests.
 """
 
 import json
-import urllib.error
 import urllib.parse
-import urllib.request
 from typing import Any, Dict, Optional, Union
 
+import httpx
 from matilda_brain.tools import tool
 
-from .config import _get_timeout_bounds, _get_web_timeout, _safe_execute
+from .config import _get_timeout_bounds, _get_web_timeout, _safe_execute_async
 
 
 @tool(category="web", description="Search the web for information using a search engine")
-def web_search(query: str, num_results: int = 5) -> str:
+async def web_search(query: str, num_results: int = 5) -> str:
     """Search the web for information.
 
     Args:
@@ -26,7 +25,7 @@ def web_search(query: str, num_results: int = 5) -> str:
         Search results as formatted text
     """
 
-    def _web_search_impl(query: str, num_results: int = 5) -> str:
+    async def _web_search_impl(query: str, num_results: int = 5) -> str:
         # Validate inputs
         if not query or not query.strip():
             raise ValueError("Search query cannot be empty")
@@ -40,10 +39,14 @@ def web_search(query: str, num_results: int = 5) -> str:
         url = f"https://api.duckduckgo.com/?q={encoded_query}&format=json&no_html=1&skip_disambig=1"
 
         # Make request with timeout
-        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 (compatible; AI-Library/1.0)"})
+        headers = {"User-Agent": "Mozilla/5.0 (compatible; AI-Library/1.0)"}
 
-        with urllib.request.urlopen(req, timeout=_get_web_timeout()) as response:
-            data = json.loads(response.read().decode("utf-8"))
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                url, headers=headers, timeout=_get_web_timeout(), follow_redirects=True
+            )
+            response.raise_for_status()
+            data = response.json()
 
         # Extract results
         results = []
@@ -70,11 +73,11 @@ def web_search(query: str, num_results: int = 5) -> str:
 
         return "\n".join(results)
 
-    return _safe_execute("web_search", _web_search_impl, query=query, num_results=num_results)
+    return await _safe_execute_async("web_search", _web_search_impl, query=query, num_results=num_results)
 
 
 @tool(category="web", description="Make HTTP requests to APIs or websites")
-def http_request(
+async def http_request(
     url: str,
     method: str = "GET",
     headers: Optional[Dict[str, str]] = None,
@@ -134,28 +137,33 @@ def http_request(
             else:
                 body_data = str(data).encode("utf-8")
 
-        # Create request
-        req = urllib.request.Request(url, data=body_data, headers=normalized_headers, method=method.upper())
-
         # Make request
-        with urllib.request.urlopen(req, timeout=timeout) as response:
-            # Read response
-            content = response.read().decode("utf-8", errors="replace")
-
-            # Try to parse JSON if possible
+        async with httpx.AsyncClient() as client:
             try:
-                parsed_json = json.loads(content)
-                return json.dumps(parsed_json, indent=2)
-            except json.JSONDecodeError:
-                return str(content)
+                response = await client.request(
+                    method=method.upper(),
+                    url=url,
+                    content=body_data,
+                    headers=normalized_headers,
+                    timeout=timeout,
+                    follow_redirects=True,
+                )
+                response.raise_for_status()
 
-    except urllib.error.HTTPError as e:
-        try:
-            e.close()
-        except Exception:
-            pass
-        return f"HTTP Error {e.code}: {e.reason}"
-    except urllib.error.URLError as e:
+                # Read response
+                content = response.text
+
+                # Try to parse JSON if possible
+                try:
+                    parsed_json = json.loads(content)
+                    return json.dumps(parsed_json, indent=2)
+                except json.JSONDecodeError:
+                    return str(content)
+
+            except httpx.HTTPStatusError as e:
+                return f"HTTP Error {e.response.status_code}: {e.response.reason_phrase}"
+
+    except httpx.RequestError as e:
         return f"Network error: {str(e)}"
     except Exception:
         from matilda_brain.internal.utils import get_logger
