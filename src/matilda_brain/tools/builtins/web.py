@@ -3,6 +3,7 @@
 This module provides tools for web searches and HTTP requests.
 """
 
+import asyncio
 import json
 import urllib.parse
 from typing import Any, Dict, Optional, Union
@@ -11,6 +12,25 @@ import httpx
 from matilda_brain.tools import tool
 
 from .config import _get_timeout_bounds, _get_web_timeout, _safe_execute_async
+
+_CLIENTS: Dict[asyncio.AbstractEventLoop, httpx.AsyncClient] = {}
+
+
+def _get_shared_client() -> httpx.AsyncClient:
+    """Get or create the shared HTTP client for the current event loop."""
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        # Fallback if no loop is running (unlikely in async context)
+        return httpx.AsyncClient()
+
+    if loop in _CLIENTS:
+        client = _CLIENTS[loop]
+        if not client.is_closed:
+            return client
+
+    _CLIENTS[loop] = httpx.AsyncClient()
+    return _CLIENTS[loop]
 
 
 @tool(category="web", description="Search the web for information using a search engine")
@@ -41,12 +61,10 @@ async def web_search(query: str, num_results: int = 5) -> str:
         # Make request with timeout
         headers = {"User-Agent": "Mozilla/5.0 (compatible; AI-Library/1.0)"}
 
-        async with httpx.AsyncClient() as client:
-            response = await client.get(
-                url, headers=headers, timeout=_get_web_timeout(), follow_redirects=True
-            )
-            response.raise_for_status()
-            data = response.json()
+        client = _get_shared_client()
+        response = await client.get(url, headers=headers, timeout=_get_web_timeout(), follow_redirects=True)
+        response.raise_for_status()
+        data = response.json()
 
         # Extract results
         results = []
@@ -138,30 +156,30 @@ async def http_request(
                 body_data = str(data).encode("utf-8")
 
         # Make request
-        async with httpx.AsyncClient() as client:
+        client = _get_shared_client()
+        try:
+            response = await client.request(
+                method=method.upper(),
+                url=url,
+                content=body_data,
+                headers=normalized_headers,
+                timeout=timeout,
+                follow_redirects=True,
+            )
+            response.raise_for_status()
+
+            # Read response
+            content = response.text
+
+            # Try to parse JSON if possible
             try:
-                response = await client.request(
-                    method=method.upper(),
-                    url=url,
-                    content=body_data,
-                    headers=normalized_headers,
-                    timeout=timeout,
-                    follow_redirects=True,
-                )
-                response.raise_for_status()
+                parsed_json = json.loads(content)
+                return json.dumps(parsed_json, indent=2)
+            except json.JSONDecodeError:
+                return str(content)
 
-                # Read response
-                content = response.text
-
-                # Try to parse JSON if possible
-                try:
-                    parsed_json = json.loads(content)
-                    return json.dumps(parsed_json, indent=2)
-                except json.JSONDecodeError:
-                    return str(content)
-
-            except httpx.HTTPStatusError as e:
-                return f"HTTP Error {e.response.status_code}: {e.response.reason_phrase}"
+        except httpx.HTTPStatusError as e:
+            return f"HTTP Error {e.response.status_code}: {e.response.reason_phrase}"
 
     except httpx.RequestError as e:
         return f"Network error: {str(e)}"

@@ -1,6 +1,5 @@
 """Tests for built-in tools."""
 
-import json
 from unittest.mock import AsyncMock, Mock, patch
 
 import httpx
@@ -23,8 +22,8 @@ from matilda_brain.tools.builtins import (
 class TestWebSearch:
     """Test web_search tool."""
 
-    @patch("httpx.AsyncClient")
-    async def test_web_search_returns_formatted_answer_and_topics(self, mock_client_cls):
+    @patch("matilda_brain.tools.builtins.web._get_shared_client")
+    async def test_web_search_returns_formatted_answer_and_topics(self, mock_get_client):
         """Test successful web search."""
         # Mock client and response
         mock_client = AsyncMock()
@@ -39,7 +38,7 @@ class TestWebSearch:
             ],
         }
         mock_client.get.return_value = mock_response
-        mock_client_cls.return_value.__aenter__.return_value = mock_client
+        mock_get_client.return_value = mock_client
 
         result = await web_search("test query")
 
@@ -54,24 +53,24 @@ class TestWebSearch:
         result = await web_search("")
         assert "Search query cannot be empty" in result
 
-    @patch("httpx.AsyncClient")
-    async def test_web_search_no_results(self, mock_client_cls):
+    @patch("matilda_brain.tools.builtins.web._get_shared_client")
+    async def test_web_search_no_results(self, mock_get_client):
         """Test web search with no results."""
         mock_client = AsyncMock()
         mock_response = Mock()
         mock_response.json.return_value = {}
         mock_client.get.return_value = mock_response
-        mock_client_cls.return_value.__aenter__.return_value = mock_client
+        mock_get_client.return_value = mock_client
 
         result = await web_search("obscure query")
         assert "No results found" in result
 
-    @patch("httpx.AsyncClient")
-    async def test_web_search_network_error(self, mock_client_cls):
+    @patch("matilda_brain.tools.builtins.web._get_shared_client")
+    async def test_web_search_network_error(self, mock_get_client):
         """Test web search with network error."""
         mock_client = AsyncMock()
         mock_client.get.side_effect = httpx.RequestError("Network error", request=Mock())
-        mock_client_cls.return_value.__aenter__.return_value = mock_client
+        mock_get_client.return_value = mock_client
 
         result = await web_search("test query")
         assert "Network error" in result
@@ -268,29 +267,29 @@ class TestTimeOperations:
 class TestHttpRequest:
     """Test HTTP request tool."""
 
-    @patch("httpx.AsyncClient")
-    async def test_http_request_get(self, mock_client_cls):
+    @patch("matilda_brain.tools.builtins.web._get_shared_client")
+    async def test_http_request_get(self, mock_get_client):
         """Test GET request."""
         # Mock client and response
         mock_client = AsyncMock()
         mock_response = Mock()
         mock_response.text = '{"status": "ok"}'
         mock_client.request.return_value = mock_response
-        mock_client_cls.return_value.__aenter__.return_value = mock_client
+        mock_get_client.return_value = mock_client
 
         result = await http_request("https://api.example.com/test")
 
         # Should pretty-print JSON
         assert '"status": "ok"' in result
 
-    @patch("httpx.AsyncClient")
-    async def test_http_request_post_json(self, mock_client_cls):
+    @patch("matilda_brain.tools.builtins.web._get_shared_client")
+    async def test_http_request_post_json(self, mock_get_client):
         """Test POST request with JSON data."""
         mock_client = AsyncMock()
         mock_response = Mock()
         mock_response.text = '{"result": "created"}'
         mock_client.request.return_value = mock_response
-        mock_client_cls.return_value.__aenter__.return_value = mock_client
+        mock_get_client.return_value = mock_client
 
         result = await http_request("https://api.example.com/create", method="POST", data={"name": "test"})
 
@@ -314,8 +313,8 @@ class TestHttpRequest:
         result = await http_request("ftp://example.com/file")
         assert "Error: Only HTTP/HTTPS protocols are supported" in result
 
-    @patch("httpx.AsyncClient")
-    async def test_http_request_http_error(self, mock_client_cls):
+    @patch("matilda_brain.tools.builtins.web._get_shared_client")
+    async def test_http_request_http_error(self, mock_get_client):
         """Test HTTP error response."""
         mock_client = AsyncMock()
         mock_response = Mock()
@@ -327,7 +326,7 @@ class TestHttpRequest:
         mock_response.raise_for_status.side_effect = error
 
         mock_client.request.return_value = mock_response
-        mock_client_cls.return_value.__aenter__.return_value = mock_client
+        mock_get_client.return_value = mock_client
 
         result = await http_request("https://api.example.com/missing")
         assert "HTTP Error 404" in result
