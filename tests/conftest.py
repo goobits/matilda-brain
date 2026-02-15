@@ -93,6 +93,44 @@ def _is_valid_api_key(key):
     return len(key) > 10 and not any(pattern in key_lower for pattern in test_patterns)
 
 
+def _network_available() -> bool:
+    """Best-effort network check for tests marked requires_network."""
+    import socket
+
+    try:
+        with socket.create_connection(("1.1.1.1", 53), timeout=1):
+            return True
+    except OSError:
+        return False
+
+
+def pytest_collection_modifyitems(config, items):
+    """Deselect tests that require unavailable external prerequisites.
+
+    This keeps local suite runs deterministic without real credentials/network.
+    Set BRAIN_RUN_CRED_TESTS=1 to include credential/network-marked tests.
+    """
+    if os.getenv("BRAIN_RUN_CRED_TESTS") == "1":
+        return
+
+    deselected = []
+    kept = []
+    for item in items:
+        requires_credentials = item.get_closest_marker("requires_credentials") is not None
+        requires_network = item.get_closest_marker("requires_network") is not None
+
+        should_deselect = requires_credentials or requires_network
+
+        if should_deselect:
+            deselected.append(item)
+        else:
+            kept.append(item)
+
+    if deselected:
+        config.hook.pytest_deselected(items=deselected)
+        items[:] = kept
+
+
 def _uses_mock_backend(request):
     """Check if the test is using a mock backend by examining fixtures and test content."""
     # Check if mock-related fixtures are used
