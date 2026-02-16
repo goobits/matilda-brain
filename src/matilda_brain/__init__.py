@@ -5,6 +5,9 @@ A single, elegant interface for local and cloud AI models.
 """
 
 # ruff: noqa: I001 (import order critical for avoiding circular imports)
+from importlib import metadata
+from pathlib import Path
+import tomllib
 from typing import TYPE_CHECKING
 
 from .core.api import achat, ask, ask_async, chat, stream, stream_async
@@ -66,7 +69,22 @@ if TYPE_CHECKING:
 
 model_registry: "ModelRegistry" = _ModelRegistryProxy()  # type: ignore[assignment]
 
-__version__ = "1.0.3"
+def _get_version() -> str:
+    try:
+        return metadata.version("goobits-matilda-brain")
+    except Exception:
+        pass
+
+    try:
+        pyproject_path = Path(__file__).resolve().parents[2] / "pyproject.toml"
+        with open(pyproject_path, "rb") as f:
+            data = tomllib.load(f)
+        return str(data["project"]["version"])
+    except Exception:
+        return "unknown"
+
+
+__version__ = _get_version()
 __all__ = [
     "ask",
     "stream",
