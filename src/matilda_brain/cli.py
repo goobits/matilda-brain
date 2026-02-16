@@ -228,6 +228,15 @@ def get_hooks():
         _hooks = load_hooks()
     return _hooks
 
+def invoke_hook(ctx, hook_name: str, kwargs: Dict[str, Any]) -> None:
+    """Invoke a hook by name or exit with a clear error."""
+    hooks = get_hooks()
+    if hooks and hasattr(hooks, hook_name):
+        getattr(hooks, hook_name)(ctx=ctx, **kwargs)
+        return
+    logger.error(f"Hook '{hook_name}' not implemented in cli_hooks.py")
+    sys.exit(1)
+
 # ============================================================================
 # CLI COMMANDS
 # ============================================================================
@@ -257,13 +266,8 @@ def cli(ctx, verbose, debug, config):
 def ask(ctx, prompt, model, temperature, max_tokens, tools, session, system, stream, json):
     """Quickly ask one-off questions"""
     try:
-        hooks = get_hooks()
-        if hooks and hasattr(hooks, 'on_ask'):
-            kwargs = {                'prompt': prompt,                'model': model,                'temperature': temperature,                'max_tokens': max_tokens,                'tools': tools,                'session': session,                'system': system,                'stream': stream,                'json': json,            }
-            hooks.on_ask(ctx=ctx, **kwargs)
-        else:
-            logger.error(f"Hook 'on_ask' not implemented in cli_hooks.py")
-            sys.exit(1)
+        kwargs = {            'prompt': prompt,            'model': model,            'temperature': temperature,            'max_tokens': max_tokens,            'tools': tools,            'session': session,            'system': system,            'stream': stream,            'json': json,        }
+        invoke_hook(ctx, 'on_ask', kwargs)
     except Exception as e:
         handle_error(e, ctx.verbose)
 @cli.command('chat')
@@ -275,13 +279,8 @@ def ask(ctx, prompt, model, temperature, max_tokens, tools, session, system, str
 def chat(ctx, model, session, tools, markdown):
     """Chat interactively with AI"""
     try:
-        hooks = get_hooks()
-        if hooks and hasattr(hooks, 'on_chat'):
-            kwargs = {                'model': model,                'session': session,                'tools': tools,                'markdown': markdown,            }
-            hooks.on_chat(ctx=ctx, **kwargs)
-        else:
-            logger.error(f"Hook 'on_chat' not implemented in cli_hooks.py")
-            sys.exit(1)
+        kwargs = {            'model': model,            'session': session,            'tools': tools,            'markdown': markdown,        }
+        invoke_hook(ctx, 'on_chat', kwargs)
     except Exception as e:
         handle_error(e, ctx.verbose)
 @cli.command('stateless')
@@ -296,13 +295,8 @@ def chat(ctx, model, session, tools, markdown):
 def stateless(ctx, message, system, history, tools, model, temperature, max_tokens):
     """Execute stateless AI request without session"""
     try:
-        hooks = get_hooks()
-        if hooks and hasattr(hooks, 'on_stateless'):
-            kwargs = {                'message': message,                'system': system,                'history': history,                'tools': tools,                'model': model,                'temperature': temperature,                'max_tokens': max_tokens,            }
-            hooks.on_stateless(ctx=ctx, **kwargs)
-        else:
-            logger.error(f"Hook 'on_stateless' not implemented in cli_hooks.py")
-            sys.exit(1)
+        kwargs = {            'message': message,            'system': system,            'history': history,            'tools': tools,            'model': model,            'temperature': temperature,            'max_tokens': max_tokens,        }
+        invoke_hook(ctx, 'on_stateless', kwargs)
     except Exception as e:
         handle_error(e, ctx.verbose)
 @cli.command('list')
@@ -312,13 +306,8 @@ def stateless(ctx, message, system, history, tools, model, temperature, max_toke
 def list(ctx, resource, format):
     """See available resources"""
     try:
-        hooks = get_hooks()
-        if hooks and hasattr(hooks, 'on_list'):
-            kwargs = {                'resource': resource,                'format': format,            }
-            hooks.on_list(ctx=ctx, **kwargs)
-        else:
-            logger.error(f"Hook 'on_list' not implemented in cli_hooks.py")
-            sys.exit(1)
+        kwargs = {            'resource': resource,            'format': format,        }
+        invoke_hook(ctx, 'on_list', kwargs)
     except Exception as e:
         handle_error(e, ctx.verbose)
 @cli.command('status')
@@ -327,13 +316,8 @@ def list(ctx, resource, format):
 def status(ctx, json):
     """Verify system and API health"""
     try:
-        hooks = get_hooks()
-        if hooks and hasattr(hooks, 'on_status'):
-            kwargs = {                'json': json,            }
-            hooks.on_status(ctx=ctx, **kwargs)
-        else:
-            logger.error(f"Hook 'on_status' not implemented in cli_hooks.py")
-            sys.exit(1)
+        kwargs = {            'json': json,        }
+        invoke_hook(ctx, 'on_status', kwargs)
     except Exception as e:
         handle_error(e, ctx.verbose)
 @cli.command('models')
@@ -342,13 +326,8 @@ def status(ctx, json):
 def models(ctx, json):
     """View AI models"""
     try:
-        hooks = get_hooks()
-        if hooks and hasattr(hooks, 'on_models'):
-            kwargs = {                'json': json,            }
-            hooks.on_models(ctx=ctx, **kwargs)
-        else:
-            logger.error(f"Hook 'on_models' not implemented in cli_hooks.py")
-            sys.exit(1)
+        kwargs = {            'json': json,        }
+        invoke_hook(ctx, 'on_models', kwargs)
     except Exception as e:
         handle_error(e, ctx.verbose)
 @cli.command('info')
@@ -358,13 +337,8 @@ def models(ctx, json):
 def info(ctx, model, json):
     """Detailed model information"""
     try:
-        hooks = get_hooks()
-        if hooks and hasattr(hooks, 'on_info'):
-            kwargs = {                'model': model,                'json': json,            }
-            hooks.on_info(ctx=ctx, **kwargs)
-        else:
-            logger.error(f"Hook 'on_info' not implemented in cli_hooks.py")
-            sys.exit(1)
+        kwargs = {            'model': model,            'json': json,        }
+        invoke_hook(ctx, 'on_info', kwargs)
     except Exception as e:
         handle_error(e, ctx.verbose)
 @cli.command('export')
@@ -376,13 +350,8 @@ def info(ctx, model, json):
 def export(ctx, session, format, output, include_metadata):
     """Save your chat history"""
     try:
-        hooks = get_hooks()
-        if hooks and hasattr(hooks, 'on_export'):
-            kwargs = {                'session': session,                'format': format,                'output': output,                'include_metadata': include_metadata,            }
-            hooks.on_export(ctx=ctx, **kwargs)
-        else:
-            logger.error(f"Hook 'on_export' not implemented in cli_hooks.py")
-            sys.exit(1)
+        kwargs = {            'session': session,            'format': format,            'output': output,            'include_metadata': include_metadata,        }
+        invoke_hook(ctx, 'on_export', kwargs)
     except Exception as e:
         handle_error(e, ctx.verbose)
 @cli.group('config')
@@ -396,13 +365,8 @@ def config_group(ctx):
 def config_get(ctx, key):
     """Get a configuration value"""
     try:
-        hooks = get_hooks()
-        if hooks and hasattr(hooks, 'on_get'):
-            kwargs = {                'key': key,            }
-            hooks.on_get(ctx=ctx, **kwargs)
-        else:
-            logger.error(f"Hook 'on_get' not implemented in cli_hooks.py")
-            sys.exit(1)
+        kwargs = {            'key': key,        }
+        invoke_hook(ctx, 'on_get', kwargs)
     except Exception as e:
         handle_error(e, ctx.verbose)
 
@@ -413,13 +377,8 @@ def config_get(ctx, key):
 def config_set(ctx, key, value):
     """Set a configuration value"""
     try:
-        hooks = get_hooks()
-        if hooks and hasattr(hooks, 'on_set'):
-            kwargs = {                'key': key,                'value': value,            }
-            hooks.on_set(ctx=ctx, **kwargs)
-        else:
-            logger.error(f"Hook 'on_set' not implemented in cli_hooks.py")
-            sys.exit(1)
+        kwargs = {            'key': key,            'value': value,        }
+        invoke_hook(ctx, 'on_set', kwargs)
     except Exception as e:
         handle_error(e, ctx.verbose)
 
@@ -429,13 +388,8 @@ def config_set(ctx, key, value):
 def config_list(ctx, show_secrets):
     """List all configuration"""
     try:
-        hooks = get_hooks()
-        if hooks and hasattr(hooks, 'on_list'):
-            kwargs = {                'show_secrets': show_secrets,            }
-            hooks.on_list(ctx=ctx, **kwargs)
-        else:
-            logger.error(f"Hook 'on_list' not implemented in cli_hooks.py")
-            sys.exit(1)
+        kwargs = {            'show_secrets': show_secrets,        }
+        invoke_hook(ctx, 'on_list', kwargs)
     except Exception as e:
         handle_error(e, ctx.verbose)
 @cli.group('tools')
@@ -449,13 +403,8 @@ def tools_group(ctx):
 def tools_enable(ctx, tool_name):
     """Enable a tool"""
     try:
-        hooks = get_hooks()
-        if hooks and hasattr(hooks, 'on_enable'):
-            kwargs = {                'tool_name': tool_name,            }
-            hooks.on_enable(ctx=ctx, **kwargs)
-        else:
-            logger.error(f"Hook 'on_enable' not implemented in cli_hooks.py")
-            sys.exit(1)
+        kwargs = {            'tool_name': tool_name,        }
+        invoke_hook(ctx, 'on_enable', kwargs)
     except Exception as e:
         handle_error(e, ctx.verbose)
 
@@ -465,13 +414,8 @@ def tools_enable(ctx, tool_name):
 def tools_disable(ctx, tool_name):
     """Disable a tool"""
     try:
-        hooks = get_hooks()
-        if hooks and hasattr(hooks, 'on_disable'):
-            kwargs = {                'tool_name': tool_name,            }
-            hooks.on_disable(ctx=ctx, **kwargs)
-        else:
-            logger.error(f"Hook 'on_disable' not implemented in cli_hooks.py")
-            sys.exit(1)
+        kwargs = {            'tool_name': tool_name,        }
+        invoke_hook(ctx, 'on_disable', kwargs)
     except Exception as e:
         handle_error(e, ctx.verbose)
 
@@ -481,13 +425,8 @@ def tools_disable(ctx, tool_name):
 def tools_list(ctx, show_disabled):
     """List all tools"""
     try:
-        hooks = get_hooks()
-        if hooks and hasattr(hooks, 'on_list'):
-            kwargs = {                'show_disabled': show_disabled,            }
-            hooks.on_list(ctx=ctx, **kwargs)
-        else:
-            logger.error(f"Hook 'on_list' not implemented in cli_hooks.py")
-            sys.exit(1)
+        kwargs = {            'show_disabled': show_disabled,        }
+        invoke_hook(ctx, 'on_list', kwargs)
     except Exception as e:
         handle_error(e, ctx.verbose)
 @cli.command('serve')
@@ -497,13 +436,8 @@ def tools_list(ctx, show_disabled):
 def serve(ctx, host, port):
     """Start TTT HTTP server for browser clients"""
     try:
-        hooks = get_hooks()
-        if hooks and hasattr(hooks, 'on_serve'):
-            kwargs = {                'host': host,                'port': port,            }
-            hooks.on_serve(ctx=ctx, **kwargs)
-        else:
-            logger.error(f"Hook 'on_serve' not implemented in cli_hooks.py")
-            sys.exit(1)
+        kwargs = {            'host': host,            'port': port,        }
+        invoke_hook(ctx, 'on_serve', kwargs)
     except Exception as e:
         handle_error(e, ctx.verbose)
 
