@@ -4,53 +4,12 @@ The Unified AI Library
 A single, elegant interface for local and cloud AI models.
 """
 
-# ruff: noqa: I001 (import order critical for avoiding circular imports)
 from importlib import metadata
+from importlib import import_module
 from pathlib import Path
 import tomllib
 from typing import TYPE_CHECKING
 
-from .core.api import achat, ask, ask_async, chat, stream, stream_async
-from .backends import CloudBackend, HubBackend, LocalBackend
-from .config import configure
-from .core.exceptions import (
-    AIError,
-    APIKeyError,
-    BackendConnectionError,
-    BackendError,
-    BackendNotAvailableError,
-    BackendTimeoutError,
-    ConfigFileError,
-    ConfigurationError,
-    EmptyResponseError,
-    FeatureNotAvailableError,
-    InvalidParameterError,
-    InvalidPromptError,
-    ModelError,
-    ModelNotFoundError,
-    ModelNotSupportedError,
-    MultiModalError,
-    PluginError,
-    PluginLoadError,
-    PluginValidationError,
-    QuotaExceededError,
-    RateLimitError,
-    ResponseError,
-    ResponseParsingError,
-    SessionError,
-    SessionLoadError,
-    SessionNotFoundError,
-    SessionSaveError,
-    ValidationError,
-)
-from .core.models import AIResponse, ConfigModel, ImageInput, ModelInfo
-from .core.types import ContentKind, Message, Proposal, RiskLevel, Role
-from .plugins import discover_plugins, load_plugin, register_backend
-from .session.chat import PersistentChatSession
-from .tools.base import ToolCall, ToolDefinition, ToolResult
-
-
-# Import model_registry lazily to avoid import-time initialization
 def _get_model_registry():
     from .config import model_registry
 
@@ -64,10 +23,120 @@ class _ModelRegistryProxy:
 
 
 if TYPE_CHECKING:
+    from .backends import CloudBackend, HubBackend, LocalBackend
+    from .config import configure
     from .config.schema import ModelRegistry
+    from .core.api import achat, ask, ask_async, chat, stream, stream_async
+    from .core.exceptions import (
+        AIError,
+        APIKeyError,
+        BackendConnectionError,
+        BackendError,
+        BackendNotAvailableError,
+        BackendTimeoutError,
+        ConfigFileError,
+        ConfigurationError,
+        EmptyResponseError,
+        FeatureNotAvailableError,
+        InvalidParameterError,
+        InvalidPromptError,
+        ModelError,
+        ModelNotFoundError,
+        ModelNotSupportedError,
+        MultiModalError,
+        PluginError,
+        PluginLoadError,
+        PluginValidationError,
+        QuotaExceededError,
+        RateLimitError,
+        ResponseError,
+        ResponseParsingError,
+        SessionError,
+        SessionLoadError,
+        SessionNotFoundError,
+        SessionSaveError,
+        ValidationError,
+    )
+    from .core.models import AIResponse, ConfigModel, ImageInput, ModelInfo
+    from .core.types import ContentKind, Message, Proposal, RiskLevel, Role
+    from .plugins import discover_plugins, load_plugin, register_backend
+    from .session.chat import PersistentChatSession
+    from .tools.base import ToolCall, ToolDefinition, ToolResult
 
 
 model_registry: "ModelRegistry" = _ModelRegistryProxy()  # type: ignore[assignment]
+
+_EXPORTS = {
+    "ask": (".core.api", "ask"),
+    "stream": (".core.api", "stream"),
+    "chat": (".core.api", "chat"),
+    "ask_async": (".core.api", "ask_async"),
+    "stream_async": (".core.api", "stream_async"),
+    "achat": (".core.api", "achat"),
+    "AIResponse": (".core.models", "AIResponse"),
+    "ImageInput": (".core.models", "ImageInput"),
+    "ConfigModel": (".core.models", "ConfigModel"),
+    "ModelInfo": (".core.models", "ModelInfo"),
+    "Role": (".core.types", "Role"),
+    "ContentKind": (".core.types", "ContentKind"),
+    "Message": (".core.types", "Message"),
+    "Proposal": (".core.types", "Proposal"),
+    "RiskLevel": (".core.types", "RiskLevel"),
+    "ToolCall": (".tools.base", "ToolCall"),
+    "ToolResult": (".tools.base", "ToolResult"),
+    "ToolDefinition": (".tools.base", "ToolDefinition"),
+    "PersistentChatSession": (".session.chat", "PersistentChatSession"),
+    "configure": (".config", "configure"),
+    "LocalBackend": (".backends", "LocalBackend"),
+    "CloudBackend": (".backends", "CloudBackend"),
+    "HubBackend": (".backends", "HubBackend"),
+    "register_backend": (".plugins", "register_backend"),
+    "discover_plugins": (".plugins", "discover_plugins"),
+    "load_plugin": (".plugins", "load_plugin"),
+    "AIError": (".core.exceptions", "AIError"),
+    "BackendError": (".core.exceptions", "BackendError"),
+    "BackendNotAvailableError": (".core.exceptions", "BackendNotAvailableError"),
+    "BackendConnectionError": (".core.exceptions", "BackendConnectionError"),
+    "BackendTimeoutError": (".core.exceptions", "BackendTimeoutError"),
+    "ModelError": (".core.exceptions", "ModelError"),
+    "ModelNotFoundError": (".core.exceptions", "ModelNotFoundError"),
+    "ModelNotSupportedError": (".core.exceptions", "ModelNotSupportedError"),
+    "ConfigurationError": (".core.exceptions", "ConfigurationError"),
+    "APIKeyError": (".core.exceptions", "APIKeyError"),
+    "ConfigFileError": (".core.exceptions", "ConfigFileError"),
+    "ValidationError": (".core.exceptions", "ValidationError"),
+    "InvalidPromptError": (".core.exceptions", "InvalidPromptError"),
+    "InvalidParameterError": (".core.exceptions", "InvalidParameterError"),
+    "ResponseError": (".core.exceptions", "ResponseError"),
+    "EmptyResponseError": (".core.exceptions", "EmptyResponseError"),
+    "ResponseParsingError": (".core.exceptions", "ResponseParsingError"),
+    "FeatureNotAvailableError": (".core.exceptions", "FeatureNotAvailableError"),
+    "MultiModalError": (".core.exceptions", "MultiModalError"),
+    "RateLimitError": (".core.exceptions", "RateLimitError"),
+    "QuotaExceededError": (".core.exceptions", "QuotaExceededError"),
+    "PluginError": (".core.exceptions", "PluginError"),
+    "PluginLoadError": (".core.exceptions", "PluginLoadError"),
+    "PluginValidationError": (".core.exceptions", "PluginValidationError"),
+    "SessionError": (".core.exceptions", "SessionError"),
+    "SessionNotFoundError": (".core.exceptions", "SessionNotFoundError"),
+    "SessionLoadError": (".core.exceptions", "SessionLoadError"),
+    "SessionSaveError": (".core.exceptions", "SessionSaveError"),
+}
+
+
+def __getattr__(name: str):
+    if name == "model_registry":
+        return model_registry
+
+    target = _EXPORTS.get(name)
+    if target is None:
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
+    module_name, attr_name = target
+    module = import_module(module_name, __name__)
+    value = getattr(module, attr_name)
+    globals()[name] = value
+    return value
 
 def _get_version() -> str:
     try:
