@@ -10,7 +10,7 @@ from unittest.mock import patch
 import pytest
 
 from matilda_brain.cli import cli as main
-from .conftest import IntegrationTestBase
+from tests.cli.conftest import IntegrationTestBase
 
 
 class TestCLIParameterValidation(IntegrationTestBase):

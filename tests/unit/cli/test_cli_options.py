@@ -82,7 +82,8 @@ class TestDebugFlag(IntegrationTestBase):
     def test_debug_flag_implementation_exists(self):
         """Test that the debug flag is implemented in the codebase."""
         # Read the CLI file and verify the debug flag is implemented
-        cli_file = Path(__file__).parent.parent.parent / "src" / "matilda_brain" / "cli.py"
+        repo_root = Path(__file__).resolve().parents[3]
+        cli_file = repo_root / "src" / "matilda_brain" / "cli.py"
         assert cli_file.exists(), "CLI file should exist"
 
         cli_content = cli_file.read_text()
@@ -97,7 +98,8 @@ class TestDebugFlag(IntegrationTestBase):
     def test_debug_functionality_in_hooks(self):
         """Test that debug functionality exists in the hooks file."""
         # Read the hooks file and verify debug functionality is implemented
-        hooks_file = Path(__file__).parent.parent.parent / "src" / "matilda_brain" / "internal" / "hooks" / "utils.py"
+        repo_root = Path(__file__).resolve().parents[3]
+        hooks_file = repo_root / "src" / "matilda_brain" / "internal" / "hooks" / "utils.py"
         assert hooks_file.exists(), "Hooks file should exist"
 
         hooks_content = hooks_file.read_text()

@@ -109,15 +109,9 @@ def build_pytest_cmd(args, test_type):
     if args.test:
         cmd.extend(["tests/", "-k", args.test])
     elif test_type == "unit":
-        cmd.extend(
-            [
-                "tests/",
-                "-m",
-                "not requires_credentials and not requires_network and not requires_service and not requires_gpu",
-            ]
-        )
+        cmd.extend(["tests/unit/"])
     elif test_type == "integration":
-        cmd.extend(["tests/", "-m", "requires_credentials or requires_network or requires_service or requires_gpu"])
+        cmd.extend(["tests/integration/"])
     else:
         cmd.append("tests/")
 

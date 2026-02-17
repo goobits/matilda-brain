@@ -9,7 +9,7 @@ import pytest
 from click.testing import CliRunner
 
 from matilda_brain.cli import cli as main
-from .conftest import IntegrationTestBase
+from tests.cli.conftest import IntegrationTestBase
 
 
 class TestAskCommand(IntegrationTestBase):

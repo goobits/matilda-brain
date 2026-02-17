@@ -2,13 +2,16 @@ from __future__ import annotations
 
 import asyncio
 import json
-from typing import Any, AsyncIterator, Dict, List, Optional, Union
+from typing import TYPE_CHECKING, Any, AsyncIterator, Dict, List, Optional, Union
 
 import httpx
-from matilda_transport import HubClient
 
 from ..core.models import AIResponse, ImageInput
+from ..core.exceptions import BackendNotAvailableError
 from .base import BaseBackend
+
+if TYPE_CHECKING:
+    from matilda_transport import HubClient  # noqa: F401
 
 
 class HubBackend(BaseBackend):
@@ -32,6 +35,14 @@ class HubBackend(BaseBackend):
         **kwargs: Any,
     ) -> AIResponse:
         payload = self._build_payload(prompt, model, system, temperature, max_tokens)
+        try:
+            from matilda_transport import HubClient  # type: ignore[import-not-found]
+        except ImportError as exc:
+            raise BackendNotAvailableError(
+                self.name,
+                "matilda-transport is required for hub backend. Install matilda-transport and retry.",
+            ) from exc
+
         client = HubClient(timeout=self.timeout)
         try:
             response = await asyncio.to_thread(client.post_capability, "reason-over-context", payload)
@@ -67,6 +78,14 @@ class HubBackend(BaseBackend):
         **kwargs: Any,
     ) -> AsyncIterator[str]:
         payload = self._build_payload(prompt, model, system, temperature, max_tokens)
+        try:
+            from matilda_transport import HubClient  # type: ignore[import-not-found]
+        except ImportError as exc:
+            raise BackendNotAvailableError(
+                self.name,
+                "matilda-transport is required for hub backend. Install matilda-transport and retry.",
+            ) from exc
+
         client_info = HubClient(timeout=self.timeout)
         base_url = client_info.base_url
         token = client_info.api_token
