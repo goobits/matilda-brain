@@ -583,6 +583,23 @@ async def handle_reload(request: Request) -> Response:
         return error_response(str(e), request, status=500, code="internal_error", task="reload")
 
 
+async def _cleanup_async_http_clients(_app: web.Application) -> None:
+    """Best-effort shutdown for async HTTP clients used by provider SDKs."""
+    try:
+        import litellm
+    except ImportError:
+        return
+
+    close_async_clients = getattr(litellm, "close_litellm_async_clients", None)
+    if callable(close_async_clients):
+        try:
+            maybe_coro = close_async_clients()
+            if asyncio.iscoroutine(maybe_coro):
+                await maybe_coro
+        except Exception as exc:
+            logger.debug(f"LiteLLM async client cleanup failed: {exc}")
+
+
 def create_app() -> web.Application:
     """Create the aiohttp application."""
     app = web.Application(middlewares=[auth_middleware])
@@ -599,6 +616,7 @@ def create_app() -> web.Application:
     app.router.add_get("/api/sessions", handle_list_sessions)
     app.router.add_get("/api/sessions/{id}", handle_get_session)
     app.router.add_delete("/api/sessions/{id}", handle_delete_session)
+    app.on_cleanup.append(_cleanup_async_http_clients)
 
     return app
 
