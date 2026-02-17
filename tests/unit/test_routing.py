@@ -66,6 +66,14 @@ class TestRouter:
         with pytest.raises(BackendNotAvailableError, match="Backend not found in registry"):
             router.get_backend("non-existent")
 
+    def test_get_backend_testing_is_always_available(self):
+        """Test deterministic testing backend for offline/unit use."""
+        router = Router()
+        backend = router.get_backend("testing")
+        assert backend is not None
+        assert backend.name == "testing"
+        assert backend.is_available is True
+
     def test_resolve_backend_instance(self):
         """Test resolving a backend instance."""
         router = Router()
