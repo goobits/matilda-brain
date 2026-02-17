@@ -2,6 +2,8 @@
 
 .PHONY: help test test-unit test-integration test-fast lint format type-check quality clean install dev
 
+PY ?= python3
+
 help: ## Show this help message
 	@echo "Matilda Brain Development Commands:"
 	@echo "===================================="
@@ -21,15 +23,18 @@ test-fast: ## Run tests without rate limiting delays
 
 lint: ## Run linting with ruff
 	@echo "Running linter..."
-	@ruff check src/matilda_brain/ tests/
+	@$(PY) -c "import ruff" 2>/dev/null || (echo "ruff is not installed. Install dev deps: python3 -m pip install -e '.[dev]'"; exit 1)
+	@$(PY) -m ruff check src/matilda_brain/ tests/
 
 format: ## Format code with black
 	@echo "Formatting code..."
-	@black src/matilda_brain/ tests/ --line-length 120
+	@$(PY) -c "import black" 2>/dev/null || (echo "black is not installed. Install dev deps: python3 -m pip install -e '.[dev]'"; exit 1)
+	@$(PY) -m black src/matilda_brain/ tests/ --line-length 120
 
 type-check: ## Run type checking with mypy
 	@echo "Running type checker..."
-	@mypy src/matilda_brain/
+	@$(PY) -c "import mypy" 2>/dev/null || (echo "mypy is not installed. Install dev deps: python3 -m pip install -e '.[dev]'"; exit 1)
+	@$(PY) -m mypy src/matilda_brain/
 
 quality: format lint type-check ## Run all code quality checks
 	@echo "All quality checks completed!"
