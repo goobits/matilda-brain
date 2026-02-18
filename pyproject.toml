@@ -33,6 +33,7 @@ Homepage = "https://github.com/goobits/matilda-brain"
 line-length = 120
 target-version = "py311"
 cache-dir = ".artifacts/cache/ruff"
+extend-exclude = [ "src/matilda_brain/cli.py",]
 
 [tool.black]
 line-length = 120
