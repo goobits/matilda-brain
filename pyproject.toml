@@ -43,8 +43,36 @@ target-version = [ "py311",]
 python_version = "3.11"
 warn_return_any = true
 warn_unused_configs = true
-disallow_untyped_defs = false
+disallow_untyped_defs = true
+check_untyped_defs = true
+no_implicit_optional = true
+warn_unused_ignores = true
 cache_dir = ".artifacts/cache/mypy"
+exclude = "(^|/)cli\\.py$$"
+
+[[tool.mypy.overrides]]
+module = [
+  "matilda_brain.cli",
+]
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = [
+  "matilda_brain.app_hooks",
+  "matilda_brain.commands.memory",
+  "matilda_brain.config.schema",
+  "matilda_brain.core.api",
+  "matilda_brain.internal.hooks.config",
+  "matilda_brain.internal.hooks.core",
+  "matilda_brain.internal.hooks.models",
+  "matilda_brain.internal.hooks.server",
+  "matilda_brain.internal.hooks.tools",
+  "matilda_brain.server",
+  "matilda_brain.session.chat",
+  "matilda_brain.__init__",
+  "matilda_brain",
+]
+ignore_errors = true
 
 [tool.setuptools]
 zip-safe = false

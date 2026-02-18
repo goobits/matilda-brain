@@ -36,7 +36,7 @@ class HubBackend(BaseBackend):
     ) -> AIResponse:
         payload = self._build_payload(prompt, model, system, temperature, max_tokens)
         try:
-            from matilda_transport import HubClient  # type: ignore[import-not-found]
+            from matilda_transport import HubClient
         except ImportError as exc:
             raise BackendNotAvailableError(
                 self.name,
@@ -80,7 +80,7 @@ class HubBackend(BaseBackend):
         async def _gen() -> AsyncIterator[str]:
             payload = self._build_payload(prompt, model, system, temperature, max_tokens)
             try:
-                from matilda_transport import HubClient  # type: ignore[import-not-found]
+                from matilda_transport import HubClient
             except ImportError as exc:
                 raise BackendNotAvailableError(
                     self.name,
