@@ -11,7 +11,6 @@ from .models import AIResponse, ImageInput
 from .routing import router
 
 
-
 logger = get_logger(__name__)
 
 # Initialize plugins on module load

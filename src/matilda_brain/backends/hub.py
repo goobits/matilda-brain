@@ -11,7 +11,7 @@ from ..core.exceptions import BackendNotAvailableError
 from .base import BaseBackend
 
 if TYPE_CHECKING:
-    from matilda_transport import HubClient  # noqa: F401
+    from matilda_transport import HubClient  # type: ignore[import-untyped]  # noqa: F401
 
 
 class HubBackend(BaseBackend):
@@ -66,7 +66,7 @@ class HubBackend(BaseBackend):
             metadata={"provider": response.get("provider")},
         )
 
-    async def astream(
+    def astream(
         self,
         prompt: Union[str, List[Union[str, ImageInput]]],
         *,
@@ -77,44 +77,47 @@ class HubBackend(BaseBackend):
         tools: Optional[List[Any]] = None,
         **kwargs: Any,
     ) -> AsyncIterator[str]:
-        payload = self._build_payload(prompt, model, system, temperature, max_tokens)
-        try:
-            from matilda_transport import HubClient  # type: ignore[import-not-found]
-        except ImportError as exc:
-            raise BackendNotAvailableError(
-                self.name,
-                "matilda-transport is required for hub backend. Install matilda-transport and retry.",
-            ) from exc
+        async def _gen() -> AsyncIterator[str]:
+            payload = self._build_payload(prompt, model, system, temperature, max_tokens)
+            try:
+                from matilda_transport import HubClient  # type: ignore[import-not-found]
+            except ImportError as exc:
+                raise BackendNotAvailableError(
+                    self.name,
+                    "matilda-transport is required for hub backend. Install matilda-transport and retry.",
+                ) from exc
 
-        client_info = HubClient(timeout=self.timeout)
-        base_url = client_info.base_url
-        token = client_info.api_token
-        headers = {}
-        if token:
-            headers["Authorization"] = f"Bearer {token}"
-        url = f"{base_url}/v1/capabilities/reason-over-context/stream"
-        async with httpx.AsyncClient(timeout=self.timeout, headers=headers) as client:
-            async with client.stream("POST", url, json=payload) as response:
-                response.raise_for_status()
-                async for line in response.aiter_lines():
-                    if not line:
-                        continue
-                    if not line.startswith("data:"):
-                        continue
-                    data = line[5:].strip()
-                    if not data:
-                        continue
-                    try:
-                        envelope = json.loads(data)
-                    except json.JSONDecodeError:
-                        continue
-                    result = envelope.get("result") or {}
-                    if isinstance(result, dict):
-                        delta = result.get("delta")
-                        if delta:
-                            yield str(delta)
-                        if result.get("done"):
-                            break
+            client_info = HubClient(timeout=self.timeout)
+            base_url = client_info.base_url
+            token = client_info.api_token
+            headers = {}
+            if token:
+                headers["Authorization"] = f"Bearer {token}"
+            url = f"{base_url}/v1/capabilities/reason-over-context/stream"
+            async with httpx.AsyncClient(timeout=self.timeout, headers=headers) as client:
+                async with client.stream("POST", url, json=payload) as response:
+                    response.raise_for_status()
+                    async for line in response.aiter_lines():
+                        if not line:
+                            continue
+                        if not line.startswith("data:"):
+                            continue
+                        data = line[5:].strip()
+                        if not data:
+                            continue
+                        try:
+                            envelope = json.loads(data)
+                        except json.JSONDecodeError:
+                            continue
+                        result = envelope.get("result") or {}
+                        if isinstance(result, dict):
+                            delta = result.get("delta")
+                            if delta:
+                                yield str(delta)
+                            if result.get("done"):
+                                break
+
+        return _gen()
 
     async def models(self) -> List[str]:
         return []
@@ -130,6 +133,7 @@ class HubBackend(BaseBackend):
         temperature: Optional[float],
         max_tokens: Optional[int],
     ) -> Dict[str, Any]:
+        prompt_value: str | List[str]
         if isinstance(prompt, list):
             prompt_value = []
             for item in prompt:

@@ -49,10 +49,9 @@ class TestingBackend(BaseBackend):
             content,
             model=model or "testing",
             backend=self.name,
-            succeeded=True,
         )
 
-    async def astream(
+    def astream(
         self,
         prompt: Union[str, List[Union[str, ImageInput]]],
         *,
@@ -63,17 +62,20 @@ class TestingBackend(BaseBackend):
         tools: Optional[List[Any]] = None,
         **kwargs: Any,
     ) -> AsyncIterator[str]:
-        resp = await self.ask(
-            prompt,
-            model=model,
-            system=system,
-            temperature=temperature,
-            max_tokens=max_tokens,
-            tools=tools,
-            **kwargs,
-        )
-        for ch in str(resp):
-            yield ch
+        async def _gen() -> AsyncIterator[str]:
+            resp = await self.ask(
+                prompt,
+                model=model,
+                system=system,
+                temperature=temperature,
+                max_tokens=max_tokens,
+                tools=tools,
+                **kwargs,
+            )
+            for ch in str(resp):
+                yield ch
+
+        return _gen()
 
     async def models(self) -> List[str]:
         return ["testing"]
@@ -94,4 +96,3 @@ def _prompt_to_text(prompt: Union[str, List[Union[str, ImageInput]]]) -> str:
             # Images are ignored for the deterministic backend.
             parts.append("[image]")
     return " ".join(parts)
-

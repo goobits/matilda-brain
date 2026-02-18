@@ -18,12 +18,12 @@ import os
 import secrets
 import uuid
 from datetime import datetime
-from typing import Optional
+from typing import Any, Optional
 
 from aiohttp import web
 from aiohttp.web import Request, Response, StreamResponse
 
-from matilda_transport import ensure_pipe_supported, prepare_unix_socket, resolve_transport
+from matilda_transport import ensure_pipe_supported, prepare_unix_socket, resolve_transport  # type: ignore[import-untyped]
 
 from .core.api import stream_async
 from .internal.security import get_allowed_origins, is_origin_allowed
@@ -121,7 +121,7 @@ def get_session_manager() -> ChatSessionManager:
 ALLOWED_ORIGINS = get_allowed_origins()
 
 
-def add_cors_headers(response: Response, request: Request = None) -> Response:
+def add_cors_headers(response: Response, request: Optional[Request] = None) -> Response:
     """
     Add CORS headers to response.
 
@@ -148,7 +148,7 @@ def should_validate() -> bool:
     return os.getenv("MATILDA_SCHEMA_VALIDATE", "").lower() in {"1", "true", "yes", "on"}
 
 
-def validate_response(model, payload: dict) -> None:
+def validate_response(model, payload: dict[str, Any]) -> None:
     if not should_validate():
         return
     model.model_validate(payload)
@@ -156,12 +156,12 @@ def validate_response(model, payload: dict) -> None:
 
 def ok_response(
     task: str,
-    payload: dict,
+    payload: Any,
     request: Request,
     schema_model=None,
     provider: Optional[str] = None,
     model_name: Optional[str] = None,
-    usage: Optional[dict] = None,
+    usage: Optional[dict[str, Any]] = None,
 ) -> Response:
     response_payload = {
         "request_id": str(uuid.uuid4()),
@@ -647,6 +647,7 @@ def run_server(host: str = "0.0.0.0", port: int = 8772):
         return
     if transport.transport == "pipe":
         ensure_pipe_supported(transport)
+
         async def run_pipe():
             runner = web.AppRunner(app)
             await runner.setup()

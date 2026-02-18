@@ -246,7 +246,7 @@ class LocalBackend(BaseBackend):
             logger.exception("Ollama request failed")
             raise BackendConnectionError(self.name, e) from e
 
-    async def astream(
+    def astream(
         self,
         prompt: Union[str, List[Union[str, ImageInput]]],
         *,
@@ -271,56 +271,61 @@ class LocalBackend(BaseBackend):
         Yields:
             Response chunks as they arrive
         """
-        # Use unified request preparation
-        used_model, payload = self._prepare_request(
-            prompt=prompt,
-            model=model,
-            system=system,
-            temperature=temperature,
-            max_tokens=max_tokens,
-            stream=True,
-        )
 
-        try:
-            async with httpx.AsyncClient(timeout=self.timeout) as client:
-                logger.debug(f"Starting stream request to Ollama: {used_model}")
+        async def _gen() -> AsyncIterator[str]:
+            # Use unified request preparation
+            used_model, payload = self._prepare_request(
+                prompt=prompt,
+                model=model,
+                system=system,
+                temperature=temperature,
+                max_tokens=max_tokens,
+                stream=True,
+            )
 
-                async with client.stream("POST", f"{self.base_url}/api/generate", json=payload) as response:
-                    response.raise_for_status()
-
-                    async for line in response.aiter_lines():
-                        if line.strip():
-                            try:
-                                data = json.loads(line)
-                                if "response" in data:
-                                    chunk = data["response"]
-                                    if chunk:
-                                        yield chunk
-
-                                # Check if this is the final chunk
-                                if data.get("done", False):
-                                    break
-
-                            except json.JSONDecodeError as e:
-                                logger.warning(f"Failed to parse JSON line: {line}")
-                                raise ResponseParsingError(f"Invalid JSON in stream: {line[:100]}", line) from e
-
-        except httpx.HTTPStatusError as e:
-            # For streaming responses, read the response body to get error details
             try:
-                error_text = await e.response.aread()
-                error_text = error_text.decode("utf-8") if isinstance(error_text, bytes) else str(error_text)
-            except Exception:
-                error_text = ""
+                async with httpx.AsyncClient(timeout=self.timeout) as client:
+                    logger.debug(f"Starting stream request to Ollama: {used_model}")
 
-            if e.response.status_code == 404 and "model" in error_text.lower():
-                raise ModelNotFoundError(used_model, self.name) from e
-            raise BackendConnectionError(self.name, e) from e
-        except httpx.TimeoutException:
-            raise BackendTimeoutError(self.name, self.timeout) from None
-        except Exception as e:
-            logger.exception("Streaming request failed")
-            raise BackendConnectionError(self.name, e) from e
+                    async with client.stream("POST", f"{self.base_url}/api/generate", json=payload) as response:
+                        response.raise_for_status()
+
+                        async for line in response.aiter_lines():
+                            if line.strip():
+                                try:
+                                    data = json.loads(line)
+                                    if "response" in data:
+                                        chunk = data["response"]
+                                        if chunk:
+                                            yield chunk
+
+                                    # Check if this is the final chunk
+                                    if data.get("done", False):
+                                        break
+
+                                except json.JSONDecodeError as e:
+                                    logger.warning(f"Failed to parse JSON line: {line}")
+                                    raise ResponseParsingError(f"Invalid JSON in stream: {line[:100]}", line) from e
+
+            except httpx.HTTPStatusError as e:
+                # For streaming responses, read the response body to get error details
+                error_text: str
+                try:
+                    error_bytes = await e.response.aread()
+                    error_text = error_bytes.decode("utf-8") if isinstance(error_bytes, bytes) else str(error_bytes)
+                except Exception:
+                    error_text = ""
+
+                if e.response.status_code == 404 and "model" in error_text.lower():
+                    raise ModelNotFoundError(used_model, self.name) from e
+                raise BackendConnectionError(self.name, e) from e
+            except httpx.TimeoutException:
+                raise BackendTimeoutError(self.name, self.timeout) from None
+            except Exception as e:
+                logger.exception("Streaming request failed")
+                raise BackendConnectionError(self.name, e) from e
+
+        return _gen()
 
     async def models(self) -> List[str]:
         """

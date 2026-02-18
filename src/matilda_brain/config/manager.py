@@ -3,7 +3,7 @@
 import os
 import shutil
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, cast
 
 import tomllib
 import toml
@@ -49,8 +49,9 @@ class ConfigManager:
         if self.user_config_path.exists():
             try:
                 with open(self.user_config_path, "rb") as f:
-                    full_config = tomllib.load(f)
-                return full_config.get("brain", {})
+                    full_config = cast(Dict[str, Any], tomllib.load(f))
+                brain_config = full_config.get("brain", {})
+                return brain_config if isinstance(brain_config, dict) else {}
             except Exception as e:
                 console.print(f"[red]Error loading user config: {e}[/red]")
                 return {}

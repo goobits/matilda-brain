@@ -105,7 +105,7 @@ class Message(BaseModel):
         # because Pydantic's exclude_none=True might hide fields we want,
         # or include fields we don't (like all the optional ones).
 
-        base = {
+        base: Dict[str, Any] = {
             "version": PROTOCOL_VERSION,
             "role": self.role.value,
             "kind": self.kind.value,

@@ -5,7 +5,7 @@ chat session data, tools, and messages.
 """
 
 import json
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Optional, Union
 
 from ..core.models import ImageInput
 
@@ -34,7 +34,7 @@ def estimate_tokens(content: Union[str, List]) -> int:
     return 0
 
 
-def serialize_tools(tools: List) -> List[Dict[str, Any]]:
+def serialize_tools(tools: Optional[List[Any]]) -> List[Dict[str, Any]]:
     """Serialize tools for storage.
 
     Args:
@@ -123,7 +123,9 @@ def export_messages_text(history: List[Dict[str, Any]]) -> str:
     return "\n\n".join(lines)
 
 
-def export_messages_markdown(history: List[Dict[str, Any]], session_id: str = "Unknown", system: str = None) -> str:
+def export_messages_markdown(
+    history: List[Dict[str, Any]], session_id: str = "Unknown", system: Optional[str] = None
+) -> str:
     """Export messages as markdown.
 
     Args:
@@ -161,7 +163,10 @@ def export_messages_markdown(history: List[Dict[str, Any]], session_id: str = "U
 
 
 def export_messages_json(
-    history: List[Dict[str, Any]], session_id: str = None, created_at: str = None, system: str = None
+    history: List[Dict[str, Any]],
+    session_id: Optional[str] = None,
+    created_at: Optional[str] = None,
+    system: Optional[str] = None,
 ) -> str:
     """Export messages as JSON.
 

@@ -7,7 +7,7 @@ import json
 from ..core.models import AIResponse
 from ..core.routing import router
 from .utils import get_logger, run_async
-from .protocol import Message, Proposal, Role, RiskLevel
+from .protocol import ContentKind, Message, Proposal, Role, RiskLevel
 
 logger = get_logger(__name__)
 
@@ -113,12 +113,40 @@ def execute_stateless(req: StatelessRequest) -> StatelessResponse:
         # Execute the request
         ai_response = run_async(_execute())
 
-        # Convert AIResponse to StatelessResponse
+        # Convert AIResponse (string with metadata) to StatelessResponse
+        content_attr = getattr(ai_response, "content", None)
+        content = content_attr if isinstance(content_attr, str) else str(ai_response)
+
+        finish_reason_attr = getattr(ai_response, "finish_reason", None)
+        finish_reason = finish_reason_attr if isinstance(finish_reason_attr, str) else "stop"
+
+        usage_attr = getattr(ai_response, "usage", None)
+        usage: Optional[Dict] = usage_attr if isinstance(usage_attr, dict) else None
+
+        tool_calls_attr = getattr(ai_response, "tool_calls", None)
+        tool_calls = tool_calls_attr if isinstance(tool_calls_attr, list) else None
+
+        # New-style tool results (matilda_brain.core.models.AIResponse + tools.base.ToolResult)
+        tool_result = getattr(ai_response, "tool_result", None)
+        if tool_calls is None and tool_result:
+            tool_calls = [call.to_dict() for call in tool_result.calls]
+
+        tokens_in = getattr(ai_response, "tokens_in", None)
+        tokens_out = getattr(ai_response, "tokens_out", None)
+        if usage is None:
+            usage = {
+                "prompt_tokens": tokens_in,
+                "completion_tokens": tokens_out,
+                "total_tokens": (
+                    (tokens_in or 0) + (tokens_out or 0) if (tokens_in is not None or tokens_out is not None) else None
+                ),
+            }
+
         return StatelessResponse(
-            content=str(ai_response.content) if ai_response.content else "",
-            tool_calls=ai_response.tool_calls,
-            finish_reason=ai_response.finish_reason or "stop",
-            usage=ai_response.usage,
+            content=content,
+            tool_calls=tool_calls,
+            finish_reason=finish_reason,
+            usage=usage,
             model=resolved_model,
         )
 
@@ -167,17 +195,19 @@ def execute_stateless_protocol(req: StatelessRequest) -> str:
             )
 
             msg = Message.proposal_msg(proposal)
-            msg.metadata["model"] = response.model
+            if response.model:
+                msg.metadata["model"] = response.model
             return msg.to_protocol_json()
 
         else:
             # Standard Text Response
             msg = Message.assistant(response.content)
-            msg.metadata["model"] = response.model
+            if response.model:
+                msg.metadata["model"] = response.model
             return msg.to_protocol_json()
 
     except Exception as e:
         logger.exception("Error during stateless protocol execution")
         # Return Protocol Error
-        error_msg = Message(role=Role.SYSTEM, kind="error", code="execution_failed", message=str(e))
+        error_msg = Message(role=Role.SYSTEM, kind=ContentKind.ERROR, code="execution_failed", message=str(e))
         return error_msg.to_protocol_json()

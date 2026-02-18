@@ -25,8 +25,6 @@ from .serialization import (
 logger = get_logger(__name__)
 
 
-
-
 class PersistentChatSession:
     """
     Chat session with conversation memory and persistence support.
@@ -77,7 +75,7 @@ class PersistentChatSession:
             "backend_usage": {},
             "tools_used": {},
         }
-        
+
         # Initialize memory client
         memory_enabled = kwargs.get("memory_enabled")
         if memory_enabled is None:
@@ -153,7 +151,7 @@ class PersistentChatSession:
         """
         # Record timestamp
         timestamp = datetime.now().isoformat()
-        
+
         # Helper to extract text from prompt
         user_text = ""
         if isinstance(prompt, str):
@@ -162,7 +160,7 @@ class PersistentChatSession:
             for item in prompt:
                 if isinstance(item, str):
                     user_text += item + " "
-        
+
         # Query memory for context
         memory_context = ""
         if user_text:
@@ -191,7 +189,7 @@ class PersistentChatSession:
 
         # Build messages for API
         messages = []
-        
+
         # Inject system prompt with memory context
         system_content = self.system or ""
         if memory_context:
@@ -199,7 +197,7 @@ class PersistentChatSession:
                 system_content += "\n\n" + memory_context
             else:
                 system_content = "You are a helpful AI assistant.\n\n" + memory_context
-        
+
         if system_content:
             messages.append({"role": "system", "content": system_content})
 
@@ -267,13 +265,13 @@ class PersistentChatSession:
 
         # Update metadata
         self._update_metadata(response)
-        
+
         # Log to long-term memory
         try:
-            self.memory.log_conversation(self.agent_name, [
-                {"role": "user", "content": user_text},
-                {"role": "assistant", "content": str(response)}
-            ])
+            self.memory.log_conversation(
+                self.agent_name,
+                [{"role": "user", "content": user_text}, {"role": "assistant", "content": str(response)}],
+            )
             # Auto-learning
             run_async(self._extract_and_store_knowledge(user_text, str(response)))
         except Exception as e:
@@ -420,23 +418,24 @@ Assistant: {response}"""
                 prompt,
                 model=self.model,
                 system="You are a knowledge extraction system. Extract facts concisely.",
-                temperature=0.0
+                temperature=0.0,
             )
-            
+
             facts = str(extraction).strip()
             if facts and "no facts" not in facts.lower():
                 # Generate a slug
                 import re
-                slug = re.sub(r'[^a-z0-9]+', '-', user_input[:30].lower()).strip('-')
+
+                slug = re.sub(r"[^a-z0-9]+", "-", user_input[:30].lower()).strip("-")
                 if not slug:
                     slug = "general"
-                
+
                 path = f"facts/{datetime.now().strftime('%Y%m%d')}-{slug}.md"
                 self.memory.add_knowledge(
-                    self.agent_name, 
-                    path, 
+                    self.agent_name,
+                    path,
                     f"# Learned Facts\n\nSource: Conversation\nDate: {datetime.now().isoformat()}\n\n{facts}",
-                    commit_message=f"Learned facts about {slug}"
+                    commit_message=f"Learned facts about {slug}",
                 )
         except Exception as e:
             logger.debug(f"Knowledge extraction failed: {e}")

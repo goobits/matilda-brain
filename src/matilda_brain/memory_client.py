@@ -3,7 +3,7 @@ HTTP client for matilda-memory service.
 Gracefully degrades to no-op if memory service unavailable.
 """
 
-from typing import Protocol, Optional, List, Dict, Any
+from typing import Any, Dict, List, Optional, Protocol
 import httpx
 from dataclasses import dataclass
 import time
@@ -12,24 +12,17 @@ import time
 class MemoryStore(Protocol):
     """Interface for memory operations - enables testing with mocks"""
 
-    def query(self, agent: str, question: str, limit: int = 5) -> List[Any]:
-        ...
+    def query(self, agent: str, question: str, limit: int = 5) -> List[Any]: ...
 
-    def add_knowledge(self, agent: str, path: str, content: str,
-                      commit_message: Optional[str] = None) -> bool:
-        ...
+    def add_knowledge(self, agent: str, path: str, content: str, commit_message: Optional[str] = None) -> bool: ...
 
-    def log_conversation(self, agent: str, messages: List[Dict[str, str]]) -> bool:
-        ...
+    def log_conversation(self, agent: str, messages: List[Dict[str, str]]) -> bool: ...
 
-    def get_recent_messages(self, agent: str, n: int = 10) -> List[Dict[str, str]]:
-        ...
+    def get_recent_messages(self, agent: str, n: int = 10) -> List[Dict[str, str]]: ...
 
-    def is_available(self) -> bool:
-        ...
+    def is_available(self) -> bool: ...
 
-    def get_identity(self, agent: str) -> Optional[Dict[str, Any]]:
-        ...
+    def get_identity(self, agent: str) -> Optional[Dict[str, Any]]: ...
 
 
 @dataclass
@@ -43,8 +36,7 @@ class MemoryResult:
 class MemoryClient(MemoryStore):
     """HTTP client for matilda-memory Rust service"""
 
-    def __init__(self, base_url: str = "http://localhost:3215",
-                 timeout: float = 5.0, agent_name: str = "assistant"):
+    def __init__(self, base_url: str = "http://localhost:3215", timeout: float = 5.0, agent_name: str = "assistant"):
         self.base_url = base_url
         self.timeout = timeout
         self.agent_name = agent_name
@@ -58,9 +50,7 @@ class MemoryClient(MemoryStore):
     def client(self) -> httpx.Client:
         if self._client is None:
             self._client = httpx.Client(
-                base_url=self.base_url,
-                timeout=self.timeout,
-                headers={"X-Agent-Name": self.agent_name}
+                base_url=self.base_url, timeout=self.timeout, headers={"X-Agent-Name": self.agent_name}
             )
         return self._client
 
@@ -80,10 +70,7 @@ class MemoryClient(MemoryStore):
         if not self.is_available():
             return []
         try:
-            resp = self.client.get(
-                f"/vaults/{agent}/search",
-                params={"q": question, "limit": limit}
-            )
+            resp = self.client.get(f"/vaults/{agent}/search", params={"q": question, "limit": limit})
             if resp.status_code != 200:
                 return []
             data = resp.json()
@@ -92,15 +79,14 @@ class MemoryClient(MemoryStore):
                     path=r.get("path", ""),
                     content=r.get("content", ""),
                     relevance=r.get("relevance", 0.0),
-                    type=r.get("type", "knowledge")
+                    type=r.get("type", "knowledge"),
                 )
                 for r in data.get("results", [])
             ]
         except Exception:
             return []
 
-    def add_knowledge(self, agent: str, path: str, content: str,
-                      commit_message: Optional[str] = None) -> bool:
+    def add_knowledge(self, agent: str, path: str, content: str, commit_message: Optional[str] = None) -> bool:
         """Add knowledge to the vault."""
         if not self.is_available():
             return False
@@ -118,10 +104,7 @@ class MemoryClient(MemoryStore):
         if not self.is_available():
             return False
         try:
-            resp = self.client.post(
-                f"/vaults/{agent}/conversations",
-                json={"messages": messages}
-            )
+            resp = self.client.post(f"/vaults/{agent}/conversations", json={"messages": messages})
             return resp.status_code in (200, 201)
         except Exception:
             return False
@@ -131,13 +114,21 @@ class MemoryClient(MemoryStore):
         if not self.is_available():
             return []
         try:
-            resp = self.client.get(
-                f"/vaults/{agent}/conversations/recent"
-            )
+            resp = self.client.get(f"/vaults/{agent}/conversations/recent")
             if resp.status_code != 200:
                 return []
             data = resp.json()
-            return data.get("messages", [])
+            messages = data.get("messages", [])
+            if not isinstance(messages, list):
+                return []
+            out: List[Dict[str, str]] = []
+            for item in messages:
+                if not isinstance(item, dict):
+                    continue
+                # Keep only string key/value pairs.
+                filtered: Dict[str, str] = {k: v for k, v in item.items() if isinstance(k, str) and isinstance(v, str)}
+                out.append(filtered)
+            return out
         except Exception:
             return []
 
@@ -168,8 +159,7 @@ class NullMemory(MemoryStore):
     def query(self, agent: str, question: str, limit: int = 5) -> List[Any]:
         return []
 
-    def add_knowledge(self, agent: str, path: str, content: str,
-                      commit_message: Optional[str] = None) -> bool:
+    def add_knowledge(self, agent: str, path: str, content: str, commit_message: Optional[str] = None) -> bool:
         return False
 
     def log_conversation(self, agent: str, messages: List[Dict[str, str]]) -> bool:

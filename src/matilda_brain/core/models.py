@@ -225,19 +225,21 @@ class ImageInput:
             assert isinstance(self.source, bytes)
             self._base64_cache = base64.b64encode(self.source).decode("utf-8")
         elif self.is_path:
+            assert isinstance(self.source, (str, Path))
+            source_display = str(self.source)
             try:
                 with open(self.source, "rb") as f:
                     self._base64_cache = base64.b64encode(f.read()).decode("utf-8")
             except FileNotFoundError:
-                raise FileNotFoundError(f"Image file not found: {self.source}")
+                raise FileNotFoundError(f"Image file not found: {source_display}")
             except PermissionError:
-                raise PermissionError(f"Permission denied reading image file: {self.source}")
+                raise PermissionError(f"Permission denied reading image file: {source_display}")
             except IsADirectoryError:
-                raise IsADirectoryError(f"Path is a directory, not a file: {self.source}")
+                raise IsADirectoryError(f"Path is a directory, not a file: {source_display}")
             except OSError as e:
-                raise OSError(f"Error reading image file {self.source}: {e}")
+                raise OSError(f"Error reading image file {source_display}: {e}")
             except Exception as e:
-                raise RuntimeError(f"Unexpected error reading image file {self.source}: {e}")
+                raise RuntimeError(f"Unexpected error reading image file {source_display}: {e}")
         elif self.is_url:
             # URL images typically sent as-is to APIs
             return str(self.source)

@@ -240,8 +240,8 @@ class CloudBackend(BaseBackend):
                 registry = get_model_registry()
                 available_models = list(registry.models.keys())
                 get_model_suggestions(used_model, available_models)
-            except (ImportError, AttributeError, KeyError) as e:
-                logger.warning(f"Could not load model suggestions: {e}")
+            except (ImportError, AttributeError, KeyError) as exc:
+                logger.warning(f"Could not load model suggestions: {exc}")
             except Exception:
                 logger.exception("Unexpected error loading model suggestions")
 
@@ -453,7 +453,7 @@ class CloudBackend(BaseBackend):
         except Exception as e:
             self._handle_request_error(e, used_model)
 
-    async def astream(
+    def astream(
         self,
         prompt: Union[str, List[Union[str, ImageInput]]],
         *,
@@ -478,35 +478,39 @@ class CloudBackend(BaseBackend):
         Yields:
             Response chunks as they arrive
         """
-        # Use unified parameter preparation
-        used_model, params = self._prepare_params(
-            prompt=prompt,
-            model=model,
-            system=system,
-            temperature=temperature,
-            max_tokens=max_tokens,
-            tools=tools,
-            stream=True,
-            kwargs=kwargs,
-        )
 
-        try:
-            logger.debug(f"Starting stream request to {used_model}")
-            logger.debug(
-                f"Stream parameters: max_tokens={params.get('max_tokens')}, temperature={params.get('temperature')}"
+        async def _gen() -> AsyncIterator[str]:
+            # Use unified parameter preparation
+            used_model, params = self._prepare_params(
+                prompt=prompt,
+                model=model,
+                system=system,
+                temperature=temperature,
+                max_tokens=max_tokens,
+                tools=tools,
+                stream=True,
+                kwargs=kwargs,
             )
 
-            response = await self.litellm.acompletion(**params)
+            try:
+                logger.debug(f"Starting stream request to {used_model}")
+                logger.debug(
+                    f"Stream parameters: max_tokens={params.get('max_tokens')}, temperature={params.get('temperature')}"
+                )
 
-            async for chunk in response:
-                if chunk.choices and chunk.choices[0].delta:
-                    content = chunk.choices[0].delta.content
-                    if content:
-                        # Content should be a string in streaming responses
-                        yield str(content)
+                response = await self.litellm.acompletion(**params)
 
-        except Exception as e:
-            self._handle_request_error(e, used_model, "streaming request")
+                async for chunk in response:
+                    if chunk.choices and chunk.choices[0].delta:
+                        content = chunk.choices[0].delta.content
+                        if content:
+                            # Content should be a string in streaming responses
+                            yield str(content)
+
+            except Exception as e:
+                self._handle_request_error(e, used_model, "streaming request")
+
+        return _gen()
 
     async def models(self) -> List[str]:
         """

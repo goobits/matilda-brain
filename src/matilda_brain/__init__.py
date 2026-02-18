@@ -10,6 +10,7 @@ from pathlib import Path
 import tomllib
 from typing import TYPE_CHECKING
 
+
 def _get_model_registry():
     from .config import model_registry
 
@@ -137,6 +138,7 @@ def __getattr__(name: str):
     value = getattr(module, attr_name)
     globals()[name] = value
     return value
+
 
 def _get_version() -> str:
     try:

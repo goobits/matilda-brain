@@ -67,7 +67,7 @@ class BaseBackend(ABC):
         pass
 
     @abstractmethod
-    async def astream(
+    def astream(
         self,
         prompt: Union[str, List[Union[str, ImageInput]]],
         *,
