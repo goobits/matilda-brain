@@ -23,6 +23,7 @@ from .serialization import (
 )
 
 logger = get_logger(__name__)
+MAX_HISTORY_LENGTH = 100
 
 
 class PersistentChatSession:
@@ -131,6 +132,10 @@ class PersistentChatSession:
         """Get the message history (alias for history)."""
         return self.history
 
+    def _trim_history(self) -> None:
+        if len(self.history) > MAX_HISTORY_LENGTH:
+            del self.history[: len(self.history) - MAX_HISTORY_LENGTH]
+
     def ask(
         self,
         prompt: Union[str, List[Union[str, ImageInput]]],
@@ -174,6 +179,7 @@ class PersistentChatSession:
 
         # Add user message to history
         self.history.append({"role": "user", "content": prompt, "timestamp": timestamp})
+        self._trim_history()
 
         # Track multimodal usage
         if isinstance(prompt, list):
@@ -262,6 +268,7 @@ class PersistentChatSession:
                 self.metadata["tools_used"][call.name] += 1
 
         self.history.append(response_entry)
+        self._trim_history()
 
         # Update metadata
         self._update_metadata(response)
@@ -307,6 +314,7 @@ class PersistentChatSession:
                 logger.debug(f"Memory query failed: {e}")
 
         self.history.append({"role": "user", "content": prompt, "timestamp": timestamp})
+        self._trim_history()
 
         if isinstance(prompt, list):
             image_count = sum(1 for item in prompt if isinstance(item, ImageInput))
@@ -380,6 +388,7 @@ class PersistentChatSession:
                 self.metadata["tools_used"][call.name] += 1
 
         self.history.append(response_entry)
+        self._trim_history()
 
         self._update_metadata(response)
 
@@ -463,6 +472,7 @@ Assistant: {response}"""
 
         # Add user message to history
         self.history.append({"role": "user", "content": prompt, "timestamp": timestamp})
+        self._trim_history()
 
         # Build messages for API
         messages = []
@@ -523,6 +533,7 @@ Assistant: {response}"""
                 "model": model or self.model,
             }
         )
+        self._trim_history()
 
     async def stream_async(
         self,
@@ -533,6 +544,7 @@ Assistant: {response}"""
     ) -> AsyncIterator[str]:
         timestamp = datetime.now().isoformat()
         self.history.append({"role": "user", "content": prompt, "timestamp": timestamp})
+        self._trim_history()
 
         messages = []
         if self.system:
@@ -570,6 +582,7 @@ Assistant: {response}"""
                 "model": model or self.model,
             }
         )
+        self._trim_history()
 
     def clear(self) -> None:
         """Clear conversation history while preserving session metadata."""
