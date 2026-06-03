@@ -72,3 +72,8 @@ goobits build  # Regenerates src/matilda_brain/cli.py and setup.sh
 
 ### Temporary Files
 When creating temporary debug or test scripts, use `/tmp` directory to keep the project clean.
+
+## Shared-Folder Git
+
+- Shared macOS/Linux checkouts should use `core.filemode=false`; chmod-only changes will not be noticed reliably.
+- When a script must be executable, run `git update-index --chmod=+x path/to/script.sh` and include that in the commit.
