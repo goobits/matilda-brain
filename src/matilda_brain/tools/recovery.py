@@ -1,7 +1,6 @@
 """Smart error recovery and fallback system for AI tools."""
 
 import asyncio
-import json
 import logging
 import random
 import re
@@ -9,12 +8,10 @@ import time
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import Any, Callable, ClassVar, Dict, List, Optional, cast
-
-import bleach  # type: ignore[import-untyped]
-import validators
+from typing import Any, Callable, ClassVar, Dict, List, Optional
 
 from .base import ToolCall
+from .policy import InputSanitizer, ToolPolicy
 
 
 class ErrorType(Enum):
@@ -74,191 +71,6 @@ class FallbackSuggestion:
     description: str
     arguments: Dict[str, Any]
     confidence: float
-
-
-class InputSanitizer:
-    """Professional input sanitization using battle-tested libraries."""
-
-    # Only block truly dangerous patterns (much more targeted)
-    DANGEROUS_PATTERNS: ClassVar[List[str]] = [
-        # Actual command injection (not legitimate code)
-        r"^\s*sudo\s+",
-        r"\brm\s+-rf\s+/",
-        r"\bdel\s+/[sq]",
-        r"\bformat\s+[c-z]:",
-        # Path traversal
-        r"\.\./",
-        r"\.\.\\",
-        # System file access
-        r"/etc/passwd",
-        r"/etc/shadow",
-        r"C:\\Windows\\System32",
-        # Binary/executable content
-        r"^\x7fELF",  # ELF header
-        r"^MZ",  # DOS header
-    ]
-
-    # Patterns that are dangerous specifically in code execution contexts
-    CODE_DANGEROUS_PATTERNS: ClassVar[List[str]] = [
-        # OS module execution methods
-        r"os\.system\s*\(",
-        r"os\.popen\s*\(",
-        r"os\.execv\s*\(",
-        r"os\.execve\s*\(",
-        r"os\.execl\s*\(",
-        r"os\.execlp\s*\(",
-        r"os\.execvp\s*\(",
-        r"os\.spawn\w*\s*\(",  # Generic spawn pattern
-        # Subprocess module execution methods
-        r"subprocess\.(run|call|Popen|check_output|check_call|getoutput|getstatusoutput)\s*\(",
-        # Dynamic code execution
-        r"eval\s*\(",
-        r"exec\s*\(",
-        r"compile\s*\(",
-        r"__import__\s*\(",
-        # String concatenation bypasses for critical functions
-        r'getattr\s*\(\s*os\s*,\s*["\']\s*sys\s*["\']\s*\+',
-        r'getattr\s*\(\s*os\s*,\s*["\']sys["\']\s*\+',
-        r'getattr\s*\(\s*os\s*,\s*["\']\s*system\s*["\']',
-        r"getattr\s*\(\s*subprocess\s*,",
-        r"getattr\s*\(\s*__import__\s*\(",
-        # Import bypasses
-        r"from\s+subprocess\s+import\s+(check_output|check_call|getoutput|getstatusoutput|run|call|Popen)",
-        r"from\s+os\s+import\s+(system|popen|exec)",
-        r"import\s+subprocess\s+as\s+\w+",
-        r"import\s+os\s+as\s+\w+",
-        # File system access
-        r'open\s*\(\s*["\'][/\\]',  # Opening system files
-        # Globals and builtins access
-        r"globals\s*\(\s*\)\s*\[",
-        r"__builtins__\s*\[",
-        r"locals\s*\(\s*\)\s*\[",
-        # Type and reflection-based bypasses
-        r"type\s*\(\s*lambda\s*:",
-        r"chr\s*\(\s*\d+\s*\)\s*\+.*chr\s*\(",  # Character concatenation
-    ]
-
-    @classmethod
-    def sanitize_string(cls, value: str, max_length: int = 10000, allow_code: bool = True) -> str:
-        """Sanitize string input using professional bleach library."""
-        if not isinstance(value, str):
-            raise ValueError(f"Expected string, got {type(value)}")
-
-        # Length check
-        if len(value) > max_length:
-            raise ValueError(f"String too long: {len(value)} > {max_length}")
-
-        # Check for truly dangerous patterns (much more targeted now)
-        for pattern in cls.DANGEROUS_PATTERNS:
-            if re.search(pattern, value, re.IGNORECASE | re.MULTILINE):
-                raise ValueError("Potentially dangerous content detected")
-
-        if allow_code:
-            # For code content, check code-specific dangerous patterns
-            for pattern in cls.CODE_DANGEROUS_PATTERNS:
-                if re.search(pattern, value, re.IGNORECASE | re.MULTILINE):
-                    raise ValueError("Dangerous code pattern detected")
-
-            # Remove null bytes and other control characters
-            sanitized = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]", "", value)
-            return sanitized.strip()
-        else:
-            # For HTML/text content, use bleach for proper sanitization
-            sanitized = bleach.clean(value, strip=True)
-            return str(sanitized)
-
-    @classmethod
-    def sanitize_path(cls, path: str) -> Path:
-        """Sanitize file path input."""
-        if not isinstance(path, str):
-            raise ValueError(f"Expected string path, got {type(path)}")
-
-        # Basic path validation
-        if not path or path.isspace():
-            raise ValueError("Path cannot be empty")
-
-        # URL decode the path to prevent encoding bypasses
-        import urllib.parse
-
-        decoded_path = urllib.parse.unquote(path)
-
-        # Check for path traversal in both original and decoded paths
-        if ".." in path or ".." in decoded_path:
-            raise ValueError("Path traversal detected")
-
-        # Use the decoded path for further processing
-        path = decoded_path
-
-        # Resolve and validate
-        try:
-            resolved_path = Path(path).resolve()
-
-            # Check if path is within allowed bounds (current directory or subdirectories)
-            # Allow temporary directories for testing
-            cwd = Path.cwd().resolve()
-            temp_dirs = [Path("/tmp").resolve(), Path("/var/tmp").resolve()]
-
-            # Use is_relative_to() to prevent directory traversal (e.g., /app vs /appdata)
-            is_in_cwd = resolved_path.is_relative_to(cwd)
-            is_in_temp = any(resolved_path.is_relative_to(temp_dir) for temp_dir in temp_dirs)
-
-            if not (is_in_cwd or is_in_temp):
-                raise ValueError(f"Path outside allowed directory: {resolved_path}")
-
-            return resolved_path
-        except Exception as e:
-            raise ValueError(f"Invalid path: {e}") from e
-
-    @classmethod
-    def sanitize_url(cls, url: str) -> str:
-        """Sanitize URL input using validators library."""
-        if not isinstance(url, str):
-            raise ValueError(f"Expected string URL, got {type(url)}")
-
-        # Clean the URL
-        url = url.strip()
-
-        # Validate URL format using professional library
-        if not validators.url(url):
-            raise ValueError(f"Invalid URL format: {url}")
-
-        # Ensure only HTTP/HTTPS schemes
-        if not (url.startswith("http://") or url.startswith("https://")):
-            raise ValueError("Only HTTP and HTTPS URLs are allowed")
-
-        # Check for dangerous patterns in URL
-        for pattern in cls.DANGEROUS_PATTERNS:
-            if re.search(pattern, url, re.IGNORECASE):
-                raise ValueError("Potentially dangerous URL content detected")
-
-        return url
-
-    @classmethod
-    def sanitize_json(cls, json_str: str) -> Dict[str, Any]:
-        """Sanitize and parse JSON input safely."""
-        if not isinstance(json_str, str):
-            raise ValueError(f"Expected JSON string, got {type(json_str)}")
-
-        try:
-            # Parse JSON using standard library
-            data = json.loads(json_str)
-
-            # Recursively sanitize string values with bleach
-            def sanitize_recursive(obj: Any) -> Any:
-                if isinstance(obj, dict):
-                    return {k: sanitize_recursive(v) for k, v in obj.items()}
-                elif isinstance(obj, list):
-                    return [sanitize_recursive(item) for item in obj]
-                elif isinstance(obj, str):
-                    # Use bleach for text content in JSON
-                    return cls.sanitize_string(obj, allow_code=False)
-                else:
-                    return obj
-
-            result = sanitize_recursive(data)
-            return cast(Dict[str, Any], result)
-        except json.JSONDecodeError as e:
-            raise ValueError(f"Invalid JSON: {e}") from e
 
 
 class ErrorRecoverySystem:
@@ -324,6 +136,7 @@ class ErrorRecoverySystem:
     def __init__(self, retry_config: Optional[RetryConfig] = None):
         self.retry_config = retry_config or RetryConfig()
         self.logger = logging.getLogger(__name__)
+        self.policy = ToolPolicy()
 
     def classify_error(self, error_message: str) -> ErrorPattern:
         """Classify an error message to determine recovery strategy."""
@@ -505,7 +318,7 @@ class ErrorRecoverySystem:
         while True:
             try:
                 # Sanitize inputs before execution
-                sanitized_args = self._sanitize_arguments(tool_name, arguments)
+                sanitized_args = self.policy.sanitize_arguments(tool_name, arguments)
 
                 # Execute the tool
                 result = await tool_function(**sanitized_args)
@@ -542,42 +355,6 @@ class ErrorRecoverySystem:
                         error=recovery_message,
                     )
 
-    def _sanitize_arguments(self, tool_name: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
-        """Sanitize tool arguments based on tool type."""
-        sanitized = {}
-
-        for key, value in arguments.items():
-            try:
-                if key in ["file_path", "path"]:
-                    # File path sanitization
-                    sanitized[key] = str(InputSanitizer.sanitize_path(value))
-                elif key in ["url"]:
-                    # URL sanitization
-                    sanitized[key] = InputSanitizer.sanitize_url(value)
-                elif key in ["code", "expression", "query", "content"]:
-                    # Text content sanitization
-                    sanitized[key] = InputSanitizer.sanitize_string(value)
-                elif key in ["data"] and isinstance(value, str):
-                    # JSON data sanitization - keep as string but validate
-                    try:
-                        # Validate JSON but keep as string
-                        InputSanitizer.sanitize_json(value)
-                        sanitized[key] = value
-                    except ValueError:
-                        # If not valid JSON, treat as string
-                        sanitized[key] = InputSanitizer.sanitize_string(value)
-                else:
-                    # Basic type validation
-                    if isinstance(value, str):
-                        sanitized[key] = InputSanitizer.sanitize_string(value)
-                    else:
-                        sanitized[key] = value
-
-            except ValueError as e:
-                raise ValueError(f"Invalid argument '{key}': {e}") from e
-
-        return sanitized
-
 
 # Global recovery system instance
 recovery_system = ErrorRecoverySystem()
@@ -591,3 +368,15 @@ def with_recovery(tool_function: Callable) -> Callable:
         return await recovery_system.execute_with_recovery(tool_function, tool_name, kwargs)
 
     return wrapper
+
+
+__all__ = [
+    "ErrorPattern",
+    "ErrorRecoverySystem",
+    "ErrorType",
+    "FallbackSuggestion",
+    "InputSanitizer",
+    "RetryConfig",
+    "recovery_system",
+    "with_recovery",
+]

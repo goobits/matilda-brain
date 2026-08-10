@@ -5,6 +5,8 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Callable, Dict, List, Optional
 
+from ..core.types import Proposal
+
 
 class ToolParameterType(str, Enum):
     """Supported parameter types for tools."""
@@ -133,6 +135,7 @@ class ToolCall:
     arguments: Dict[str, Any]
     result: Any = None
     error: Optional[str] = None
+    proposal: Optional[Proposal] = None
 
     @property
     def succeeded(self) -> bool:
@@ -141,7 +144,7 @@ class ToolCall:
         Returns:
             True if no error occurred during execution, False otherwise.
         """
-        return self.error is None
+        return self.error is None and self.proposal is None
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for serialization.
@@ -156,6 +159,7 @@ class ToolCall:
             "arguments": self.arguments,
             "result": self.result,
             "error": self.error,
+            "proposal": self.proposal.model_dump(mode="json") if self.proposal else None,
             "succeeded": self.succeeded,
         }
 

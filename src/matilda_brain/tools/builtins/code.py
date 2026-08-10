@@ -9,7 +9,9 @@ import math
 import operator
 import os
 import shutil
+import signal
 import tempfile
+from pathlib import Path
 from typing import Any, Callable, Optional
 
 from matilda_brain.tools import tool
@@ -28,8 +30,25 @@ def _get_python_cmd() -> str:
     """
     global _PYTHON_CMD
     if _PYTHON_CMD is None:
-        _PYTHON_CMD = "python3" if shutil.which("python3") else "python"
+        _PYTHON_CMD = shutil.which("python3") or shutil.which("python") or "python"
     return _PYTHON_CMD
+
+
+def _resource_limiter(timeout: int, max_output_bytes: int) -> Optional[Callable[[], None]]:
+    if os.name != "posix":
+        return None
+    try:
+        import resource
+    except ImportError:
+        return None
+
+    def apply_limits() -> None:
+        resource.setrlimit(resource.RLIMIT_CPU, (timeout + 1, timeout + 1))
+        resource.setrlimit(resource.RLIMIT_AS, (256 * 1024 * 1024, 256 * 1024 * 1024))
+        resource.setrlimit(resource.RLIMIT_FSIZE, (max_output_bytes, max_output_bytes))
+        resource.setrlimit(resource.RLIMIT_NOFILE, (32, 32))
+
+    return apply_limits
 
 
 # Allowed math functions and constants
@@ -200,33 +219,51 @@ async def run_python(code: str, timeout: Optional[int] = None) -> str:
         min_timeout, max_timeout = _get_timeout_bounds()
         timeout = min(max(min_timeout, timeout), max_timeout)
 
-        # Create temporary file for code
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as f:
-            f.write(code)
-            temp_file = f.name
-
-        try:
-            # Run code in subprocess with timeout
-            # Try python3 first, then python (using cached command for performance)
+        max_output_bytes = 1_000_000
+        with tempfile.TemporaryDirectory(prefix="matilda-brain-python-") as sandbox:
+            sandbox_path = Path(sandbox)
+            script_path = sandbox_path / "main.py"
+            stdout_path = sandbox_path / "stdout.txt"
+            stderr_path = sandbox_path / "stderr.txt"
+            script_path.write_text(code, encoding="utf-8")
             python_cmd = _get_python_cmd()
+            process_options: dict[str, Any] = {
+                "cwd": sandbox,
+                "env": {
+                    "PATH": os.environ.get("PATH", ""),
+                    "PYTHONHASHSEED": "0",
+                    "PYTHONIOENCODING": "utf-8",
+                },
+                "start_new_session": True,
+            }
+            limiter = _resource_limiter(timeout, max_output_bytes)
+            if limiter is not None:
+                process_options["preexec_fn"] = limiter
 
-            process = await asyncio.create_subprocess_exec(
-                python_cmd,
-                temp_file,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE,
-            )
+            with stdout_path.open("wb") as stdout_file, stderr_path.open("wb") as stderr_file:
+                process = await asyncio.create_subprocess_exec(
+                    python_cmd,
+                    "-I",
+                    "-S",
+                    "-B",
+                    str(script_path),
+                    stdout=stdout_file,
+                    stderr=stderr_file,
+                    **process_options,
+                )
+                try:
+                    await asyncio.wait_for(process.wait(), timeout=timeout)
+                except asyncio.TimeoutError as exc:
+                    if os.name == "posix":
+                        os.killpg(process.pid, signal.SIGKILL)
+                    else:
+                        process.kill()
+                    await process.wait()
+                    raise TimeoutError(f"Code execution timed out after {timeout} seconds") from exc
 
-            try:
-                stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=timeout)
-                returncode = process.returncode
-            except asyncio.TimeoutError as exc:
-                process.kill()
-                await process.communicate()
-                raise TimeoutError(f"Code execution timed out after {timeout} seconds") from exc
-
-            stdout_str = stdout.decode()
-            stderr_str = stderr.decode()
+            returncode = process.returncode
+            stdout_str = stdout_path.read_text(encoding="utf-8", errors="replace")
+            stderr_str = stderr_path.read_text(encoding="utf-8", errors="replace")
 
             output = []
             if stdout_str:
@@ -238,11 +275,6 @@ async def run_python(code: str, timeout: Optional[int] = None) -> str:
                 output.append(f"Exit code: {returncode}")
 
             return "\n".join(output) if output else "Code executed successfully (no output)"
-
-        finally:
-            # Clean up
-            if os.path.exists(temp_file):
-                os.unlink(temp_file)
 
     return await _safe_execute_async("run_python", _run_python_impl, code=code, timeout=timeout)
 

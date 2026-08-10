@@ -11,6 +11,7 @@ from typing import Any, Dict, Optional, Union
 import httpx
 
 from matilda_brain.tools import tool
+from matilda_brain.tools.policy import ExecutionConfig, InputSanitizer
 
 from .config import _get_timeout_bounds, _get_web_timeout, _safe_execute_async
 
@@ -134,6 +135,8 @@ async def http_request(
         # Get timeout bounds
         min_timeout, max_timeout = _get_timeout_bounds()
         timeout = min(max(min_timeout, timeout), max_timeout)
+        if method.upper() not in {"GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"}:
+            return f"Error: Unsupported HTTP method: {method}"
 
         # Prepare request
         if headers is None:
@@ -156,17 +159,45 @@ async def http_request(
             else:
                 body_data = str(data).encode("utf-8")
 
-        # Make request
+        policy_config = ExecutionConfig()
         client = _get_shared_client()
         try:
-            response = await client.request(
-                method=method.upper(),
-                url=url,
-                content=body_data,
-                headers=normalized_headers,
-                timeout=timeout,
-                follow_redirects=True,
-            )
+            request_method = method.upper()
+            request_url = url
+            request_body = body_data
+            for _redirect in range(6):
+                request_url = await asyncio.to_thread(
+                    InputSanitizer.validate_url_target,
+                    request_url,
+                    allow_private_networks=bool(policy_config.allow_private_networks),
+                )
+                response = await client.request(
+                    method=request_method,
+                    url=request_url,
+                    content=request_body,
+                    headers=normalized_headers,
+                    timeout=timeout,
+                    follow_redirects=False,
+                )
+                if response.status_code not in {301, 302, 303, 307, 308}:
+                    break
+                location = response.headers.get("Location")
+                if not location:
+                    return "HTTP redirect missing Location header"
+                redirected_url = urllib.parse.urljoin(request_url, location)
+                if urllib.parse.urlsplit(redirected_url).hostname != urllib.parse.urlsplit(request_url).hostname:
+                    normalized_headers = {
+                        key: value
+                        for key, value in normalized_headers.items()
+                        if key.lower() not in {"authorization", "cookie", "proxy-authorization"}
+                    }
+                request_url = redirected_url
+                if response.status_code in {301, 302, 303} and request_method != "HEAD":
+                    request_method = "GET"
+                    request_body = None
+            else:
+                return "HTTP Error: Too many redirects"
+
             response.raise_for_status()
 
             # Read response
@@ -182,6 +213,8 @@ async def http_request(
         except httpx.HTTPStatusError as e:
             return f"HTTP Error {e.response.status_code}: {e.response.reason_phrase}"
 
+    except ValueError as e:
+        return f"Error: {e}"
     except httpx.RequestError as e:
         return f"Network error: {e!s}"
     except Exception:

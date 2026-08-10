@@ -331,13 +331,19 @@ class TestInputSanitizer:
         """Test valid URL sanitization."""
         valid_urls = [
             "https://example.com",
-            "http://test.local:8080/path",
             "https://api.service.com/v1/data",
         ]
 
         for url in valid_urls:
             result = InputSanitizer.sanitize_url(url)
             assert result == url
+
+    def test_sanitize_url_blocks_private_targets(self):
+        """Loopback, link-local, and local hostnames are rejected by default."""
+        invalid_urls = ["http://localhost", "http://127.0.0.1", "http://169.254.169.254", "http://test.local"]
+        for url in invalid_urls:
+            with pytest.raises(ValueError, match="not allowed"):
+                InputSanitizer.sanitize_url(url)
 
     def test_sanitize_url_invalid_scheme(self):
         """Test invalid URL schemes."""

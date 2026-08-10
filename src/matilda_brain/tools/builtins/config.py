@@ -4,11 +4,12 @@ This module provides configuration getters and safe execution utilities
 used across all built-in tools.
 """
 
-from typing import Any, Callable, Dict, Optional, Tuple
+from typing import Any, Callable, Dict
 
 from matilda_brain.config.schema import get_config
 
-from ..recovery import ErrorRecoverySystem, InputSanitizer, RetryConfig
+from ..policy import ToolPolicy
+from ..recovery import ErrorRecoverySystem, RetryConfig
 
 # Initialize recovery system
 recovery_system = ErrorRecoverySystem(RetryConfig())
@@ -89,34 +90,11 @@ def _get_timeout_bounds() -> tuple:
         return (1, 30)  # Fallback to constants values
 
 
-def _sanitize_kwargs(kwargs: Dict[str, Any]) -> Tuple[Dict[str, Any], Optional[str]]:
-    """Sanitize keyword arguments."""
-    sanitized_kwargs = {}
-    for key, value in kwargs.items():
-        if key in ["file_path", "path"] and isinstance(value, str):
-            try:
-                sanitized_kwargs[key] = str(InputSanitizer.sanitize_path(value))
-            except ValueError as e:
-                return {}, f"Error: Invalid path '{value}': {e}"
-        elif key in ["url"] and isinstance(value, str):
-            try:
-                sanitized_kwargs[key] = InputSanitizer.sanitize_url(value)
-            except ValueError as e:
-                return {}, f"Error: Invalid URL '{value}': {e}"
-        elif key in ["query", "code", "expression", "content"] and isinstance(value, str):
-            try:
-                # Allow code for these contexts
-                allow_code = key in ["code", "expression"]
-                sanitized_kwargs[key] = InputSanitizer.sanitize_string(value, allow_code=allow_code)
-            except ValueError as e:
-                return {}, f"Error: Invalid input '{key}': {e}"
-        else:
-            sanitized_kwargs[key] = value
-    return sanitized_kwargs, None
-
-
 def _handle_error_and_return_msg(func_name: str, e: Exception) -> str:
     """Handle error and return user-friendly message."""
+    if isinstance(e, ValueError):
+        return f"Validation Error: {e}\nCheck your input parameters and try again"
+
     # Classify error and provide helpful message
     error_pattern = recovery_system.classify_error(str(e))
 
@@ -138,11 +116,7 @@ def _handle_error_and_return_msg(func_name: str, e: Exception) -> str:
 def _safe_execute(func_name: str, func: Callable[..., Any], **kwargs: Any) -> str:
     """Execute a function with error recovery and input sanitization."""
     try:
-        sanitized_kwargs, error = _sanitize_kwargs(kwargs)
-        if error:
-            return error
-
-        # Execute with enhanced error handling
+        sanitized_kwargs = ToolPolicy().sanitize_arguments(func_name, kwargs)
         result = func(**sanitized_kwargs)
         return str(result)
 
@@ -153,11 +127,7 @@ def _safe_execute(func_name: str, func: Callable[..., Any], **kwargs: Any) -> st
 async def _safe_execute_async(func_name: str, func: Callable[..., Any], **kwargs: Any) -> str:
     """Execute an async function with error recovery and input sanitization."""
     try:
-        sanitized_kwargs, error = _sanitize_kwargs(kwargs)
-        if error:
-            return error
-
-        # Execute with enhanced error handling
+        sanitized_kwargs = ToolPolicy().sanitize_arguments(func_name, kwargs)
         result = await func(**sanitized_kwargs)
         return str(result)
 

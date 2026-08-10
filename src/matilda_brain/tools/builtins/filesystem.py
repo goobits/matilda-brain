@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Optional
 
 from matilda_brain.tools import tool
+from matilda_brain.tools.policy import ToolPolicy
 
 from .config import _get_max_file_size, _safe_execute
 
@@ -110,8 +111,12 @@ def list_directory(
         List of files and directories or error message
     """
     try:
-        # Resolve path
-        dir_path = Path(path).resolve()
+        policy_args = ToolPolicy().sanitize_arguments(
+            "list_directory",
+            {"path": path, **({"pattern": pattern} if pattern is not None else {})},
+        )
+        dir_path = Path(policy_args["path"])
+        pattern = policy_args.get("pattern")
 
         if not dir_path.exists():
             return f"Error: Directory not found: {path}"
@@ -176,6 +181,8 @@ def list_directory(
 
         return header + "\n".join(results)
 
+    except ValueError as exc:
+        return f"Error: {exc}"
     except PermissionError:
         return f"Error: Permission denied: {path}"
     except Exception:

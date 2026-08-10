@@ -1,5 +1,6 @@
 """Tests for built-in tools."""
 
+import ipaddress
 from unittest.mock import AsyncMock, Mock, patch
 
 import httpx
@@ -16,6 +17,7 @@ from matilda_brain.tools.builtins import (
     web_search,
     write_file,
 )
+from matilda_brain.tools.policy import InputSanitizer
 
 
 @pytest.mark.asyncio
@@ -223,6 +225,12 @@ class TestCodeExecution:
         result = await run_python("")
         assert "Code cannot be empty" in result
 
+    @pytest.mark.unit
+    async def test_run_python_blocks_host_access(self):
+        """Restricted Python rejects filesystem and process escape capabilities."""
+        result = await run_python("import os\nprint(os.getcwd())")
+        assert "not allowed" in result or "Dangerous code" in result
+
 
 class TestTimeOperations:
     """Test time-related tools."""
@@ -267,6 +275,14 @@ class TestTimeOperations:
 @pytest.mark.asyncio
 class TestHttpRequest:
     """Test HTTP request tool."""
+
+    @pytest.fixture(autouse=True)
+    def public_dns(self, monkeypatch):
+        monkeypatch.setattr(
+            InputSanitizer,
+            "_resolve_host",
+            staticmethod(lambda hostname, port: {ipaddress.ip_address("93.184.216.34")}),
+        )
 
     @patch("matilda_brain.tools.builtins.web._get_shared_client")
     async def test_http_request_get(self, mock_get_client):
@@ -313,6 +329,25 @@ class TestHttpRequest:
         """Test unsupported protocol."""
         result = await http_request("ftp://example.com/file")
         assert "Error: Only HTTP/HTTPS protocols are supported" in result
+
+    async def test_http_request_blocks_private_networks(self):
+        """HTTP tools cannot reach loopback or cloud metadata endpoints."""
+        for url in ("http://127.0.0.1:8080", "http://169.254.169.254/latest/meta-data"):
+            result = await http_request(url)
+            assert "not allowed" in result
+
+    @patch("matilda_brain.tools.builtins.web._get_shared_client")
+    async def test_http_request_revalidates_redirects(self, mock_get_client):
+        """Redirects cannot pivot a public request into a private network."""
+        mock_response = Mock(status_code=302, headers={"Location": "http://127.0.0.1/private"})
+        mock_client = AsyncMock()
+        mock_client.request.return_value = mock_response
+        mock_get_client.return_value = mock_client
+
+        result = await http_request("https://example.com/start")
+
+        assert "not allowed" in result
+        mock_client.request.assert_awaited_once()
 
     @patch("matilda_brain.tools.builtins.web._get_shared_client")
     async def test_http_request_http_error(self, mock_get_client):

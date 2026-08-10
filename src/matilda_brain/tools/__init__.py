@@ -30,13 +30,8 @@ from .base import (
     ToolResult,
     create_tool_definition,
 )
-from .executor import (
-    ExecutionConfig,
-    ToolExecutor,
-    execute_tool,
-    execute_tools,
-    get_execution_stats,
-)
+from .executor import ToolExecutor, execute_tool, execute_tools, get_execution_stats
+from .policy import ExecutionConfig, InputSanitizer, ToolPolicy
 from .registry import (
     ToolRegistry,
     clear_registry,
@@ -171,6 +166,8 @@ __all__ = [
     # Execution functions
     "ToolExecutor",
     "ExecutionConfig",
+    "InputSanitizer",
+    "ToolPolicy",
     "execute_tool",
     "execute_tools",
     "get_execution_stats",

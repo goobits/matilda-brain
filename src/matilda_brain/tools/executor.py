@@ -4,35 +4,15 @@ import asyncio
 import inspect
 import logging
 import time
-from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Union
 
 from ..internal.utils import get_logger
 from .base import ToolCall, ToolDefinition, ToolResult
-from .recovery import ErrorRecoverySystem, InputSanitizer, RetryConfig
+from .policy import ExecutionConfig, ToolPolicy
+from .recovery import ErrorRecoverySystem, RetryConfig
 from .registry import get_tool, list_tools, register_tool
 
 logger = get_logger(__name__)
-
-
-@dataclass
-class ExecutionConfig:
-    """Configuration for tool execution."""
-
-    max_retries: Optional[int] = None
-    timeout_seconds: Optional[float] = None
-    enable_fallbacks: bool = True
-    enable_input_sanitization: bool = True
-    log_level: str = "INFO"
-
-    def __post_init__(self) -> None:
-        """Load defaults from config if not set."""
-        from ..config.manager import get_config_value
-
-        if self.max_retries is None:
-            self.max_retries = get_config_value("tools.executor.max_retries", 3)
-        if self.timeout_seconds is None:
-            self.timeout_seconds = get_config_value("tools.executor.timeout_seconds", 30.0)
 
 
 class ToolExecutor:
@@ -43,6 +23,7 @@ class ToolExecutor:
         self.recovery_system = ErrorRecoverySystem(
             RetryConfig(max_attempts=self.config.max_retries, base_delay=1.0, max_delay=30.0)
         )
+        self.policy = ToolPolicy(self.config)
         self.logger = logging.getLogger(__name__)
         self.logger.setLevel(getattr(logging, self.config.log_level))
 
@@ -57,7 +38,11 @@ class ToolExecutor:
         }
 
     async def execute_tool(
-        self, tool_name: str, arguments: Dict[str, Any], timeout: Optional[float] = None
+        self,
+        tool_name: str,
+        arguments: Dict[str, Any],
+        timeout: Optional[float] = None,
+        approved: bool = False,
     ) -> ToolCall:
         """Execute a single tool with full recovery support."""
         start_time = time.time()
@@ -79,7 +64,7 @@ class ToolExecutor:
             # Sanitize inputs if enabled
             if self.config.enable_input_sanitization:
                 try:
-                    arguments = self._sanitize_inputs(tool_name, arguments)
+                    arguments = self.policy.sanitize_arguments(tool_name, arguments)
                 except ValueError as e:
                     return ToolCall(
                         id=call_id,
@@ -87,6 +72,16 @@ class ToolExecutor:
                         arguments=arguments,
                         error=f"Input validation failed: {e}",
                     )
+
+            proposal = self.policy.authorize(tool_name, arguments, approved=approved)
+            if proposal is not None:
+                return ToolCall(
+                    id=call_id,
+                    name=tool_name,
+                    arguments=arguments,
+                    error="Approval required before tool execution",
+                    proposal=proposal,
+                )
 
             # Execute with timeout and recovery
             execution_timeout = timeout or self.config.timeout_seconds
@@ -119,11 +114,23 @@ class ToolExecutor:
                 error=f"❌ Unexpected error: {e}\n💡 This appears to be a system error. Please try again or contact support.",
             )
 
-    async def execute_tools(self, tool_calls: List[Dict[str, Any]], parallel: bool = False) -> ToolResult:
+    async def execute_tools(
+        self,
+        tool_calls: List[Dict[str, Any]],
+        parallel: bool = False,
+        approved: bool = False,
+    ) -> ToolResult:
         """Execute multiple tools with optional parallel execution."""
         if parallel:
             # Execute tools in parallel
-            tasks = [self.execute_tool(call["name"], call.get("arguments", {})) for call in tool_calls]
+            tasks = [
+                self.execute_tool(
+                    call["name"],
+                    call.get("arguments", {}),
+                    approved=approved,
+                )
+                for call in tool_calls
+            ]
             results: List[Union[ToolCall, BaseException]] = await asyncio.gather(*tasks, return_exceptions=True)
 
             # Convert exceptions to error tool calls
@@ -149,7 +156,11 @@ class ToolExecutor:
             # Execute tools sequentially
             sequential_results: List[ToolCall] = []
             for call in tool_calls:
-                result = await self.execute_tool(call["name"], call.get("arguments", {}))
+                result = await self.execute_tool(
+                    call["name"],
+                    call.get("arguments", {}),
+                    approved=approved,
+                )
                 sequential_results.append(result)
 
                 # If a critical tool fails, consider stopping execution
@@ -223,11 +234,22 @@ class ToolExecutor:
                 if not fallback_tool:
                     continue
 
+                sanitized_arguments = self.policy.sanitize_arguments(suggestion.tool_name, suggestion.arguments)
+                proposal = self.policy.authorize(suggestion.tool_name, sanitized_arguments)
+                if proposal is not None:
+                    return ToolCall(
+                        id=f"proposal_{int(time.time() * 1000)}",
+                        name=suggestion.tool_name,
+                        arguments=sanitized_arguments,
+                        error="Approval required before fallback tool execution",
+                        proposal=proposal,
+                    )
+
                 # Execute fallback with limited retries
                 if inspect.iscoroutinefunction(fallback_tool.function):
-                    result = await fallback_tool.function(**suggestion.arguments)
+                    result = await fallback_tool.function(**sanitized_arguments)
                 else:
-                    result = fallback_tool.function(**suggestion.arguments)
+                    result = await asyncio.to_thread(fallback_tool.function, **sanitized_arguments)
 
                 # Add fallback notification to result
                 fallback_notice = (
@@ -239,7 +261,7 @@ class ToolExecutor:
                 return ToolCall(
                     id=f"fallback_{int(time.time() * 1000)}",
                     name=suggestion.tool_name,
-                    arguments=suggestion.arguments,
+                    arguments=sanitized_arguments,
                     result=result,
                 )
 
@@ -248,35 +270,6 @@ class ToolExecutor:
                 continue
 
         return None
-
-    def _sanitize_inputs(self, tool_name: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
-        """Sanitize tool inputs based on argument types."""
-        sanitized = {}
-
-        for key, value in arguments.items():
-            if key in ["file_path", "path"]:
-                sanitized[key] = str(InputSanitizer.sanitize_path(value))
-            elif key in ["url"]:
-                sanitized[key] = InputSanitizer.sanitize_url(value)
-            elif key in ["query", "code", "expression", "content"]:
-                # Allow code for code/expression contexts
-                allow_code = key in ["code", "expression"]
-                sanitized[key] = InputSanitizer.sanitize_string(value, allow_code=allow_code)
-            elif key in ["data"] and isinstance(value, str):
-                try:
-                    # Validate JSON but keep as string
-                    InputSanitizer.sanitize_json(value)
-                    sanitized[key] = value
-                except ValueError:
-                    sanitized[key] = InputSanitizer.sanitize_string(value, allow_code=False)
-            else:
-                # Basic validation for other types
-                if isinstance(value, str):
-                    sanitized[key] = InputSanitizer.sanitize_string(value, allow_code=False)
-                else:
-                    sanitized[key] = value
-
-        return sanitized
 
     def _create_tool_not_found_error(self, tool_name: str) -> str:
         """Create helpful error message when tool is not found."""
