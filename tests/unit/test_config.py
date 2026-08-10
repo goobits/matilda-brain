@@ -1,5 +1,11 @@
 """Tests for the configuration system."""
 
+import os
+import stat
+import subprocess
+import sys
+from pathlib import Path
+
 import toml
 
 from matilda_brain import ConfigModel, ModelInfo
@@ -145,6 +151,30 @@ class TestConfigLoading:
         if "cloud" in config.backend_config:
             assert config.backend_config["cloud"].get("timeout", 30) == 30
 
+    def test_import_is_lazy_when_shared_config_has_no_brain_section(self, tmp_path):
+        """Importing the package must not require a configured Brain section."""
+        config_file = tmp_path / "config.toml"
+        config_file.write_text('[voice]\nvoice = "test"\n')
+        env = {
+            **os.environ,
+            "MATILDA_CONFIG": str(config_file),
+            "PYTHONPATH": str(Path(__file__).resolve().parents[2] / "src"),
+        }
+
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-c",
+                "import matilda_brain; from matilda_brain.core.routing import _router; assert _router is None",
+            ],
+            capture_output=True,
+            text=True,
+            env=env,
+            check=False,
+        )
+
+        assert result.returncode == 0, result.stderr
+
 
 class TestConfigSaving:
     """Test configuration saving."""
@@ -184,6 +214,19 @@ class TestConfigSaving:
         assert "openai_api_key" not in saved_data["brain"]
         assert "anthropic_api_key" not in saved_data["brain"]
         assert "google_api_key" not in saved_data["brain"]
+
+    def test_save_is_private_atomic_and_preserves_other_sections(self, tmp_path):
+        """Shared config writes preserve peers and leave only a private final file."""
+        config_file = tmp_path / "config.toml"
+        config_file.write_text('[voice]\nvoice = "test"\n')
+
+        save_config(ConfigModel(default_backend="testing"), config_file)
+
+        saved_data = toml.load(config_file)
+        assert saved_data["voice"] == {"voice": "test"}
+        assert saved_data["brain"]["default_backend"] == "testing"
+        assert stat.S_IMODE(config_file.stat().st_mode) == 0o600
+        assert list(tmp_path.glob(".config.toml.*.tmp")) == []
 
 
 class TestProgrammaticConfiguration:

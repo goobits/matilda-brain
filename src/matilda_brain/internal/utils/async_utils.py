@@ -121,7 +121,7 @@ def _stop_background_loop() -> None:
         # Give more time for graceful shutdown
         if _background_thread:
             # Use thread join timeout from constants
-            from ...config.loader import get_config_value
+            from ...config.manager import get_config_value
 
             join_timeout = get_config_value("constants.timeouts.async_thread_join", 2.0)
             _background_thread.join(timeout=join_timeout)

@@ -40,7 +40,7 @@ class LocalBackend(BaseBackend):
         local_config = self.backend_config.get("local", {})
 
         # Use backend_config from base class which handles merging
-        from ..config.loader import get_config_value
+        from ..config.manager import get_config_value
 
         self.base_url = (
             local_config.get("base_url")
@@ -130,7 +130,7 @@ class LocalBackend(BaseBackend):
         blocking the event loop.
         """
         try:
-            from ..config.loader import get_config_value
+            from ..config.manager import get_config_value
 
             availability_timeout = get_config_value("constants.timeouts.availability_check", 5)
             # Use sync httpx directly to avoid blocking event loop via run_async
@@ -150,7 +150,7 @@ class LocalBackend(BaseBackend):
             True if Ollama is running and responding, False otherwise.
         """
         try:
-            from ..config.loader import get_config_value
+            from ..config.manager import get_config_value
 
             availability_timeout = get_config_value("constants.timeouts.availability_check", 5)
             async with httpx.AsyncClient(timeout=availability_timeout) as client:
@@ -335,7 +335,7 @@ class LocalBackend(BaseBackend):
             List of model names available locally
         """
         try:
-            from ..config.loader import get_config_value
+            from ..config.manager import get_config_value
 
             model_list_timeout = get_config_value("constants.timeouts.model_list", 10)
             async with httpx.AsyncClient(timeout=model_list_timeout) as client:
@@ -349,7 +349,7 @@ class LocalBackend(BaseBackend):
                 return models
 
         except httpx.TimeoutException:
-            from ..config.loader import get_config_value
+            from ..config.manager import get_config_value
 
             model_list_timeout = get_config_value("constants.timeouts.model_list", 10)
             raise BackendTimeoutError(self.name, float(model_list_timeout)) from None

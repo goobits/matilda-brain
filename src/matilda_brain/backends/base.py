@@ -31,7 +31,7 @@ class BaseBackend(ABC):
         self.backend_config = {**self.config, **backend_specific}
 
         # Common configuration attributes
-        from ..config.loader import get_config_value
+        from ..config.manager import get_config_value
 
         self.timeout = self.backend_config.get("timeout") or get_config_value("timeout", 30)
         self.max_retries = self.backend_config.get("max_retries") or get_config_value("max_retries", 3)

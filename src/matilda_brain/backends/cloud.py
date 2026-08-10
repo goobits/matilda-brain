@@ -57,7 +57,7 @@ class CloudBackend(BaseBackend):
         cloud_config = self.backend_config.get("cloud", {})
 
         # Default models for different providers
-        from ..config.loader import get_config_value
+        from ..config.manager import get_config_value
 
         self.default_models = cloud_config.get("default_models") or get_config_value(
             "backends.cloud.default_models",

@@ -32,7 +32,7 @@ class Router:
         self._local_models_cache: Optional[List[str]] = None
         self._cache_timestamp: Optional[float] = None
         # Get cache TTL from constants
-        from ..config.loader import get_config_value
+        from ..config.manager import get_config_value
 
         self._cache_ttl = get_config_value("constants.timeouts.cache_ttl", 30)  # Cache TTL in seconds
 
@@ -202,7 +202,7 @@ class Router:
 
                 try:
                     # Use backend health check timeout from constants
-                    from ..config.loader import get_config_value
+                    from ..config.manager import get_config_value
 
                     health_check_timeout = get_config_value("constants.timeouts.backend_health_check", 3)
 
@@ -252,7 +252,7 @@ class Router:
                     return str(backend.default_model)
 
                 # Get fallback from config
-                from ..config.loader import get_config_value
+                from ..config.manager import get_config_value
 
                 return str(get_config_value("models.default", "gpt-3.5-turbo"))
 
@@ -322,7 +322,7 @@ class Router:
 
             # If not in registry, detect cloud models by naming patterns
             # Get patterns from config
-            from ..config.loader import get_project_config
+            from ..config.manager import get_project_config
 
             project_defaults = get_project_config()
             cloud_model_patterns = project_defaults.get("routing", {}).get(
@@ -443,5 +443,26 @@ class Router:
         return AIResponse("", error="All backends failed")
 
 
-# Global router instance
-router = Router()
+_router: Optional[Router] = None
+
+
+def reset_router() -> None:
+    """Discard the shared router after configuration changes."""
+    global _router
+    _router = None
+
+
+def get_router() -> Router:
+    """Create the shared router only when a request actually needs it."""
+    global _router
+    if _router is None:
+        _router = Router()
+    return _router
+
+
+class LazyRouter:
+    def __getattr__(self, name: str) -> Any:
+        return getattr(get_router(), name)
+
+
+router: Router = cast(Router, LazyRouter())

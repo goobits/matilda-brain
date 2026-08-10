@@ -1,10 +1,22 @@
 """Hook implementations for Matilda Brain - Text to Text."""
 
-from typing import Optional, Tuple
+from functools import wraps
+from typing import Any, Callable, Optional, Tuple
 
+from matilda_brain.config.manager import ConfigManager
 from matilda_brain.internal import hooks as internal_hooks
 
 
+def _uses_cli_config(func: Callable[..., None]) -> Callable[..., None]:
+    @wraps(func)
+    def wrapped(*args: Any, **kwargs: Any) -> None:
+        ConfigManager.activate_cli_context(kwargs.get("ctx"))
+        func(*args, **kwargs)
+
+    return wrapped
+
+
+@_uses_cli_config
 def on_ask(
     prompt: Optional[Tuple[str, ...]] = None,
     model: Optional[str] = None,
@@ -36,6 +48,7 @@ def on_ask(
     )
 
 
+@_uses_cli_config
 def on_chat(
     model: Optional[str] = None,
     session: Optional[str] = None,
@@ -53,6 +66,7 @@ def on_chat(
     )
 
 
+@_uses_cli_config
 def on_stateless(
     message: Optional[Tuple[str, ...]] = None,
     system: Optional[str] = None,
@@ -76,6 +90,7 @@ def on_stateless(
     )
 
 
+@_uses_cli_config
 def on_list(format: Optional[str] = None, **kwargs) -> None:
     if "show_secrets" in kwargs:
         internal_hooks.on_config_list(command_name="config", show_secrets=bool(kwargs["show_secrets"]))
@@ -94,18 +109,22 @@ def on_list(format: Optional[str] = None, **kwargs) -> None:
     )
 
 
+@_uses_cli_config
 def on_status(json: bool = False, **kwargs) -> None:
     internal_hooks.on_status(command_name="status", json=bool(json), **kwargs)
 
 
+@_uses_cli_config
 def on_models(json: bool = False, **kwargs) -> None:
     internal_hooks.on_models(command_name="models", json=bool(json), **kwargs)
 
 
+@_uses_cli_config
 def on_info(model: Optional[str] = None, json: bool = False, **kwargs) -> None:
     internal_hooks.on_info(command_name="info", model=model, json=bool(json), **kwargs)
 
 
+@_uses_cli_config
 def on_export(
     session: Optional[str] = None,
     format: Optional[str] = None,
@@ -123,18 +142,22 @@ def on_export(
     )
 
 
+@_uses_cli_config
 def on_get(key: str, **kwargs) -> None:
     internal_hooks.on_config_get(command_name="config", key=key, **kwargs)
 
 
+@_uses_cli_config
 def on_set(key: str, value: str, **kwargs) -> None:
     internal_hooks.on_config_set(command_name="config", key=key, value=value, **kwargs)
 
 
+@_uses_cli_config
 def on_enable(tool_name: str, **kwargs) -> None:
     internal_hooks.on_tools_enable(command_name="tools", tool_name=tool_name, **kwargs)
 
 
+@_uses_cli_config
 def on_disable(tool_name: str, **kwargs) -> None:
     internal_hooks.on_tools_disable(command_name="tools", tool_name=tool_name, **kwargs)
 
@@ -147,6 +170,7 @@ def on_config_set(key: str, value: str, **kwargs) -> None:
     on_set(key=key, value=value, **kwargs)
 
 
+@_uses_cli_config
 def on_config_list(show_secrets: bool = False, **kwargs) -> None:
     internal_hooks.on_config_list(command_name="config", show_secrets=bool(show_secrets), **kwargs)
 
@@ -159,9 +183,11 @@ def on_tools_disable(tool_name: str, **kwargs) -> None:
     on_disable(tool_name=tool_name, **kwargs)
 
 
+@_uses_cli_config
 def on_tools_list(show_disabled: bool = False, **kwargs) -> None:
     internal_hooks.on_tools_list(command_name="tools", show_disabled=bool(show_disabled), **kwargs)
 
 
+@_uses_cli_config
 def on_serve(host: Optional[str] = None, port: Optional[int] = None, **kwargs) -> None:
     internal_hooks.on_serve(command_name="serve", host=host or "0.0.0.0", port=port or 8772, **kwargs)

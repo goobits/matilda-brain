@@ -27,7 +27,7 @@ class ExecutionConfig:
 
     def __post_init__(self) -> None:
         """Load defaults from config if not set."""
-        from ..config.loader import get_config_value
+        from ..config.manager import get_config_value
 
         if self.max_retries is None:
             self.max_retries = get_config_value("tools.executor.max_retries", 3)
