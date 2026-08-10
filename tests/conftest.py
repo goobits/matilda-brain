@@ -1,7 +1,9 @@
 """Pytest configuration file."""
 
 import os
+import shutil
 import sys
+import tempfile
 import time
 from contextlib import contextmanager
 from pathlib import Path
@@ -19,14 +21,18 @@ env_path = Path(__file__).parent.parent / ".env"
 if env_path.exists():
     load_dotenv(env_path)
 
-SHARED_CONFIG_PATH = Path(__file__).resolve().parents[2] / "matilda" / "config.toml"
-os.environ.setdefault("MATILDA_CONFIG", str(SHARED_CONFIG_PATH))
+_SOURCE_CONFIG_PATH = Path(__file__).resolve().parents[2] / "matilda" / "config.toml"
+_TEST_CONFIG_DIR = tempfile.TemporaryDirectory(prefix="matilda-brain-tests-")
+SHARED_CONFIG_PATH = Path(_TEST_CONFIG_DIR.name) / "config.toml"
+shutil.copyfile(_SOURCE_CONFIG_PATH, SHARED_CONFIG_PATH)
+os.environ["MATILDA_CONFIG"] = str(SHARED_CONFIG_PATH)
 
 
 @pytest.fixture(scope="session", autouse=True)
 def shared_config_env():
-    """Point tests at the shared TOML config."""
-    return SHARED_CONFIG_PATH
+    """Point tests at an isolated TOML config."""
+    yield SHARED_CONFIG_PATH
+    _TEST_CONFIG_DIR.cleanup()
 
 
 # Configuration for rate limiting delays
