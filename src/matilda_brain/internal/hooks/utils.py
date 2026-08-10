@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Hook handlers for TTT CLI."""
+"""Shared helpers for Matilda Brain CLI hooks."""
 
 import os
 from typing import Any, Dict, List, Optional
@@ -16,10 +16,13 @@ from rich.logging import RichHandler
 from matilda_brain.config.manager import ConfigManager
 
 
+def _env_flag(*names: str) -> bool:
+    return any(os.environ.get(name, "").lower() == "true" for name in names)
+
+
 def is_verbose_mode() -> bool:
     """Check if verbose mode is enabled via environment variables or click context."""
-    # Check environment variables first
-    if os.environ.get("TTT_VERBOSE", "").lower() == "true" or os.environ.get("TTT_DEBUG", "").lower() == "true":
+    if _env_flag("BRAIN_VERBOSE", "BRAIN_DEBUG", "TTT_VERBOSE", "TTT_DEBUG"):
         return True
 
     # Try to get debug flag from click context if available
@@ -40,11 +43,11 @@ def setup_logging_level(verbose: bool = False, debug: bool = False, json_output:
 
     # Set environment variables for verbosity to be used by other parts of the system
     if verbose:
-        os.environ["TTT_VERBOSE"] = "true"
+        os.environ["BRAIN_VERBOSE"] = "true"
     if debug:
-        os.environ["TTT_DEBUG"] = "true"
+        os.environ["BRAIN_DEBUG"] = "true"
     if json_output:
-        os.environ["TTT_JSON_MODE"] = "true"
+        os.environ["BRAIN_JSON_MODE"] = "true"
 
     if json_output:
         level = logging.WARNING
@@ -151,7 +154,7 @@ def resolve_model_alias(model: str) -> str:
                 for available_alias in sorted_aliases[:5]:
                     console.print(f"  @{available_alias}")
 
-            console.print("\nTip: Use [green]ttt models[/green] to see all available models")
+            console.print("\nTip: Use [green]brain models[/green] to see all available models")
 
             # Exit with error instead of proceeding
             raise ValueError(f"Model alias not found: {alias}")
@@ -275,6 +278,16 @@ def resolve_tools(tool_specs: List[str]) -> List[Any]:
     return tools
 
 
+def get_enabled_tool_names() -> List[str]:
+    """Return registered tool names except those disabled in Brain configuration."""
+    from matilda_brain.tools import list_tools
+
+    configured_tools = ConfigManager().get_merged_config().get("tools", {})
+    disabled_values = configured_tools.get("disabled", []) if isinstance(configured_tools, dict) else []
+    disabled = set(disabled_values) if isinstance(disabled_values, list) else set()
+    return [tool.name for tool in list_tools() if tool.name not in disabled]
+
+
 def apply_coding_optimization(kwargs: Dict[str, Any]) -> None:
     """Apply optimizations for coding requests.
 
@@ -290,7 +303,7 @@ def apply_coding_optimization(kwargs: Dict[str, Any]) -> None:
         Modifies the kwargs dictionary directly rather than returning a new one.
     """
     if "model" not in kwargs:
-        default_coding_model = os.getenv("TTT_CODING_MODEL", "@coding")
+        default_coding_model = os.getenv("BRAIN_CODING_MODEL") or os.getenv("TTT_CODING_MODEL") or "@coding"
         kwargs["model"] = resolve_model_alias(default_coding_model)
 
     if "temperature" not in kwargs:

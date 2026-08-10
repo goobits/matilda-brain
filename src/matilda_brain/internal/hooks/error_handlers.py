@@ -141,7 +141,7 @@ def display_error_rich(
                         description = str(model_suggestion.get("description", ""))
                         output_fn(f"   {status} [bold]{alias}[/bold]  {description}")
 
-            output_fn("\n[dim]Run 'ttt models' to see all available models[/dim]")
+            output_fn("\n[dim]Run 'brain models' to see all available models[/dim]")
 
     elif isinstance(error, RateLimitError):
         output_fn(
@@ -202,7 +202,7 @@ def handle_error(
         context: Context of the error ("ask" or "chat")
         exit_on_error: Whether to exit with status code 1
     """
-    debug = debug or os.getenv("TTT_DEBUG", "").lower() == "true"
+    debug = debug or any(os.getenv(name, "").lower() == "true" for name in ("BRAIN_DEBUG", "TTT_DEBUG"))
 
     if json_mode:
         display_error_json(error, api_params)

@@ -63,7 +63,7 @@ class TestCLIErrorHandling:
     def test_hook_exception_handling(self):
         """Test that exceptions from hooks are handled gracefully."""
         # Make the underlying API call fail to test exception handling
-        with patch("matilda_brain.internal.hooks.core.ttt_stream", side_effect=Exception("Test error")):
+        with patch("matilda_brain.internal.hooks.core.brain_stream", side_effect=Exception("Test error")):
             result = self.runner.invoke(main, ["ask", "test"])
 
             # Should handle exception gracefully - exact behavior depends on implementation

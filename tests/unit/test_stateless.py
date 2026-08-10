@@ -1,19 +1,24 @@
-"""Tests for stateless TTT functionality."""
+"""Tests for stateless Matilda Brain functionality."""
 
 import json
+from pathlib import Path
 from unittest.mock import Mock, patch
 
 import pytest
 
-from matilda_brain.core.api import stateless
+from matilda_brain import StatelessResponse, stateless
 from matilda_brain.core.models import AIResponse
 from matilda_brain.internal.protocol import Proposal, RiskLevel
 from matilda_brain.internal.stateless import (
     StatelessRequest,
-    StatelessResponse,
     execute_stateless,
     execute_stateless_protocol,
 )
+
+
+def test_stateless_api_is_exported_from_the_package_root():
+    assert callable(stateless)
+    assert StatelessResponse.__name__ == "StatelessResponse"
 
 
 class TestStatelessRequest:
@@ -351,8 +356,7 @@ class TestNoSessionFiles:
     @pytest.mark.unit
     def test_no_session_files_created(self, tmp_path, monkeypatch):
         """Verify that stateless execution doesn't create session files."""
-        # Set session directory to temp path
-        monkeypatch.setenv("TTT_SESSION_DIR", str(tmp_path))
+        monkeypatch.setattr(Path, "home", lambda: tmp_path)
 
         # Mock backend
         backend = Mock()
@@ -381,6 +385,4 @@ class TestNoSessionFiles:
             # Verify response
             assert response.content == "Test"
 
-            # Verify no files were created in session directory
-            session_files = list(tmp_path.glob("*.json"))
-            assert len(session_files) == 0, f"Session files created: {session_files}"
+            assert not (tmp_path / ".matilda" / "brain" / "sessions").exists()

@@ -5,7 +5,7 @@ from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 
-import matilda_brain as ttt
+import matilda_brain.backends.cloud as cloud_module
 from matilda_brain import (
     APIKeyError,
     BackendNotAvailableError,
@@ -65,9 +65,9 @@ def cloud_backend(mock_litellm):
     # Need to reload the module to pick up the mocked litellm
     import importlib
 
-    importlib.reload(ttt.backends.cloud)
+    importlib.reload(cloud_module)
 
-    backend = ttt.backends.cloud.CloudBackend()
+    backend = cloud_module.CloudBackend()
     backend.litellm = mock_litellm
     return backend
 
@@ -79,9 +79,9 @@ class TestCloudBackendInitialization:
         """Test successful initialization with litellm available."""
         import importlib
 
-        importlib.reload(ttt.backends.cloud)
+        importlib.reload(cloud_module)
 
-        backend = ttt.backends.cloud.CloudBackend()
+        backend = cloud_module.CloudBackend()
         assert backend.name == "cloud"
         assert backend.litellm is not None
 
@@ -90,10 +90,10 @@ class TestCloudBackendInitialization:
         with patch.dict("sys.modules", {"litellm": None}):
             import importlib
 
-            importlib.reload(ttt.backends.cloud)
+            importlib.reload(cloud_module)
 
             with pytest.raises(BackendNotAvailableError) as exc_info:
-                ttt.backends.cloud.CloudBackend()
+                cloud_module.CloudBackend()
 
             assert "LiteLLM is required" in str(exc_info.value)
 

@@ -1,4 +1,4 @@
-"""Chat session management for TTT CLI."""
+"""Persistent CLI session management for Matilda Brain."""
 
 import json
 import uuid
@@ -77,12 +77,38 @@ class ChatSessionManager:
     def __init__(self, sessions_dir: Optional[Path] = None):
         """Initialize the session manager."""
         if sessions_dir is None:
-            self.sessions_dir = Path.home() / ".ttt" / "sessions"
+            self.sessions_dir = Path.home() / ".matilda" / "brain" / "sessions"
+            self._legacy_sessions_dir: Optional[Path] = Path.home() / ".ttt" / "sessions"
         else:
             self.sessions_dir = Path(sessions_dir)
+            self._legacy_sessions_dir = None
 
-        # Ensure sessions directory exists
         self.sessions_dir.mkdir(parents=True, exist_ok=True)
+
+    def _storage_dirs(self) -> tuple[Path, ...]:
+        if self._legacy_sessions_dir is None:
+            return (self.sessions_dir,)
+        return (self.sessions_dir, self._legacy_sessions_dir)
+
+    def _session_files(self) -> List[Path]:
+        """Return canonical and legacy session files, preferring canonical duplicates."""
+        files: List[Path] = []
+        seen_ids: set[str] = set()
+        for directory in self._storage_dirs():
+            if not directory.is_dir():
+                continue
+            for session_file in directory.glob("*.json"):
+                if session_file.stem not in seen_ids:
+                    files.append(session_file)
+                    seen_ids.add(session_file.stem)
+        return files
+
+    def _find_session_file(self, session_id: str) -> Optional[Path]:
+        for directory in self._storage_dirs():
+            session_file = directory / f"{session_id}.json"
+            if session_file.exists():
+                return session_file
+        return None
 
     def create_session(
         self,
@@ -122,9 +148,8 @@ class ChatSessionManager:
             logger.warning(f"Invalid session ID attempt: {session_id}")
             return None
 
-        session_file = self.sessions_dir / f"{session_id}.json"
-
-        if not session_file.exists():
+        session_file = self._find_session_file(session_id)
+        if session_file is None:
             return None
 
         try:
@@ -144,7 +169,7 @@ class ChatSessionManager:
 
     def load_last_session(self) -> Optional[ChatSession]:
         """Load the most recently modified session."""
-        session_files = list(self.sessions_dir.glob("*.json"))
+        session_files = self._session_files()
 
         if not session_files:
             return None
@@ -195,7 +220,7 @@ class ChatSessionManager:
         """List all available sessions with metadata."""
         sessions: List[Dict[str, Any]] = []
 
-        for session_file in self.sessions_dir.glob("*.json"):
+        for session_file in self._session_files():
             try:
                 session = self._load_session_file(session_file)
                 last_message = session.messages[-1] if session.messages else None
@@ -225,12 +250,13 @@ class ChatSessionManager:
         except ValueError:
             return False
 
-        session_file = self.sessions_dir / f"{session_id}.json"
-
-        if session_file.exists():
-            session_file.unlink()
-            return True
-        return False
+        deleted = False
+        for directory in self._storage_dirs():
+            session_file = directory / f"{session_id}.json"
+            if session_file.exists():
+                session_file.unlink()
+                deleted = True
+        return deleted
 
     def display_sessions_table(self) -> None:
         """Display all sessions in a nice table format."""

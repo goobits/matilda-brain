@@ -1,55 +1,105 @@
-# Extensibility Guide
+# Extensibility
 
-Add custom backends, tools, and plugins.
-
-## Custom Backends
-
-Implement `BaseBackend` and register it:
+## Custom tools
 
 ```python
-from matilda_brain.backends import BaseBackend
-from matilda_brain.models import AIResponse
+from matilda_brain import ask
+from matilda_brain.tools import tool
 
-class MyBackend(BaseBackend):
+
+@tool(name="lookup_order", category="orders")
+def lookup_order(order_id: str) -> str:
+    """Return the status of an order."""
+    return f"{order_id}: shipped"
+
+
+print(ask("Where is order A123?", tools=[lookup_order]))
+```
+
+Type hints and the docstring become the model-facing tool schema. The decorated function remains callable as normal.
+
+Built-in tools:
+
+```python
+from matilda_brain import ask
+from matilda_brain.tools.builtins import calculate, get_current_time
+
+response = ask("What time is it in UTC, and what is 17 * 23?", tools=[get_current_time, calculate])
+```
+
+## Safety policy
+
+Every model-requested tool call passes through `ToolPolicy` and `ExecutionConfig`.
+
+- File paths must stay inside configured roots.
+- HTTP tools reject credentials in URLs and private/local targets by default.
+- Python execution uses a restricted subprocess, import allowlist, timeout, and output bound.
+- Risky calls can require approval.
+
+Persistent policy belongs in TOML:
+
+```toml
+[brain.tools.policy]
+file_roots = ["~/Projects/safe-workspace"]
+allow_private_networks = false
+require_approval = true
+```
+
+Use the narrowest roots and do not enable private networks unless the calling application explicitly owns that authority.
+
+## Custom backend plugin
+
+```python
+from collections.abc import AsyncIterator
+from typing import Any
+
+from matilda_brain import AIResponse
+from matilda_brain.backends import BaseBackend
+
+
+class EchoBackend(BaseBackend):
     @property
     def name(self) -> str:
-        return "my-backend"
+        return "echo"
 
     @property
     def is_available(self) -> bool:
         return True
 
-    async def ask(self, prompt: str, **kwargs) -> AIResponse:
-        return AIResponse("ok", model="my-model", backend=self.name)
+    async def ask(self, prompt: str, **kwargs: Any) -> AIResponse:
+        return AIResponse(str(prompt), model="echo", backend=self.name)
+
+    async def astream(self, prompt: str, **kwargs: Any) -> AsyncIterator[str]:
+        yield str(prompt)
+
+    async def models(self) -> list[str]:
+        return ["echo"]
+
+    async def status(self) -> dict[str, Any]:
+        return {"backend": self.name, "available": True}
+
+
+def register_plugin(registry) -> None:
+    registry.register_backend("echo", EchoBackend, version="1.0.0")
 ```
 
-Register in a plugin or via configuration. See `matilda-brain/docs/api-reference.md`.
+## Discovery and migration
 
-## Custom Tools
+Brain searches these locations in order:
 
-```python
-from matilda_brain.tools import tool
+1. `~/.matilda/brain/plugins/`
+2. `./matilda_brain_plugins/`
+3. Legacy `~/.config/ai/plugins/`, `~/.ai/plugins/`, and `./ai_plugins/`
+4. Built-in plugin directory
 
-@tool
-def my_tool(value: str) -> str:
-    return f"Value: {value}"
-```
-
-## Plugins
-
-Plugins are discovered from:
-
-- `~/.config/matilda-brain/plugins/`
-- `~/.ai/plugins/`
-- `./ai_plugins/`
-
-Manual load:
+Each Python file or package must expose `register_plugin(registry)`. Load an explicit file with:
 
 ```python
-from matilda_brain import load_plugin
 from pathlib import Path
 
-load_plugin(Path("my_plugin.py"))
+from matilda_brain import load_plugin
+
+load_plugin(Path("echo_backend.py"))
 ```
 
-See `matilda-brain/examples/plugins/` for full examples.
+Runnable plugin implementations are in [`examples/plugins`](../examples/plugins/README.md).

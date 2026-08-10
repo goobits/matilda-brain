@@ -4,7 +4,6 @@ Tests parameter conversion, validation, and passing across all CLI commands.
 """
 
 import json
-import os
 from unittest.mock import patch
 
 import pytest
@@ -235,27 +234,14 @@ class TestCLIParameterValidation(IntegrationTestBase):
                 # JSON parsing is secondary - main validation is exit code
                 pass
 
-    def test_debug_functionality_via_environment(self):
+    def test_debug_functionality_via_environment(self, monkeypatch):
         """Test that debug functionality works through environment variable."""
-        original_debug = os.environ.get("TTT_DEBUG")
-
-        try:
-            # Test with TTT_DEBUG environment variable
-            os.environ["TTT_DEBUG"] = "true"
-
-            result = self.runner.invoke(main, ["list", "models"])
-
-            # Should succeed with debug enabled via env var
-            assert result.exit_code == 0, f"Debug via env var caused failure: {result.output}"
-
-        finally:
-            # Restore original environment
-            if original_debug is None:
-                os.environ.pop("TTT_DEBUG", None)
-            else:
-                os.environ["TTT_DEBUG"] = original_debug
+        monkeypatch.setenv("BRAIN_DEBUG", "true")
+        result = self.runner.invoke(main, ["list", "models"])
+        assert result.exit_code == 0, f"Debug via env var caused failure: {result.output}"
 
         # Test normal operation without debug
+        monkeypatch.delenv("BRAIN_DEBUG")
         result = self.runner.invoke(main, ["list", "models"])
         assert result.exit_code == 0, f"Command failed without debug: {result.output}"
 

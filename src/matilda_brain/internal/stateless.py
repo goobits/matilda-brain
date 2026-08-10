@@ -1,4 +1,4 @@
-"""Stateless entry point for TTT - accepts message, history, tools without creating sessions."""
+"""Stateless Brain entry point for messages, history, and tools."""
 
 from typing import Any, Dict, List, Optional, cast
 
@@ -95,7 +95,7 @@ def execute_stateless(req: StatelessRequest) -> StatelessResponse:
 
 
 def execute_stateless_protocol(req: StatelessRequest) -> str:
-    """Execute a stateless TTT request and return Matilda Protocol JSON.
+    """Execute a stateless Brain request and return Matilda Protocol JSON.
 
     This is a wrapper around execute_stateless that converts the response
     to Matilda Protocol JSON format for server/CLI usage.

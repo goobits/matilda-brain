@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Hook handlers for TTT CLI."""
+"""Server hooks for the Matilda Brain CLI."""
 
 import json as json_module
 from pathlib import Path
@@ -131,8 +131,8 @@ def on_serve(
 ) -> None:
     """Hook for 'serve' command.
 
-    Starts the TTT HTTP server for browser-based clients.
-    Exposes TTT functionality over HTTP with CORS support.
+    Starts the Matilda Brain HTTP server for browser-based clients.
+    Exposes Brain functionality over HTTP with CORS support.
 
     Args:
         host: Host address to bind to (default: 127.0.0.1)

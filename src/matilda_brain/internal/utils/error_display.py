@@ -19,7 +19,7 @@ def format_model_overload_error(model: Optional[str] = None) -> str:
     model_text = f" ({model})" if model else ""
     return (
         f"⚠️  Model temporarily overloaded{model_text}\n"
-        f'Try: ttt "your prompt" -m @fast  # Use a faster model\n'
+        f'Try: brain "your prompt" -m @fast  # Use a faster model\n'
         f"Or wait a moment and retry your request"
     )
 
@@ -65,13 +65,13 @@ def format_connection_error(backend: Optional[str] = None, details: Optional[str
         return (
             f"🔌 Connection failed{backend_text}\n"
             f"Check: Is Ollama running? (ollama serve)\n"
-            f'Or use: ttt "your prompt" -m @fast  # Use cloud model'
+            f'Or use: brain "your prompt" -m @fast  # Use cloud model'
         )
 
     return (
         f"🔌 Connection failed{backend_text}\n"
         f"Check: Internet connection and service status\n"
-        f"Try: ttt status  # Check backend availability"
+        f"Try: brain status  # Check backend availability"
     )
 
 
@@ -92,7 +92,7 @@ def format_invalid_model_error(model: str, suggestions: Optional[List[str]] = No
         suggestion_list = ", ".join(suggestions[:3])
         message += f"Try: {suggestion_list}\n"
 
-    message += "See all: ttt models"
+    message += "See all: brain models"
     return message
 
 
@@ -107,9 +107,9 @@ def format_config_error(issue: str, file_path: Optional[str] = None) -> str:
         Clean error message with guidance
     """
     if file_path:
-        return f"⚙️  Config error in {file_path}\nIssue: {issue}\nFix: Edit config or run 'ttt config list'"
+        return f"⚙️  Config error in {file_path}\nIssue: {issue}\nFix: Edit config or run 'brain config list'"
 
-    return f"⚙️  Configuration error\nIssue: {issue}\nHelp: ttt config list"
+    return f"⚙️  Configuration error\nIssue: {issue}\nHelp: brain config list"
 
 
 def format_rate_limit_error(provider: str, retry_after: Optional[int] = None) -> str:
@@ -127,7 +127,7 @@ def format_rate_limit_error(provider: str, retry_after: Optional[int] = None) ->
     else:
         wait_text = "Wait a moment then retry"
 
-    return f'⚠️  Rate limit exceeded ({provider})\n{wait_text}\nOr try: ttt "your prompt" -m @fast  # Different model'
+    return f'⚠️  Rate limit exceeded ({provider})\n{wait_text}\nOr try: brain "your prompt" -m @fast  # Different model'
 
 
 def format_quota_error(provider: str, quota_type: str = "requests") -> str:
@@ -163,7 +163,7 @@ def format_timeout_error(backend: Optional[str] = None, timeout: Optional[float]
     return (
         f"⏱️  Request timed out{backend_text}{timeout_text}\n"
         f"Try: Shorter prompt or increase timeout\n"
-        f'Or: ttt "prompt" --timeout 120'
+        f'Or: brain "prompt" --timeout 120'
     )
 
 

@@ -1,141 +1,34 @@
-"""Tests for CLI debug functionality and parameter passing validation."""
+"""CLI debug-mode contract tests."""
 
-import os
-from pathlib import Path
 from unittest.mock import patch
 
-from matilda_brain.cli import cli as main
+import pytest
+
+from matilda_brain.cli import cli
 from tests.cli.conftest import IntegrationTestBase
 
 
-class TestDebugFlag(IntegrationTestBase):
-    """Test the --debug flag functionality.
+class TestDebugMode(IntegrationTestBase):
+    @pytest.mark.parametrize("variable", ["BRAIN_DEBUG", "TTT_DEBUG"])
+    def test_debug_environment_variables_remain_supported(self, variable, monkeypatch):
+        monkeypatch.setenv(variable, "true")
 
-    Note: The --debug flag is implemented in cli.py at line 874 and passed through
-    to hooks in cli_handlers.py. Due to some pytest environment issues, these tests
-    focus on the core functionality that can be reliably tested.
-    """
+        result = self.runner.invoke(cli, ["list", "models"])
 
-    def test_debug_environment_variable_functionality(self):
-        """Test that TTT_DEBUG environment variable enables debug functionality."""
-        # Set environment variable to enable debug mode
-        original_debug = os.environ.get("TTT_DEBUG")
-        os.environ["TTT_DEBUG"] = "true"
+        assert result.exit_code == 0
+        assert result.output.strip()
 
-        try:
-            # Test with environment variable (this bypasses CLI argument parsing)
-            result = self.runner.invoke(main, ["list", "models"])
+    def test_debug_flag_is_exposed(self):
+        result = self.runner.invoke(cli, ["--help"])
 
-            # Should work normally - the debug functionality is in the hook error handling
-            assert result.exit_code == 0
-            assert len(result.output.strip()) > 0
+        assert result.exit_code == 0
+        assert "--debug" in result.output
+        assert "debug output" in result.output.lower()
 
-        finally:
-            # Restore original environment
-            if original_debug is None:
-                os.environ.pop("TTT_DEBUG", None)
-            else:
-                os.environ["TTT_DEBUG"] = original_debug
+    def test_debug_mode_preserves_graceful_hook_errors(self, monkeypatch):
+        monkeypatch.setenv("BRAIN_DEBUG", "true")
 
-    def test_debug_mode_error_handling_with_env_var(self):
-        """Test that debug mode affects error handling using environment variable."""
-        # Set debug via environment variable to test the functionality
-        original_debug = os.environ.get("TTT_DEBUG")
-        os.environ["TTT_DEBUG"] = "true"
+        with patch("matilda_brain.internal.hooks.core.brain_stream", side_effect=Exception("Test error")):
+            result = self.runner.invoke(cli, ["ask", "test", "--model", "nonexistent-model"])
 
-        try:
-            # Test with a command that might produce an error (but not argument parsing error)
-            with patch("matilda_brain.internal.hooks.core.ttt_stream", side_effect=Exception("Test error")):
-                result = self.runner.invoke(main, ["ask", "test", "--model", "nonexistent-model"])
-
-            # Should not fail with argument parsing error (exit code 2)
-            # The specific outcome depends on the backend configuration
-            assert result.exit_code in [0, 1]  # Success or graceful error
-
-        finally:
-            # Restore original environment
-            if original_debug is None:
-                os.environ.pop("TTT_DEBUG", None)
-            else:
-                os.environ["TTT_DEBUG"] = original_debug
-
-    def test_normal_mode_without_debug(self):
-        """Test normal operation without debug mode enabled."""
-        # Ensure debug is not set in environment
-        original_debug = os.environ.get("TTT_DEBUG")
-        if "TTT_DEBUG" in os.environ:
-            del os.environ["TTT_DEBUG"]
-
-        try:
-            # Test normal operation
-            result = self.runner.invoke(main, ["list", "models"])
-
-            # Should work normally
-            assert result.exit_code == 0
-            assert len(result.output.strip()) > 0
-
-        finally:
-            # Restore original environment
-            if original_debug is not None:
-                os.environ["TTT_DEBUG"] = original_debug
-
-    def test_debug_flag_implementation_exists(self):
-        """Test that the debug flag is implemented in the codebase."""
-        # Read the CLI file and verify the debug flag is implemented
-        repo_root = Path(__file__).resolve().parents[3]
-        cli_file = repo_root / "src" / "matilda_brain" / "cli.py"
-        assert cli_file.exists(), "CLI file should exist"
-
-        cli_content = cli_file.read_text()
-
-        # Check that the debug flag is defined
-        assert "--debug" in cli_content, "Debug option should be defined in CLI"
-        assert "debug output" in cli_content.lower(), "Debug help text should exist"
-
-        # Check that debug handling exists in CLI setup
-        assert "debug" in cli_content, "Debug should be wired in CLI setup"
-
-    def test_debug_functionality_in_hooks(self):
-        """Test that debug functionality exists in the hooks file."""
-        # Read the hooks file and verify debug functionality is implemented
-        repo_root = Path(__file__).resolve().parents[3]
-        hooks_file = repo_root / "src" / "matilda_brain" / "internal" / "hooks" / "utils.py"
-        assert hooks_file.exists(), "Hooks file should exist"
-
-        hooks_content = hooks_file.read_text()
-
-        # Check that debug mode detection exists
-        assert "TTT_DEBUG" in hooks_content, "TTT_DEBUG env var should be checked"
-
-        # Check that debug mode affects error handling
-        assert "debug" in hooks_content, "Debug handling should exist in hooks"
-
-    def test_debug_flag_parameter_passing(self):
-        """Test that debug functionality works through environment variable."""
-        # The --debug flag seems to have implementation issues in this CLI setup
-        # Test debug functionality via environment variable instead
-        original_debug = os.environ.get("TTT_DEBUG")
-
-        try:
-            # Test with TTT_DEBUG environment variable
-            os.environ["TTT_DEBUG"] = "true"
-
-            result = self.runner.invoke(main, ["list", "models"])
-
-            # Should succeed with debug enabled via env var
-            assert result.exit_code == 0, f"Debug via env var caused failure: {result.output}"
-
-        finally:
-            # Restore original environment
-            if original_debug is None:
-                os.environ.pop("TTT_DEBUG", None)
-            else:
-                os.environ["TTT_DEBUG"] = original_debug
-
-        # Test normal operation without debug
-        result = self.runner.invoke(main, ["list", "models"])
-        assert result.exit_code == 0, f"Command failed without debug: {result.output}"
-
-
-# TestCLIParameterPassing class has been consolidated into TestCLIParameterValidation
-# in test_cli_modern.py to eliminate redundancy and improve test organization.
+        assert result.exit_code in (0, 1)

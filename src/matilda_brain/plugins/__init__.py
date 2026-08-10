@@ -1,4 +1,4 @@
-"""Plugin system for TTT."""
+"""Plugin system for Matilda Brain."""
 
 from .loader import (
     BackendPlugin,

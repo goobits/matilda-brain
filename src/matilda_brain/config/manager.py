@@ -162,6 +162,7 @@ class ConfigManager:
         self.user_config_path = Path(config_file).expanduser() if config_file else default_config_path()
         self.config_file = self.user_config_path
         self.model_definitions: list[Dict[str, Any]] = []
+        self._load_dotenv()
         self._load_api_keys_from_config()
 
     @classmethod
@@ -219,7 +220,7 @@ class ConfigManager:
         return config
 
     def _warn_once(self, message: str) -> None:
-        json_mode = os.environ.get("TTT_JSON_MODE", "").lower() == "true"
+        json_mode = any(os.environ.get(name, "").lower() == "true" for name in ("BRAIN_JSON_MODE", "TTT_JSON_MODE"))
         if _suppress_warnings or json_mode or "--json" in sys.argv or _is_pipe_mode():
             return
         if self.user_config_path not in _warned_paths:
@@ -293,7 +294,6 @@ class ConfigManager:
 
     def load_model(self, *, require_section: bool = False) -> ConfigModel:
         """Build the typed configuration using defaults < file < environment."""
-        self._load_dotenv()
         user_config = self.get_user_config(require_section=require_section)
         merged = merge_configs(self.get_default_config(), user_config)
         self._extract_model_definitions(merged)

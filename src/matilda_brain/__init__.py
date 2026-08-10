@@ -28,7 +28,7 @@ if TYPE_CHECKING:
     from .backends import CloudBackend, HubBackend, LocalBackend
     from .config import configure
     from .config.schema import ModelRegistry
-    from .core.api import achat, ask, ask_async, chat, stream, stream_async
+    from .core.api import achat, ask, ask_async, chat, stateless, stream, stream_async
     from .core.exceptions import (
         AIError,
         APIKeyError,
@@ -60,6 +60,7 @@ if TYPE_CHECKING:
         ValidationError,
     )
     from .core.models import AIResponse, ConfigModel, ImageInput, ModelInfo
+    from .core.request import StatelessResponse
     from .core.types import ContentKind, Message, Proposal, RiskLevel, Role
     from .plugins import discover_plugins, load_plugin, register_backend
     from .session.chat import PersistentChatSession
@@ -75,10 +76,12 @@ _EXPORTS = {
     "ask_async": (".core.api", "ask_async"),
     "stream_async": (".core.api", "stream_async"),
     "achat": (".core.api", "achat"),
+    "stateless": (".core.api", "stateless"),
     "AIResponse": (".core.models", "AIResponse"),
     "ImageInput": (".core.models", "ImageInput"),
     "ConfigModel": (".core.models", "ConfigModel"),
     "ModelInfo": (".core.models", "ModelInfo"),
+    "StatelessResponse": (".core.request", "StatelessResponse"),
     "Role": (".core.types", "Role"),
     "ContentKind": (".core.types", "ContentKind"),
     "Message": (".core.types", "Message"),
@@ -164,10 +167,12 @@ __all__ = [
     "ask_async",
     "stream_async",
     "achat",
+    "stateless",
     "AIResponse",
     "ImageInput",
     "ConfigModel",
     "ModelInfo",
+    "StatelessResponse",
     "Role",
     "ContentKind",
     "Message",

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Make the ttt module executable with python -m ttt."""
+"""Run Matilda Brain with ``python -m matilda_brain``."""
 
 import sys
 

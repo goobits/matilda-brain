@@ -18,8 +18,7 @@ class TestAskCommand(IntegrationTestBase):
     @pytest.mark.requires_credentials
     @pytest.mark.requires_network
     def test_ask_basic_prompt_demonstrates_core_functionality(self):
-        """Test basic ask functionality - demonstrates core TTT question-answering capability with proper error handling."""
-        # Real integration test demonstrating TTT's primary use case
+        """Test core Brain question-answering with provider HTTP mocks."""
         result = self.runner.invoke(main, ["ask", "What are the key features of Python programming language?"])
 
         # Should handle request gracefully whether API is available or not
@@ -48,7 +47,7 @@ class TestAskCommand(IntegrationTestBase):
     @pytest.mark.requires_credentials
     @pytest.mark.requires_network
     def test_ask_with_comprehensive_options_demonstrates_advanced_usage(self):
-        """Test ask with various options - demonstrates advanced TTT configuration and feature usage."""
+        """Test ask with model, sampling, and output options."""
         # Real integration test showing comprehensive option usage
         result = self.runner.invoke(
             main,
@@ -92,7 +91,7 @@ class TestListCommand(IntegrationTestBase):
     """Test the list command functionality."""
 
     def test_list_models_demonstrates_model_discovery(self):
-        """Test listing models - demonstrates TTT's model discovery and configuration capabilities."""
+        """Test Brain model discovery."""
         # Real integration test showing model registry functionality
         result = self.runner.invoke(main, ["list", "models"])
 
@@ -117,7 +116,7 @@ class TestConfigCommand(IntegrationTestBase):
     """Test the config command functionality."""
 
     def test_config_get_demonstrates_configuration_access(self):
-        """Test config get subcommand - demonstrates TTT's configuration inspection capabilities."""
+        """Test config get subcommand - demonstrates Matilda Brain's configuration inspection capabilities."""
         # Test configuration value retrieval with proper validation
         with patch("matilda_brain.config.manager.ConfigManager.show_value") as mock_show:
             # Mock realistic config output
@@ -140,7 +139,7 @@ class TestConfigCommand(IntegrationTestBase):
                 ), f"Should reference the config key: {output}"
 
     def test_config_set_demonstrates_configuration_management(self):
-        """Test config set subcommand - demonstrates TTT's configuration modification capabilities."""
+        """Test config set subcommand - demonstrates Matilda Brain's configuration modification capabilities."""
         # Test configuration value setting with proper validation
         with patch("matilda_brain.config.manager.ConfigManager.set_value") as mock_set:
             mock_set.return_value = True  # Indicate successful setting
@@ -161,10 +160,10 @@ class TestConfigCommand(IntegrationTestBase):
                 assert has_confirmation or "gpt-4" in output, f"Should confirm config change: {output}"
 
     def test_config_list_demonstrates_comprehensive_configuration_view(self):
-        """Test config list subcommand - demonstrates TTT's complete configuration overview capabilities."""
+        """Test config list subcommand - demonstrates Matilda Brain's complete configuration overview capabilities."""
         # Test complete configuration display with realistic data
         with patch("matilda_brain.config.manager.ConfigManager.get_merged_config") as mock_get:
-            # Mock realistic TTT configuration structure
+            # Mock realistic Matilda Brain configuration structure
             mock_config = {
                 "models": {"default": "gpt-4", "aliases": {"fast": "gpt-3.5-turbo", "smart": "gpt-4"}},
                 "api": {"temperature": 0.7, "max_tokens": 2048},
@@ -215,7 +214,7 @@ class TestModernToolsCommand(IntegrationTestBase):
     """Test the modern CLI tools command functionality."""
 
     def test_tools_enable_demonstrates_tool_management(self):
-        """Test tools enable subcommand - demonstrates TTT's tool activation and management capabilities."""
+        """Test tools enable subcommand - demonstrates Matilda Brain's tool activation and management capabilities."""
         # Test tool enablement with realistic tool management scenario
         with (
             patch("matilda_brain.config.manager.ConfigManager.get_merged_config") as mock_get,
@@ -346,7 +345,7 @@ class TestCLIErrorHandling:
     def test_hook_exception_handling(self):
         """Test that exceptions from hooks are handled gracefully."""
         # Make the underlying API call fail to test exception handling
-        with patch("matilda_brain.internal.hooks.core.ttt_stream", side_effect=Exception("Test error")):
+        with patch("matilda_brain.internal.hooks.core.brain_stream", side_effect=Exception("Test error")):
             result = self.runner.invoke(main, ["ask", "test"])
 
             # Should handle exception gracefully - exact behavior depends on implementation

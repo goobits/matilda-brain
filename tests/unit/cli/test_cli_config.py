@@ -105,10 +105,9 @@ class TestConfigCommand(IntegrationTestBase):
 
         assert result.exit_code == 0, f"Config list (no secrets) failed with output: {result.output}"
 
-    def test_explicit_config_path_reaches_library_hooks(self, tmp_path, monkeypatch):
+    def test_explicit_config_path_reaches_library_hooks(self, tmp_path):
         """The generated CLI and library config manager use the same explicit path."""
         config_file = tmp_path / "custom.toml"
-        monkeypatch.delenv("MATILDA_CONFIG", raising=False)
 
         result = self.runner.invoke(
             main,

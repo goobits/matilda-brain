@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Hooks module for TTT CLI business logic.
+Hooks module for Matilda Brain CLI business logic.
 
 This module provides all hook handlers for the CLI commands:
 - core: on_ask, on_chat (main interaction handlers)
@@ -18,6 +18,7 @@ from .server import on_serve, on_stateless
 from .tools import on_tools_disable, on_tools_enable, on_tools_list
 from .utils import (
     apply_coding_optimization,
+    get_enabled_tool_names,
     is_verbose_mode,
     parse_tools_arg,
     resolve_model_alias,
@@ -33,6 +34,7 @@ __all__ = [
     "parse_tools_arg",
     "resolve_tools",
     "apply_coding_optimization",
+    "get_enabled_tool_names",
     # Core
     "on_ask",
     "on_chat",

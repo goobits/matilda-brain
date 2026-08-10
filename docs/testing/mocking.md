@@ -1,16 +1,22 @@
-# Integration Test Mocking
+# Integration mocking
 
-Integration-style tests use HTTP-level mocks by default to avoid API costs.
-
-## Real API Mode
+Integration tests use deterministic HTTP-level provider mocks by default.
 
 ```bash
-python -m pytest tests/test_integration.py --real-api
-REAL_API_TESTS=1 python -m pytest tests/test_integration.py
+./scripts/test.py integration
+python -m pytest tests/integration -q
 ```
 
-## Key Files
+Real APIs require an explicit switch and credentials:
 
-- `tests/utils/http_mocks.py`
-- `tests/conftest.py`
-- `tests/test_mock_verification.py`
+```bash
+./scripts/test.py integration --real-api
+REAL_API_TESTS=1 python -m pytest tests/integration/test_integration.py --real-api
+```
+
+Key owners:
+
+- `tests/utils/http_mocks.py`: provider HTTP responses
+- `tests/conftest.py`: mock activation and external-dependency markers
+- `tests/unit/test_mock_verification.py`: proves the default stays offline
+- `scripts/test.py`: user-facing test-mode selection

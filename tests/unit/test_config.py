@@ -139,6 +139,17 @@ class TestConfigLoading:
         assert config.timeout == 60  # From file
         assert config.default_backend == "local"  # From file
 
+    def test_dotenv_api_key_overrides_toml_api_key(self, tmp_path, monkeypatch):
+        config_file = tmp_path / "config.toml"
+        config_file.write_text('[brain.api_keys]\nopenai_api_key = "toml-key"\n')
+        (tmp_path / ".env").write_text("OPENAI_API_KEY=dotenv-key\n")
+        monkeypatch.chdir(tmp_path)
+        monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+
+        config = load_config(config_file)
+
+        assert config.openai_api_key == "dotenv-key"
+
     def test_missing_config_file(self):
         """Test loading with non-existent config file uses project defaults."""
         config = load_config("non_existent_file.toml")

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Hook handlers for TTT CLI."""
+"""Model and provider hooks for the Matilda Brain CLI."""
 
 import json as json_module
 import os
@@ -159,7 +159,7 @@ def show_backend_status(json_output: bool = False) -> None:
 
     Example:
         >>> show_backend_status(json_output=False)
-        TTT System Status
+        Matilda Brain System Status
         ✅ Local Backend (Ollama): Available
            URL: http://localhost:11434
            Models: 5
@@ -217,7 +217,7 @@ def show_backend_status(json_output: bool = False) -> None:
     if json_output:
         click.echo(json_module.dumps(status_data))
     else:
-        console.print("\n[bold]TTT System Status[/bold]\n")
+        console.print("\n[bold]Matilda Brain System Status[/bold]\n")
 
         # Local backend
         local_status = status_data["backends"]["local"]
@@ -262,7 +262,7 @@ def show_backend_status(json_output: bool = False) -> None:
 def on_status(command_name: str, json: bool, **kwargs: Any) -> None:
     """Hook for 'status' command.
 
-    Shows the overall status of TTT backends and connectivity.
+    Shows the overall status of Brain backends and connectivity.
 
     Args:
         json: If True, outputs JSON format; otherwise shows formatted status

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Hook handlers for TTT CLI."""
+"""Core hooks for the Matilda Brain CLI."""
 
 import json as json_module
 import sys
@@ -10,13 +10,14 @@ from rich.console import Console
 
 console = Console()
 
-from matilda_brain.core.api import ask as ttt_ask
-from matilda_brain.core.api import chat as ttt_chat
-from matilda_brain.core.api import stream as ttt_stream
+from matilda_brain.core.api import ask as brain_ask
+from matilda_brain.core.api import chat as brain_chat
+from matilda_brain.core.api import stream as brain_stream
 from matilda_brain.session.manager import ChatSessionManager
 
 from .error_handlers import handle_error
 from .utils import (
+    get_enabled_tool_names,
     resolve_model_alias,
     resolve_tools,
     setup_logging_level,
@@ -147,7 +148,7 @@ def on_ask(
     if max_tokens:
         api_params["max_tokens"] = max_tokens
     if tools:
-        api_params["tools"] = None  # Enable all tools
+        api_params["tools"] = resolve_tools(get_enabled_tool_names())
     if session:
         api_params["session_id"] = session
     if system:
@@ -156,19 +157,19 @@ def on_ask(
     try:
         if json:
             # JSON output mode - collect response and format as JSON
-            response = ttt_ask(prompt_text, **api_params)
+            response = brain_ask(prompt_text, **api_params)
             output = {
                 "response": str(response).strip(),
                 "model": api_params.get("model"),
                 "temperature": api_params.get("temperature"),
                 "max_tokens": api_params.get("max_tokens"),
-                "tools_enabled": api_params.get("tools") is not None,
+                "tools_enabled": bool(api_params.get("tools")),
                 "session_id": api_params.get("session_id"),
                 "system": api_params.get("system"),
             }
             click.echo(json_module.dumps(output, indent=2))
         elif stream:
-            chunks = list(ttt_stream(prompt_text, **api_params))
+            chunks = list(brain_stream(prompt_text, **api_params))
             for i, chunk in enumerate(chunks):
                 if i == len(chunks) - 1:  # Last chunk
                     click.echo(chunk.rstrip("\n"), nl=False)
@@ -176,7 +177,7 @@ def on_ask(
                     click.echo(chunk, nl=False)
             click.echo()  # Always add exactly one newline at the end
         else:
-            response = ttt_ask(prompt_text, **api_params)
+            response = brain_ask(prompt_text, **api_params)
             click.echo(str(response).strip())
     except Exception as e:
         handle_error(
@@ -215,9 +216,7 @@ def on_chat(command_name: str, model: Optional[str], session: Optional[str], too
         model = resolve_model_alias(model)
 
     # Parse tools
-    parsed_tools: Optional[List[str]] = None
-    if tools:
-        parsed_tools = None  # Enable all tools
+    parsed_tools = get_enabled_tool_names() if tools else None
 
     # Load or create session
     if session:
@@ -249,7 +248,7 @@ def on_chat(command_name: str, model: Optional[str], session: Optional[str], too
     # Start chat loop
     try:
         # Use the chat API
-        with ttt_chat(**chat_kwargs) as api_chat_session:
+        with brain_chat(**chat_kwargs) as api_chat_session:
             # Restore message history
             if messages:
                 api_chat_session.history = messages

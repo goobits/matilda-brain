@@ -1,4 +1,4 @@
-"""Session management for TTT."""
+"""Session management for Matilda Brain."""
 
 from .chat import PersistentChatSession
 from .manager import ChatMessage, ChatSession, ChatSessionManager

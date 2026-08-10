@@ -8,6 +8,8 @@ from unittest.mock import Mock
 import pytest
 from click.testing import CliRunner
 
+from matilda_brain.config.manager import clear_config_cache
+
 
 class IntegrationTestBase:
     """Base class for integration tests with proper isolation."""
@@ -18,8 +20,8 @@ class IntegrationTestBase:
 
         # Create temporary directories for test isolation
         self.temp_dir = tempfile.mkdtemp()
-        self.config_dir = Path(self.temp_dir) / ".ttt"
-        self.session_dir = self.config_dir / "sessions"
+        self.config_dir = Path(self.temp_dir) / ".matilda"
+        self.session_dir = self.config_dir / "brain" / "sessions"
 
         # Ensure directories exist
         self.config_dir.mkdir(parents=True, exist_ok=True)
@@ -28,8 +30,7 @@ class IntegrationTestBase:
         # Set environment variables to use our temp directories
         self.original_env = {}
         env_vars = {
-            "TTT_CONFIG_DIR": str(self.config_dir),
-            "TTT_SESSION_DIR": str(self.session_dir),
+            "MATILDA_CONFIG": str(self.config_dir / "config.toml"),
             "XDG_CONFIG_HOME": str(Path(self.temp_dir)),
             "HOME": str(self.temp_dir),
         }
@@ -37,6 +38,7 @@ class IntegrationTestBase:
         for key, value in env_vars.items():
             self.original_env[key] = os.environ.get(key)
             os.environ[key] = value
+        clear_config_cache()
 
     def teardown_method(self):
         """Clean up test environment."""
@@ -46,6 +48,7 @@ class IntegrationTestBase:
                 os.environ.pop(key, None)
             else:
                 os.environ[key] = original_value
+        clear_config_cache()
 
         # Clean up temp directory
         import shutil

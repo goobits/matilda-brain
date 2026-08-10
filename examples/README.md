@@ -1,24 +1,23 @@
 # Examples
 
-Example scripts for Matilda Brain:
+The examples are intentionally small and use only supported public APIs.
 
-- `01_basic_usage.py`
-- `02_tools_and_workflows.py`
-- `03_chat_and_persistence.py`
-- `04_advanced_features.py`
+| File | Demonstrates |
+| --- | --- |
+| `01_basic_usage.py` | complete responses, streaming, conversation history |
+| `02_tools_and_workflows.py` | built-in tools, `@tool`, tool-enabled chat |
+| `03_chat_and_persistence.py` | JSON save/load, summary, export, cleanup |
+| `04_advanced_features.py` | async calls, images, runtime config, domain errors |
+| `config/matilda.toml` | shared `[brain]` configuration shape |
+| `plugins/` | loadable backend plugins |
 
-## Run
-
-```bash
-python3 01_basic_usage.py
-python3 02_tools_and_workflows.py
-python3 03_chat_and_persistence.py
-python3 04_advanced_features.py
-```
-
-## Helper Scripts
+From the repository root:
 
 ```bash
-python3 run_example.py 01_basic_usage
-python3 validate_examples.py
+python examples/01_basic_usage.py
+python examples/02_tools_and_workflows.py
+python examples/03_chat_and_persistence.py
+python examples/04_advanced_features.py
 ```
+
+The numbered scripts make provider requests. Configure a supported API key or a local Ollama backend first. Persistence output is written under `.artifacts/examples/`.

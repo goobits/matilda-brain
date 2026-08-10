@@ -1,7 +1,7 @@
 """
-Simple HTTP server for TTT (Text-to-Text) API.
+HTTP server for the Matilda Brain API.
 
-Exposes TTT functionality over HTTP for browser-based clients.
+Exposes Brain functionality over HTTP for browser-based clients.
 Supports both one-shot requests and streaming responses with conversation memory.
 
 Usage:
@@ -561,7 +561,7 @@ def run_server(host: str = "127.0.0.1", port: int = 8772) -> None:
 
 def main() -> None:
     """CLI entry point."""
-    parser = argparse.ArgumentParser(description="TTT HTTP Server")
+    parser = argparse.ArgumentParser(description="Matilda Brain HTTP Server")
     parser.add_argument("--host", default="127.0.0.1", help="Host to bind to")
     parser.add_argument("--port", "-p", type=int, default=8772, help="Port to listen on")
     args = parser.parse_args()

@@ -18,7 +18,7 @@ class TestAskCommand(IntegrationTestBase):
     @pytest.mark.requires_network
     def test_ask_basic_prompt(self):
         """Test basic ask functionality with real hooks."""
-        # This is a real integration test - it will make actual API calls
+        # Provider HTTP is mocked unless pytest receives --real-api.
         # if you have API keys configured, otherwise it will fail gracefully
         result = self.runner.invoke(main, ["ask", "What is Python?"])
 
@@ -37,7 +37,7 @@ class TestAskCommand(IntegrationTestBase):
     @pytest.mark.requires_network
     def test_ask_with_options(self):
         """Test ask with various options."""
-        # Real integration test with options
+        # Exercise the complete CLI/provider adapter path with options.
         result = self.runner.invoke(
             main,
             [

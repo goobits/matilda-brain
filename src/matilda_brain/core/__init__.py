@@ -1,4 +1,4 @@
-"""Core TTT library functionality."""
+"""Core Matilda Brain library functionality."""
 
 from typing import Any
 

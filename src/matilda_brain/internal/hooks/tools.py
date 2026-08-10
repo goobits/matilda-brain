@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Hook handlers for TTT CLI."""
+"""Tool-management hooks for the Matilda Brain CLI."""
 
 from typing import Any
 

@@ -406,7 +406,7 @@ class TestToolIntegration:
             """Simple test tool."""
             return f"Tool received: {message}"
 
-        # Mock the router where it's actually used in ttt.core.api
+        # Mock the router where it is used in matilda_brain.core.api.
         with patch("matilda_brain.core.api.router") as mock_router:
             mock_backend = Mock()
             # Create AIResponse with tool_result in the constructor

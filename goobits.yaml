@@ -1,10 +1,10 @@
-# Goobits configuration for Matilda Brain (Terminal Tools for Thoughts)
+# Goobits configuration for Matilda Brain
 # This file replaces the old setup-config.yaml and defines everything needed for the build command
 
 # Setup fields for setup.sh
 package_name: "goobits-matilda-brain"
 command_name: "brain"
-display_name: "Matilda Brain - Text to Text"
+display_name: "Matilda Brain"
 description: "A powerful AI assistant for your terminal"
 
 # CLI generation configuration
@@ -31,7 +31,7 @@ installation:
 shell_integration:
   enabled: false
   alias: "brain"
-  aliases: ["ttt"]  # Backward compatibility
+  aliases: ["ttt"]  # Legacy command; pyproject.toml keeps the package entry point
 
 validation:
   check_api_keys: false
@@ -57,8 +57,8 @@ messages:
       - Edit code in src/matilda_brain/ directory
       - Test immediately with: brain --stream "test"
       - Run tests with: make test
-      - Format code with: ruff format src/matilda_brain/
-      - Check types with: mypy src/matilda_brain/
+      - Format code with: make format
+      - Run quality checks with: make quality
 
     💡 No need to run ./scripts/setup.sh upgrade after code changes!
 
@@ -75,7 +75,7 @@ cli:
   name: "MATILDA BRAIN CLI"
   version: "1.1.0"
   display_version: true
-  tagline: "Talk to Transformer"
+  tagline: "One interface for local and cloud AI"
   description: "AI-powered conversations, straight from your command line"
   icon: "🤖"
   enable_recursive_help: true
@@ -322,7 +322,7 @@ cli:
               default: false
 
     serve:
-      desc: "Start TTT HTTP server for browser clients"
+      desc: "Start the Matilda Brain HTTP server"
       icon: "🌐"
       options:
         - name: "host"

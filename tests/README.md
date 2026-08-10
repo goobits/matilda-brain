@@ -1,78 +1,49 @@
-# Testing Guide
+# Testing
 
-How to run tests and apply markers in Matilda Brain.
-
-## Quick Start
+## Commands
 
 ```bash
-# Unit tests only (default)
-./test.sh
-
-# Integration-style tests (requires keys/network)
-./test.sh integration
-
-# Specific test file
-./test.sh --test test_api_core
+./scripts/test.py                     # unit suite
+./scripts/test.py integration         # mocked HTTP integration
+./scripts/test.py all --coverage      # combined, accumulating coverage
+./scripts/test.py --test test_routing # targeted pattern
+make check                            # canonical offline gate
 ```
+
+Real provider calls are never the default:
+
+```bash
+./scripts/test.py integration --real-api
+```
+
+The runner requires a supported provider key and asks for confirmation unless `--force` is supplied.
 
 ## Markers
 
-Use reasoned markers for external dependencies:
+- `unit`: isolated behavior
+- `integration`: multi-module or adapter behavior
+- `requires_credentials`: external credentials required
+- `requires_network`: external network required
+- `requires_service`: local service required
+- `requires_gpu`: GPU required
+- `slow`: intentionally time-consuming
 
-- `unit`: Fast tests with mocking and no external dependencies
-- `requires_credentials`: Needs API keys or other credentials
-- `requires_network`: Needs external network access
-- `requires_service`: Needs local services running
-- `requires_gpu`: Needs a GPU
-- `slow`: Time-intensive tests
-- `asyncio`: Async tests
+The offline gate sets `BRAIN_RUN_CRED_TESTS=0` and `REAL_API_TESTS=0`. The mocked integration runner explicitly includes the external-marker test shapes while intercepting provider HTTP.
 
-Unit runs should exclude `requires_*` markers unless explicitly requested.
+## Layout
 
-## Integration-Style Tests
-
-Integration-style tests default to HTTP-level mocks. Run real APIs with:
-
-```bash
-./test.sh integration --real-api
-REAL_API_TESTS=1 ./test.sh integration
-```
-
-## Rate Limiting Fixtures
-
-When hitting real APIs, use fixtures that add delays:
-
-- `delayed_ask`
-- `delayed_stream`
-- `delayed_chat`
-- `rate_limit_delay`
-
-## File Organization
-
-```
+```text
 tests/
-├── conftest.py
-├── test_api_*.py
-├── test_backends_*.py
-├── test_cli_*.py
-├── test_tools_*.py
-├── test_config_*.py
-└── test_integration.py
+├── unit/                 # domain, adapter, CLI, packaging, and policy tests
+├── integration/          # mocked CLI flows plus opt-in real-provider tests
+├── utils/http_mocks.py   # deterministic provider protocol fixtures
+└── conftest.py           # isolation, markers, and real/mock mode selection
 ```
 
-## Writing Tests
+## Expectations
 
-```python
-import pytest
-
-@pytest.mark.unit
-def test_basic_ask(mock_backend):
-    response = ask("Hello", backend=mock_backend)
-    assert response.succeeded
-
-@pytest.mark.requires_credentials
-@pytest.mark.requires_network
-def test_real_api_call(delayed_ask):
-    response = delayed_ask("Hello", model="gpt-3.5-turbo")
-    assert response.succeeded
-```
+- Test observable behavior, not implementation trivia.
+- Add a regression test with every repaired contract.
+- Keep normal tests free of provider cost, ambient credentials, and local services.
+- Use `MATILDA_CONFIG` or existing fixtures for isolated configuration.
+- Keep the complete offline coverage result at or above 70%.

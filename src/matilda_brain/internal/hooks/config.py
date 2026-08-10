@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Hook handlers for TTT CLI."""
+"""Configuration and resource hooks for the Matilda Brain CLI."""
 
 import json as json_module
 from pathlib import Path
@@ -19,7 +19,7 @@ from .models import show_models_list
 def on_list(command_name: str, resource: Optional[str] = None, format: str = "table", **kwargs: Any) -> None:
     """Hook for 'list' command.
 
-    Lists various TTT resources like models, sessions, or tools in either
+    Lists Brain resources like models, sessions, or tools in either
     tabular or JSON format. If no resource is specified, shows a summary
     of all available resources.
 
@@ -50,27 +50,27 @@ def on_list(command_name: str, resource: Optional[str] = None, format: str = "ta
             }
             click.echo(json_module.dumps(summary, indent=2))
         else:
-            console.print("\n[bold]TTT Resources Summary[/bold]\n")
+            console.print("\n[bold]Matilda Brain Resources[/bold]\n")
 
             # Models count
             from matilda_brain.config.schema import get_model_registry
 
             model_registry = get_model_registry()
             console.print(f"[cyan]Models:[/cyan] {len(model_registry.models)} available")
-            console.print("  Run [green]ttt list models[/green] to see all models\n")
+            console.print("  Run [green]brain list models[/green] to see all models\n")
 
             # Sessions count
             session_manager = ChatSessionManager()
             sessions = session_manager.list_sessions()
             console.print(f"[cyan]Sessions:[/cyan] {len(sessions)} saved")
-            console.print("  Run [green]ttt list sessions[/green] to see all sessions\n")
+            console.print("  Run [green]brain list sessions[/green] to see all sessions\n")
 
             # Tools count
             from matilda_brain.tools import list_tools
 
             tools = list_tools()
             console.print(f"[cyan]Tools:[/cyan] {len(tools)} available")
-            console.print("  Run [green]ttt list tools[/green] to see all tools\n")
+            console.print("  Run [green]brain list tools[/green] to see all tools\n")
         return
 
     if resource == "models":

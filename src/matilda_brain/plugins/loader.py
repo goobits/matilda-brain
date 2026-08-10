@@ -46,8 +46,10 @@ class PluginRegistry:
         self._setup_default_paths()
 
     def _setup_default_paths(self) -> None:
-        """Set up default plugin search paths."""
+        """Set up canonical and backward-compatible plugin search paths."""
         self._plugin_paths = [
+            Path.home() / ".matilda" / "brain" / "plugins",
+            Path.cwd() / "matilda_brain_plugins",
             Path.home() / ".config" / "ai" / "plugins",
             Path.home() / ".ai" / "plugins",
             Path.cwd() / "ai_plugins",

@@ -1,15 +1,17 @@
-# Plugin Examples
+# Plugin examples
 
-Example plugins for custom backends:
+- `echo_backend.py`: minimal backend contract
+- `mock_llm_backend.py`: deterministic offline backend with streaming
 
-- `echo_backend.py`
-- `mock_llm_backend.py`
-
-## Load a Plugin
+Load an explicit plugin:
 
 ```python
-from matilda_brain import load_plugin
 from pathlib import Path
 
-load_plugin(Path("echo_backend.py"))
+from matilda_brain import ask, load_plugin
+
+load_plugin(Path("examples/plugins/echo_backend.py"))
+print(ask("hello", backend="echo"))
 ```
+
+For automatic discovery, copy a file into `~/.matilda/brain/plugins/` or `./matilda_brain_plugins/`.

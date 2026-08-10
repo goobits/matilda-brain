@@ -1,0 +1,31 @@
+[brain.models]
+default = "openrouter/google/gemini-flash-1.5"
+
+[brain.backends]
+default = "cloud"
+enable_fallbacks = true
+fallback_order = ["cloud", "local"]
+
+[brain.backends.cloud]
+timeout = 45
+max_retries = 5
+
+[brain.backends.local]
+base_url = "http://localhost:11434"
+timeout = 90
+
+[brain.tools]
+disabled = ["write_file"]
+
+[brain.tools.executor]
+max_retries = 3
+timeout_seconds = 15.0
+
+[brain.tools.policy]
+allow_private_networks = false
+file_roots = ["~/Projects"]
+require_approval = false
+
+[brain.chat]
+max_history_length = 50
+auto_save = false

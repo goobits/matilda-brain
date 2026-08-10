@@ -75,7 +75,7 @@ fi
 # Project-specific configuration
 readonly PACKAGE_NAME="goobits-matilda-brain"
 readonly COMMAND_NAME="brain"
-readonly DISPLAY_NAME="Matilda Brain - Text to Text"
+readonly DISPLAY_NAME="Matilda Brain"
 readonly DESCRIPTION="A powerful AI assistant for your terminal"
 readonly PYPI_NAME="goobits-matilda-brain"
 readonly DEVELOPMENT_PATH="."
@@ -862,8 +862,8 @@ Development workflow:
   - Edit code in src/matilda_brain/ directory
   - Test immediately with: brain --stream "test"
   - Run tests with: make test
-  - Format code with: ruff format src/matilda_brain/
-  - Check types with: mypy src/matilda_brain/
+  - Format code with: make format
+  - Run quality checks with: make quality
 
 💡 No need to run ./scripts/setup.sh upgrade after code changes!
 "

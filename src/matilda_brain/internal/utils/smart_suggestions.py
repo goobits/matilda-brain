@@ -1,5 +1,5 @@
 """
-Smart suggestions for TTT CLI errors and user input.
+Smart suggestions for Matilda Brain CLI errors and user input.
 
 This module provides intelligent, context-aware suggestions when users encounter
 errors such as invalid model aliases, failed model connections, or provider issues.
@@ -220,7 +220,7 @@ def suggest_provider_alternatives(provider_error: str, failed_model: Optional[st
             {
                 "provider": "OpenRouter",
                 "description": "Access 100+ models through one API key",
-                "example": 'ttt @fast "your question" (uses OpenRouter by default)',
+                "example": 'brain @fast "your question" (uses OpenRouter by default)',
                 "setup": "Already configured ✓",
             }
         )
@@ -232,7 +232,7 @@ def suggest_provider_alternatives(provider_error: str, failed_model: Optional[st
                 {
                     "provider": "Anthropic Claude",
                     "description": "Excellent for analysis and reasoning",
-                    "example": 'ttt @claude "your question"',
+                    "example": 'brain @claude "your question"',
                     "setup": "Already configured ✓",
                 }
             )
@@ -241,7 +241,7 @@ def suggest_provider_alternatives(provider_error: str, failed_model: Optional[st
                 {
                     "provider": "Google Gemini",
                     "description": "Good balance of speed and quality",
-                    "example": 'ttt @gemini "your question"',
+                    "example": 'brain @gemini "your question"',
                     "setup": "Already configured ✓",
                 }
             )
@@ -252,7 +252,7 @@ def suggest_provider_alternatives(provider_error: str, failed_model: Optional[st
                 {
                     "provider": "OpenAI GPT",
                     "description": "Fast and versatile for most tasks",
-                    "example": 'ttt @gpt4 "your question"',
+                    "example": 'brain @gpt4 "your question"',
                     "setup": "Already configured ✓",
                 }
             )
@@ -261,7 +261,7 @@ def suggest_provider_alternatives(provider_error: str, failed_model: Optional[st
                 {
                     "provider": "Google Gemini",
                     "description": "Good alternative for reasoning tasks",
-                    "example": 'ttt @gemini "your question"',
+                    "example": 'brain @gemini "your question"',
                     "setup": "Already configured ✓",
                 }
             )
@@ -272,7 +272,7 @@ def suggest_provider_alternatives(provider_error: str, failed_model: Optional[st
                 {
                     "provider": "OpenAI GPT",
                     "description": "Reliable alternative with good performance",
-                    "example": 'ttt @gpt4 "your question"',
+                    "example": 'brain @gpt4 "your question"',
                     "setup": "Already configured ✓",
                 }
             )
@@ -281,7 +281,7 @@ def suggest_provider_alternatives(provider_error: str, failed_model: Optional[st
                 {
                     "provider": "Anthropic Claude",
                     "description": "Excellent for complex reasoning",
-                    "example": 'ttt @claude "your question"',
+                    "example": 'brain @claude "your question"',
                     "setup": "Already configured ✓",
                 }
             )
@@ -291,7 +291,7 @@ def suggest_provider_alternatives(provider_error: str, failed_model: Optional[st
         {
             "provider": "Local (Ollama)",
             "description": "Private, runs on your machine (requires Ollama)",
-            "example": 'ttt @local "your question"',
+            "example": 'brain @local "your question"',
             "setup": "Install: curl -fsSL https://ollama.com/install.sh | sh",
         }
     )
@@ -315,24 +315,24 @@ def suggest_troubleshooting_steps(error_type: str, error_message: str = "") -> L
         steps = [
             "Check your internet connection",
             "Verify the provider's status page isn't showing outages",
-            "Try running 'ttt status' to check backend connectivity",
-            "Consider using a different provider with 'ttt @openrouter' if you have an OpenRouter key",
+            "Try running 'brain status' to check backend connectivity",
+            "Consider using a different provider with 'brain @fast' if you have an OpenRouter key",
         ]
 
     elif error_type == "auth" or "api key" in error_message.lower():
         steps = [
             "Check that your API key environment variable is set correctly",
             "Verify your API key hasn't expired or been revoked",
-            "Run 'ttt status' to see which API keys are detected",
+            "Run 'brain status' to see which API keys are detected",
             "Consider getting an OpenRouter key for access to 100+ models",
         ]
 
     elif error_type == "model_not_found" or ("model" in error_message.lower() and "not found" in error_message.lower()):
         steps = [
-            "Run 'ttt models' to see all available models",
+            "Run 'brain models' to see all available models",
             "Check if you meant to use a model alias like @gpt4 or @claude",
             "Verify your API keys are configured for the provider",
-            "Try a different model: 'ttt @fast \"your question\"'",
+            "Try a different model: 'brain @fast \"your question\"'",
         ]
 
     elif error_type == "rate_limit" or "rate limit" in error_message.lower():
@@ -354,10 +354,10 @@ def suggest_troubleshooting_steps(error_type: str, error_message: str = "") -> L
     else:
         # Generic troubleshooting steps
         steps = [
-            "Run 'ttt status' to check system health",
-            "Try a different model with 'ttt @fast \"your question\"'",
+            "Run 'brain status' to check system health",
+            "Try a different model with 'brain @fast \"your question\"'",
             "Check if your API keys are configured correctly",
-            "Visit the TTT documentation for more help",
+            "Visit the Matilda Brain documentation for more help",
         ]
 
     return steps

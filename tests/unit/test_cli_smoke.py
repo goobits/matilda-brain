@@ -1,4 +1,4 @@
-"""Fast smoke tests for TTT CLI commands.
+"""Fast smoke tests for Matilda Brain CLI commands.
 
 This test suite verifies CLI structure, argument parsing, and command availability
 without making API calls. For comprehensive functionality testing, see
@@ -7,7 +7,7 @@ test_cli_comprehensive_integration.py.
 Targets <10 second execution time for essential CLI validation.
 
 Run with:
-    ./test.sh --test test_cli_smoke
+    ./scripts/test.py unit --test test_cli_smoke
 """
 
 import json
@@ -18,8 +18,8 @@ from click.testing import CliRunner
 from matilda_brain.cli import cli as main
 
 
-def run_ttt_command(args, input_text=None, timeout=10):
-    """Run a TTT command using CliRunner for faster execution."""
+def run_brain_command(args, input_text=None, timeout=10):
+    """Run a Matilda Brain command using CliRunner for faster execution."""
     runner = CliRunner()
     result = runner.invoke(main, args, input=input_text)
     return result
@@ -28,9 +28,9 @@ def run_ttt_command(args, input_text=None, timeout=10):
 class TestBasicCommands:
     """Test basic CLI commands structure and help output - no API calls."""
 
-    def test_ttt_help_shows_main_commands(self):
-        """Test: ttt --help - Verify main command structure"""
-        result = run_ttt_command(["--help"])
+    def test_brain_help_shows_main_commands(self):
+        """Test: brain --help - Verify main command structure"""
+        result = run_brain_command(["--help"])
         assert result.exit_code == 0, f"Help command failed: {result.output}"
 
         # Should show main commands
@@ -40,8 +40,8 @@ class TestBasicCommands:
         assert "config" in result.output.lower(), f"'config' command missing from help: {result.output}"
 
     def test_ask_help_shows_all_options(self):
-        """Test: ttt ask --help - Verify ask command accepts all expected options"""
-        result = run_ttt_command(["ask", "--help"])
+        """Test: brain ask --help - Verify ask command accepts all expected options"""
+        result = run_brain_command(["ask", "--help"])
         assert result.exit_code == 0, f"Ask help command failed: {result.output}"
 
         # Should show all major options without making API calls
@@ -49,9 +49,9 @@ class TestBasicCommands:
         for option in expected_options:
             assert option in result.output, f"Option {option} missing from ask help: {result.output}"
 
-    def test_ttt_info_model_displays_detailed_information(self):
-        """Test: ttt info <model> - Shows comprehensive model details including provider, context, and capabilities"""
-        result = run_ttt_command(["info", "gpt-4"])
+    def test_brain_info_model_displays_detailed_information(self):
+        """Test: brain info <model> - Shows comprehensive model details including provider, context, and capabilities"""
+        result = run_brain_command(["info", "gpt-4"])
         assert result.exit_code == 0, f"Info command failed: {result.output}"
 
         # Verify essential model information is displayed
@@ -66,9 +66,9 @@ class TestBasicCommands:
         lines = [line.strip() for line in result.output.split("\n") if line.strip()]
         assert len(lines) >= 3, f"Info output should have multiple lines of detail: {result.output}"
 
-    def test_ttt_status_reports_system_health(self):
-        """Test: ttt status - Provides comprehensive system health information including backend availability"""
-        result = run_ttt_command(["status"])
+    def test_brain_status_reports_system_health(self):
+        """Test: brain status - Provides comprehensive system health information including backend availability"""
+        result = run_brain_command(["status"])
         assert result.exit_code == 0, f"Status command failed: {result.output}"
 
         output_lower = result.output.lower()
@@ -86,9 +86,9 @@ class TestBasicCommands:
         lines = [line.strip() for line in result.output.split("\n") if line.strip()]
         assert len(lines) >= 2, f"Status should provide detailed information: {result.output}"
 
-    def test_ttt_models_lists_available_models_with_details(self):
-        """Test: ttt models - Lists models with provider and capability information"""
-        result = run_ttt_command(["models"])
+    def test_brain_models_lists_available_models_with_details(self):
+        """Test: brain models - Lists models with provider and capability information"""
+        result = run_brain_command(["models"])
         assert result.exit_code == 0, f"Models command failed: {result.output}"
 
         output_lower = result.output.lower()
@@ -109,8 +109,8 @@ class TestConfigCommands:
     """Test config commands."""
 
     def test_config_list_outputs_valid_configuration_json(self):
-        """Test: ttt config list - Outputs valid JSON with TTT configuration structure"""
-        result = run_ttt_command(["config", "list"])
+        """Test: brain config list - Outputs valid JSON with Matilda Brain configuration structure"""
+        result = run_brain_command(["config", "list"])
         assert result.exit_code == 0, f"Config list command failed: {result.output}"
 
         # Should output valid JSON
@@ -129,8 +129,8 @@ class TestConfigCommands:
             pytest.fail(f"Config list should output valid JSON. Error: {e}. Output: {result.output}")
 
     def test_config_get_models_default_shows_configured_model(self):
-        """Test: ttt config get models.default - Shows the configured default model with clear labeling"""
-        result = run_ttt_command(["config", "get", "models.default"])
+        """Test: brain config get models.default - Shows the configured default model with clear labeling"""
+        result = run_brain_command(["config", "get", "models.default"])
         assert result.exit_code == 0, f"Config get command failed: {result.output}"
 
         # Should show the key and its value clearly
@@ -149,8 +149,8 @@ class TestConfigCommands:
         assert len(key_value) == 2 and key_value[1].strip(), f"Config value missing: {config_line}"
 
     def test_config_get_models_aliases(self):
-        """Test: ttt config get models.aliases - Tested 2025-07-24"""
-        result = run_ttt_command(["config", "get", "models.aliases"])
+        """Test: brain config get models.aliases - Tested 2025-07-24"""
+        result = run_brain_command(["config", "get", "models.aliases"])
         assert result.exit_code == 0
         assert "models.aliases:" in result.output
 
@@ -161,7 +161,7 @@ class TestConfigPersistence:
     def test_config_management_demonstrates_persistence_workflow(self):
         """Test: config set/get roundtrip - Demonstrates complete configuration management workflow with validation"""
         # Get original value for restoration
-        original_result = run_ttt_command(["config", "get", "models.default"])
+        original_result = run_brain_command(["config", "get", "models.default"])
         assert original_result.exit_code == 0, f"Initial config get failed: {original_result.output}"
 
         # Parse original value for proper restoration
@@ -171,18 +171,18 @@ class TestConfigPersistence:
 
         # Test configuration change with a known model
         test_model = "gpt-3.5-turbo"
-        set_result = run_ttt_command(["config", "set", "models.default", test_model])
+        set_result = run_brain_command(["config", "set", "models.default", test_model])
 
         if set_result.exit_code == 0:
             # Verify the configuration was actually persisted
-            verify_result = run_ttt_command(["config", "get", "models.default"])
+            verify_result = run_brain_command(["config", "get", "models.default"])
             assert verify_result.exit_code == 0, f"Config verification failed: {verify_result.output}"
             assert (
                 test_model in verify_result.output
             ), f"Config was not persisted correctly. Expected '{test_model}' in: {verify_result.output}"
 
             # Verify config change is reflected in config list
-            list_result = run_ttt_command(["config", "list"])
+            list_result = run_brain_command(["config", "list"])
             if list_result.exit_code == 0:
                 assert (
                     test_model in list_result.output
@@ -190,10 +190,10 @@ class TestConfigPersistence:
 
             # Restore original configuration
             if original_value:
-                restore_result = run_ttt_command(["config", "set", "models.default", original_value])
+                restore_result = run_brain_command(["config", "set", "models.default", original_value])
                 if restore_result.exit_code == 0:
                     # Verify restoration
-                    final_result = run_ttt_command(["config", "get", "models.default"])
+                    final_result = run_brain_command(["config", "get", "models.default"])
                     assert original_value in final_result.output, f"Config restoration failed: {final_result.output}"
         else:
             # If config set isn't available, verify config get provides useful information
@@ -204,7 +204,7 @@ class TestConfigPersistence:
 
     def test_config_invalid_key(self):
         """Test: config get invalid.key - Tests config error handling"""
-        result = run_ttt_command(["config", "get", "invalid.nonexistent.key"])
+        result = run_brain_command(["config", "get", "invalid.nonexistent.key"])
         # Should either return an error or handle gracefully
         assert result.exit_code in [0, 1]
 
@@ -213,8 +213,8 @@ class TestModelAliasResolution:
     """Test model alias resolution across commands - tests alias system functionality."""
 
     def test_info_with_alias_claude(self):
-        """Test: ttt info @claude - Tests alias resolution in info command"""
-        result = run_ttt_command(["info", "@claude"])
+        """Test: brain info @claude - Tests alias resolution in info command"""
+        result = run_brain_command(["info", "@claude"])
         # Should either resolve successfully or give a clear error
         assert result.exit_code in [0, 1]
 
@@ -223,16 +223,16 @@ class TestModelAliasResolution:
             assert any(word in result.output.lower() for word in ["claude", "anthropic", "model", "provider"])
 
     def test_info_with_alias_gpt4(self):
-        """Test: ttt info @gpt4 - Tests alias resolution consistency"""
-        result = run_ttt_command(["info", "@gpt4"])
+        """Test: brain info @gpt4 - Tests alias resolution consistency"""
+        result = run_brain_command(["info", "@gpt4"])
         assert result.exit_code in [0, 1]
 
         if result.exit_code == 0:
             assert any(word in result.output.lower() for word in ["gpt", "openai", "model", "provider"])
 
     def test_info_with_alias_fast(self):
-        """Test: ttt info @fast - Tests alias resolution for performance aliases"""
-        result = run_ttt_command(["info", "@fast"])
+        """Test: brain info @fast - Tests alias resolution for performance aliases"""
+        result = run_brain_command(["info", "@fast"])
         assert result.exit_code in [0, 1]
 
 

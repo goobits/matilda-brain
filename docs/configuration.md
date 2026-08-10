@@ -1,56 +1,95 @@
-# Configuration Guide
+# Configuration
 
-How configuration is loaded and how to set common options.
+Matilda Brain has one configuration owner and one persistent file.
 
-## Configuration Hierarchy
+## Precedence
 
-Highest to lowest precedence:
+Lowest to highest:
 
-1. Programmatic configuration via `configure()`
-2. Environment variables
-3. Configuration files (TOML)
-4. Defaults
+1. Library defaults
+2. `~/.matilda/config.toml` under `[brain]`
+3. Environment variables, including the first discovered `.env`
+4. Runtime overrides through `configure()`
 
-## Configuration Files
+Set `MATILDA_CONFIG=/path/to/config.toml` to use another shared TOML file.
 
-Configuration lives in a single shared file:
+## TOML shape
 
-- `~/.matilda/config.toml` (`[brain]` section)
+```toml
+[brain.models]
+default = "openai/gpt-4o-mini"
 
-## Environment Variables
+[brain.models.aliases]
+fast = "openrouter/openai/gpt-4o-mini"
 
-API keys:
-- `OPENROUTER_API_KEY`
-- `OPENAI_API_KEY`
-- `ANTHROPIC_API_KEY`
-- `GOOGLE_API_KEY`
+[brain.backends]
+default = "cloud"
+enable_fallbacks = true
+fallback_order = ["cloud", "local"]
 
-System settings:
-- `OLLAMA_BASE_URL`
-- `AI_CONFIG_FILE`
-- `AI_LOG_LEVEL`
+[brain.backends.local]
+base_url = "http://localhost:11434"
+timeout = 60
 
-## CLI Configuration
+[brain.tools]
+disabled = ["write_file"]
+
+[brain.tools.policy]
+allow_private_networks = false
+file_roots = ["~/Projects"]
+require_approval = false
+
+[brain.api_keys]
+openrouter_api_key = "sk-or-..."
+```
+
+Brain preserves other top-level sections in the shared Matilda file when it writes `[brain]`. Files written by the CLI use owner-only permissions.
+
+## CLI
 
 ```bash
-# View settings
 brain config list
 brain config get models.default
-
-# Set defaults
-brain config set model gpt-4
+brain config set models.default openai/gpt-4o-mini
+brain config set backends.enable_fallbacks true
+brain config set alias.fast openrouter/openai/gpt-4o-mini
 brain config set openai_api_key sk-...
 ```
 
-## Programmatic Configuration
+Use dotted keys for nested values. API-key keys are stored under `[brain.api_keys]` and mapped to their provider environment variables.
+
+## Environment variables
+
+| Variable | Purpose |
+| --- | --- |
+| `MATILDA_CONFIG` | Shared TOML path |
+| `OPENROUTER_API_KEY` | OpenRouter credentials |
+| `OPENAI_API_KEY` | OpenAI credentials |
+| `ANTHROPIC_API_KEY` | Anthropic credentials |
+| `GOOGLE_API_KEY` | Google credentials |
+| `OLLAMA_BASE_URL` | Local Ollama endpoint |
+| `AI_DEFAULT_BACKEND` | Default backend |
+| `AI_DEFAULT_MODEL` | Default model |
+| `AI_TIMEOUT` | Request timeout in seconds |
+| `AI_MAX_RETRIES` | Retry limit |
+| `AI_ENABLE_FALLBACKS` | Enable backend fallback |
+
+Environment credentials override values loaded from TOML.
+
+## Python
 
 ```python
 from matilda_brain import configure
 
 configure(
     default_backend="cloud",
-    default_model="gpt-4",
+    default_model="openai/gpt-4o-mini",
     timeout=60,
-    openai_api_key="your-key",
 )
 ```
+
+`configure()` changes the current process only; use the CLI or edit TOML for persistent settings.
+
+## Migration
+
+Legacy YAML and `AI_CONFIG_FILE` are no longer configuration inputs. Move values into the `[brain]` TOML section and use `MATILDA_CONFIG` when a non-default path is required.

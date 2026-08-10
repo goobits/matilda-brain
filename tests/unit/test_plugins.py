@@ -1,5 +1,6 @@
 """Tests for the plugin system."""
 
+from pathlib import Path
 from typing import Any, AsyncIterator, Dict, List
 
 import pytest
@@ -52,6 +53,20 @@ class TestPluginRegistry:
 
         assert "test-plugin" in registry.plugins
         assert registry.plugins["test-plugin"].backend_class == MockTestBackend
+
+    def test_default_paths_prefer_brain_names_and_keep_legacy_locations(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(Path, "home", lambda: tmp_path)
+        monkeypatch.chdir(tmp_path)
+
+        registry = PluginRegistry()
+
+        assert registry._plugin_paths[:2] == [
+            tmp_path / ".matilda" / "brain" / "plugins",
+            tmp_path / "matilda_brain_plugins",
+        ]
+        assert tmp_path / ".config" / "ai" / "plugins" in registry._plugin_paths
+        assert tmp_path / ".ai" / "plugins" in registry._plugin_paths
+        assert tmp_path / "ai_plugins" in registry._plugin_paths
 
     def test_register_backend_shortcut(self):
         """Test the register_backend shortcut method."""

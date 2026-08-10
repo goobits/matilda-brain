@@ -92,7 +92,7 @@ class TestCLIStatusCommand(IntegrationTestBase):
             result = self.runner.invoke(main, ["status"])
 
             assert result.exit_code == 0
-            assert "TTT System Status" in result.output or "healthy" in result.output.lower()
+            assert "Matilda Brain System Status" in result.output or "healthy" in result.output.lower()
 
     def test_status_command_parameter_passing(self):
         """Test status command passes json parameter correctly."""

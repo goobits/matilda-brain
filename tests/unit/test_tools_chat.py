@@ -187,6 +187,22 @@ class TestPersistentChatSessionTools:
 class TestCLIToolSupport:
     """Test CLI tool support."""
 
+    def test_enabled_tools_exclude_disabled_registry_entries(self):
+        from matilda_brain.internal.hooks.utils import get_enabled_tool_names
+
+        enabled = Mock(name="enabled")
+        enabled.name = "calculate"
+        disabled = Mock(name="disabled")
+        disabled.name = "web_search"
+        with (
+            patch(
+                "matilda_brain.config.manager.ConfigManager.get_merged_config",
+                return_value={"tools": {"disabled": ["web_search"]}},
+            ),
+            patch("matilda_brain.tools.list_tools", return_value=[enabled, disabled]),
+        ):
+            assert get_enabled_tool_names() == ["calculate"]
+
     def test_cli_with_tools(self):
         """Test that CLI with --tools flag is properly supported."""
         from click.testing import CliRunner
@@ -207,8 +223,10 @@ class TestCLIToolSupport:
 
         # Mock the API functions to prevent real calls
         with (
-            patch("matilda_brain.internal.hooks.core.ttt_stream") as mock_stream,
-            patch("matilda_brain.internal.hooks.core.ttt_ask") as mock_ask,
+            patch("matilda_brain.internal.hooks.core.brain_stream") as mock_stream,
+            patch("matilda_brain.internal.hooks.core.brain_ask") as mock_ask,
+            patch("matilda_brain.internal.hooks.core.get_enabled_tool_names", return_value=["calculate"]),
+            patch("matilda_brain.internal.hooks.core.resolve_tools", return_value=["resolved-calculate"]),
         ):
             mock_stream.return_value = iter(["Test response"])
             mock_ask.return_value = "Test response"
@@ -240,8 +258,7 @@ class TestCLIToolSupport:
                 # Verify it was called with tools
                 assert mock_stream.called
                 call_kwargs = mock_stream.call_args[1]
-                assert "tools" in call_kwargs
-                assert call_kwargs["tools"] is None  # on_ask converts True to None
+                assert call_kwargs["tools"] == ["resolved-calculate"]
 
                 mock_stream.reset_mock()
 

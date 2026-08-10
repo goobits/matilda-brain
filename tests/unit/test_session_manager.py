@@ -1,5 +1,6 @@
 import json
 import os
+from pathlib import Path
 
 from matilda_brain.session.manager import ChatSession, ChatSessionManager
 
@@ -70,3 +71,27 @@ def test_corrupt_sessions_are_ignored_without_breaking_valid_ones(tmp_path):
 
     assert manager.load_session("corrupt") is None
     assert [summary["id"] for summary in manager.list_sessions()] == [valid.id]
+
+
+def test_default_storage_reads_legacy_sessions_and_writes_canonical_sessions(tmp_path, monkeypatch):
+    monkeypatch.setattr(Path, "home", lambda: tmp_path)
+    legacy_dir = tmp_path / ".ttt" / "sessions"
+    legacy_dir.mkdir(parents=True)
+    legacy_session = {
+        "id": "legacy-session",
+        "created_at": "2025-01-01T00:00:00+00:00",
+        "updated_at": "2025-01-01T00:00:00+00:00",
+        "messages": [],
+    }
+    (legacy_dir / "legacy-session.json").write_text(json.dumps(legacy_session))
+
+    manager = ChatSessionManager()
+
+    assert manager.sessions_dir == tmp_path / ".matilda" / "brain" / "sessions"
+    assert manager.load_session("legacy-session").id == "legacy-session"
+    assert [session["id"] for session in manager.list_sessions()] == ["legacy-session"]
+
+    created = manager.create_session()
+    assert (manager.sessions_dir / f"{created.id}.json").exists()
+    assert manager.delete_session("legacy-session") is True
+    assert not (legacy_dir / "legacy-session.json").exists()
