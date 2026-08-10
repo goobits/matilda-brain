@@ -190,4 +190,4 @@ def on_tools_list(show_disabled: bool = False, **kwargs) -> None:
 
 @_uses_cli_config
 def on_serve(host: Optional[str] = None, port: Optional[int] = None, **kwargs) -> None:
-    internal_hooks.on_serve(command_name="serve", host=host or "0.0.0.0", port=port or 8772, **kwargs)
+    internal_hooks.on_serve(command_name="serve", host=host or "127.0.0.1", port=port or 8772, **kwargs)

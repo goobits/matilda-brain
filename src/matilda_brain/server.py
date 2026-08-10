@@ -17,8 +17,10 @@ import json
 import os
 import secrets
 import uuid
-from datetime import datetime
-from typing import Any, Optional
+from contextlib import suppress
+from contextvars import ContextVar
+from datetime import datetime, timezone
+from typing import Any, Optional, Sequence, TypeVar
 
 from aiohttp import web
 from aiohttp.web import Request, Response, StreamResponse
@@ -27,11 +29,26 @@ from matilda_transport import (  # type: ignore[import-untyped]
     prepare_unix_socket,
     resolve_transport,
 )
+from pydantic import BaseModel, TypeAdapter
+from pydantic import ValidationError as PydanticValidationError
 
 from .core.api import stream_async
+from .core.exceptions import (
+    APIKeyError,
+    BackendError,
+    BackendTimeoutError,
+    ConfigurationError,
+    ModelError,
+    QuotaExceededError,
+    RateLimitError,
+)
+from .core.exceptions import (
+    ValidationError as BrainValidationError,
+)
 from .internal.security import get_allowed_origins, is_origin_allowed
 from .internal.token_storage import get_or_create_token
 from .internal.utils import get_logger
+from .schemas.requests import AgentName, AskRequest, StreamRequest
 from .schemas.responses import (
     AskEnvelope,
     DeleteSessionEnvelope,
@@ -39,76 +56,47 @@ from .schemas.responses import (
     ReloadEnvelope,
     SessionDetailEnvelope,
     SessionListEnvelope,
+    StreamEnvelope,
 )
 from .session.chat import PersistentChatSession
 from .session.manager import ChatSessionManager
 
 logger = get_logger(__name__)
+RequestModel = TypeVar("RequestModel", bound=BaseModel)
+ResponseType = TypeVar("ResponseType", bound=StreamResponse)
+AGENT_NAME_ADAPTER = TypeAdapter(AgentName)
+ALLOWED_ORIGINS_CONTEXT: ContextVar[Sequence[str]] = ContextVar("allowed_origins", default=())
 
 # Shared session manager instance
 _session_manager: Optional[ChatSessionManager] = None
 
-# Security: API Token Management
-API_TOKEN = get_or_create_token()
 
+def security_middleware(api_token: str, allowed_origins: Sequence[str]):
+    """Create request-scoped authentication and CORS policy middleware."""
 
-@web.middleware
-async def auth_middleware(request: Request, handler):
-    """Middleware to enforce token authentication."""
-    # Allow public endpoints
-    if request.path in ["/", "/health"]:
-        return await handler(request)
+    @web.middleware
+    async def middleware(request: Request, handler):
+        context_token = ALLOWED_ORIGINS_CONTEXT.set(allowed_origins)
+        try:
+            if request.path in {"/", "/health"} or request.method == "OPTIONS":
+                return await handler(request)
 
-    # Allow CORS preflight options
-    if request.method == "OPTIONS":
-        return await handler(request)
+            parts = request.headers.get("Authorization", "").split()
+            if len(parts) != 2 or parts[0].casefold() != "bearer":
+                return error_response(
+                    "Unauthorized: Missing or invalid Authorization header",
+                    request,
+                    status=401,
+                    code="unauthorized",
+                    task="auth",
+                )
+            if not secrets.compare_digest(parts[1], api_token):
+                return error_response("Forbidden: Invalid token", request, status=403, code="forbidden", task="auth")
+            return await handler(request)
+        finally:
+            ALLOWED_ORIGINS_CONTEXT.reset(context_token)
 
-    # Check Authorization header
-    auth_header = request.headers.get("Authorization")
-    if not auth_header or not auth_header.startswith("Bearer "):
-        return add_cors_headers(
-            web.json_response(
-                {
-                    "request_id": str(uuid.uuid4()),
-                    "service": "brain",
-                    "task": "auth",
-                    "provider": None,
-                    "model": None,
-                    "usage": None,
-                    "error": {
-                        "message": "Unauthorized: Missing or invalid Authorization header",
-                        "code": "unauthorized",
-                        "retryable": False,
-                    },
-                },
-                status=401,
-            ),
-            request,
-        )
-
-    token = auth_header.split(" ")[1]
-    if not secrets.compare_digest(token, API_TOKEN):
-        return add_cors_headers(
-            web.json_response(
-                {
-                    "request_id": str(uuid.uuid4()),
-                    "service": "brain",
-                    "task": "auth",
-                    "provider": None,
-                    "model": None,
-                    "usage": None,
-                    "error": {
-                        "message": "Forbidden: Invalid token",
-                        "code": "forbidden",
-                        "retryable": False,
-                    },
-                },
-                status=403,
-            ),
-            request,
-        )
-
-    return await handler(request)
+    return middleware
 
 
 def get_session_manager() -> ChatSessionManager:
@@ -119,30 +107,17 @@ def get_session_manager() -> ChatSessionManager:
     return _session_manager
 
 
-# CORS headers for browser access
-# Uses secure defaults from security module
-ALLOWED_ORIGINS = get_allowed_origins()
-
-
-def add_cors_headers(response: Response, request: Optional[Request] = None) -> Response:
-    """
-    Add CORS headers to response.
-
-    Only sets Access-Control-Allow-Origin when:
-    - A request with Origin header is provided, AND
-    - That origin is in the allowed origins list
-
-    If no origin is allowed, CORS headers are not set (browser will block the request).
-    """
+def add_cors_headers(response: ResponseType, request: Optional[Request] = None) -> ResponseType:
+    """Add cross-origin headers when the request origin is explicitly allowed."""
     response.headers["Access-Control-Allow-Methods"] = "GET, POST, DELETE, OPTIONS"
     response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
 
     if request:
         req_origin = request.headers.get("Origin")
-        if req_origin and is_origin_allowed(req_origin, ALLOWED_ORIGINS):
+        allowed_origins = ALLOWED_ORIGINS_CONTEXT.get()
+        if req_origin and is_origin_allowed(req_origin, list(allowed_origins)):
             response.headers["Access-Control-Allow-Origin"] = req_origin
-        # If origin not allowed, don't set Access-Control-Allow-Origin header
-        # This causes the browser to block the request (secure default)
+            response.headers["Vary"] = "Origin"
 
     return response
 
@@ -151,7 +126,7 @@ def should_validate() -> bool:
     return os.getenv("MATILDA_SCHEMA_VALIDATE", "").lower() in {"1", "true", "yes", "on"}
 
 
-def validate_response(model, payload: dict[str, Any]) -> None:
+def validate_response(model: type[BaseModel], payload: dict[str, Any]) -> None:
     if not should_validate():
         return
     model.model_validate(payload)
@@ -165,9 +140,10 @@ def ok_response(
     provider: Optional[str] = None,
     model_name: Optional[str] = None,
     usage: Optional[dict[str, Any]] = None,
+    request_id: Optional[str] = None,
 ) -> Response:
     response_payload = {
-        "request_id": str(uuid.uuid4()),
+        "request_id": request_id or str(uuid.uuid4()),
         "service": "brain",
         "task": task,
         "provider": provider,
@@ -186,9 +162,11 @@ def error_response(
     status: int = 400,
     code: str = "bad_request",
     task: str = "unknown",
+    request_id: Optional[str] = None,
+    retryable: Optional[bool] = None,
 ) -> Response:
     response_payload = {
-        "request_id": str(uuid.uuid4()),
+        "request_id": request_id or str(uuid.uuid4()),
         "service": "brain",
         "task": task,
         "provider": None,
@@ -197,11 +175,62 @@ def error_response(
         "error": {
             "message": message,
             "code": code,
-            "retryable": status >= 500,
+            "retryable": status >= 500 or status == 429 if retryable is None else retryable,
         },
     }
     validate_response(ErrorEnvelope, response_payload)
     return add_cors_headers(web.json_response(response_payload, status=status), request)
+
+
+def execution_error_details(error: Exception) -> tuple[str, int, str]:
+    if isinstance(error, BrainValidationError):
+        return str(error), 400, "invalid_request"
+    if isinstance(error, ModelError):
+        return str(error), 400, "invalid_model"
+    if isinstance(error, (RateLimitError, QuotaExceededError)):
+        return str(error), 429, "rate_limited"
+    if isinstance(error, BackendTimeoutError):
+        return "AI backend timed out", 504, "backend_timeout"
+    if isinstance(error, APIKeyError):
+        return str(error), 503, "backend_unavailable"
+    if isinstance(error, (BackendError, ConfigurationError)):
+        return "AI backend is unavailable", 503, "backend_unavailable"
+    return "Internal server error", 500, "internal_error"
+
+
+def execution_error_response(error: Exception, request: Request, task: str) -> Response:
+    """Map expected AI failures to stable, non-sensitive HTTP errors."""
+    message, status, code = execution_error_details(error)
+    return error_response(message, request, status=status, code=code, task=task)
+
+
+def validation_error_message(error: PydanticValidationError) -> str:
+    issues = []
+    for detail in error.errors(include_input=False, include_url=False):
+        location = ".".join(str(part) for part in detail["loc"])
+        issues.append(f"{location}: {detail['msg']}" if location else detail["msg"])
+    return "Invalid request: " + "; ".join(issues)
+
+
+async def parse_json_request(
+    request: Request,
+    schema: type[RequestModel],
+    task: str,
+) -> tuple[Optional[RequestModel], Optional[Response]]:
+    try:
+        data = await request.json()
+    except web.HTTPRequestEntityTooLarge:
+        return None, error_response("Request body too large", request, status=413, code="request_too_large", task=task)
+    except (json.JSONDecodeError, UnicodeDecodeError, ValueError):
+        return None, error_response("Invalid JSON", request, task=task)
+
+    if not isinstance(data, dict):
+        return None, error_response("Request body must be a JSON object", request, task=task)
+
+    try:
+        return schema.model_validate(data), None
+    except PydanticValidationError as error:
+        return None, error_response(validation_error_message(error), request, code="invalid_request", task=task)
 
 
 async def handle_options(request: Request) -> Response:
@@ -211,294 +240,177 @@ async def handle_options(request: Request) -> Response:
 
 async def handle_health(request: Request) -> Response:
     """Health check endpoint."""
-    response_payload = {
-        "request_id": str(uuid.uuid4()),
-        "service": "brain",
-        "task": "health",
-        "provider": None,
-        "model": None,
-        "usage": None,
-        "result": {"status": "ok", "service": "brain"},
-    }
-    return add_cors_headers(web.json_response(response_payload), request)
+    return ok_response("health", {"status": "ok", "service": "brain"}, request)
 
 
 async def handle_ask(request: Request) -> Response:
-    """
-    Handle AI request with optional conversation history.
+    """Handle a validated AI request with optional conversation history."""
+    request_data, validation_error = await parse_json_request(request, AskRequest, "ask")
+    if validation_error is not None:
+        return validation_error
+    assert request_data is not None
 
-    POST /ask
-    {
-        "prompt": "What is Python?",
-        "model": "gpt-4",           // optional
-        "system": "Be concise",     // optional
-        "temperature": 0.7,         // optional
-        "max_tokens": 2048,         // optional
-        "messages": [               // optional - conversation history
-            {"role": "user", "content": "My favorite color is purple"},
-            {"role": "assistant", "content": "Nice! Purple is a great color."}
-        ]
-    }
-
-    Response:
-    {
-        "request_id": "req-123",
-        "service": "brain",
-        "task": "ask",
-        "provider": "openai",
-        "model": "gpt-4",
-        "usage": {"prompt": 10, "completion": 50},
-        "result": {"text": "Python is a programming language..."}
-    }
-    """
+    agent_name = request.headers.get("X-Agent-Name") or request_data.agent_name or "assistant"
     try:
-        data = await request.json()
-    except json.JSONDecodeError:
-        return error_response("Invalid JSON", request, task="ask")
+        agent_name = AGENT_NAME_ADAPTER.validate_python(agent_name)
+    except PydanticValidationError:
+        return error_response("Invalid X-Agent-Name header", request, code="invalid_request", task="ask")
 
-    prompt = data.get("prompt")
-    if not prompt:
-        return error_response("Missing 'prompt' field", request, task="ask")
-
-    messages = data.get("messages", [])
-    model = data.get("model")
-    system = data.get("system")
-    temperature = data.get("temperature")
-    max_tokens = data.get("max_tokens")
-    agent_name = request.headers.get("X-Agent-Name") or data.get("agent_name") or "assistant"
-    memory_enabled = data.get("memory_enabled", True)
+    messages = request_data.messages or []
+    system = request_data.system
+    memory_enabled = request_data.memory_enabled if "memory_enabled" in request_data.model_fields_set else True
 
     try:
         if system is None and messages:
             for msg in messages:
-                if msg.get("role") == "system" and isinstance(msg.get("content"), str):
-                    system = msg["content"]
+                if msg.role == "system":
+                    system = msg.content
                     break
 
-        history_messages = []
-        if messages:
-            timestamp = datetime.utcnow().isoformat()
-            for msg in messages:
-                if msg.get("role") == "system":
-                    continue
-                history_messages.append(
-                    {"role": msg.get("role"), "content": msg.get("content"), "timestamp": timestamp}
-                )
+        timestamp = datetime.now(timezone.utc).isoformat()
+        history_messages = [
+            {"role": message.role, "content": message.content, "timestamp": timestamp}
+            for message in messages
+            if message.role != "system"
+        ]
 
         session = PersistentChatSession(
             system=system,
-            model=model,
+            model=request_data.model,
             agent_name=agent_name,
             memory_enabled=memory_enabled,
         )
-        if history_messages:
-            session.history = history_messages
+        session.history = history_messages
 
-        response = session.ask(
-            prompt,
-            model=model,
-            temperature=temperature,
-            max_tokens=max_tokens,
+        response = await session.ask_async(
+            request_data.prompt,
+            model=request_data.model,
+            temperature=request_data.temperature,
+            max_tokens=request_data.max_tokens,
         )
 
-        result = {
-            "text": str(response),
-        }
-
-        provider = None
-        if hasattr(response, "metadata") and isinstance(response.metadata, dict):
-            provider = response.metadata.get("provider")
-        if provider is None:
-            provider = getattr(response, "backend", None)
-
-        model_name = getattr(response, "model", None)
-        usage = None
-        if hasattr(response, "tokens_in") or hasattr(response, "tokens_out"):
-            tokens_in = getattr(response, "tokens_in", None)
-            tokens_out = getattr(response, "tokens_out", None)
-            if tokens_in is not None or tokens_out is not None:
-                usage = {
-                    "prompt": tokens_in or 0,
-                    "completion": tokens_out or 0,
-                }
+        provider = response.metadata.get("provider") or response.backend
+        usage = (
+            {"prompt": response.tokens_in or 0, "completion": response.tokens_out or 0}
+            if response.tokens_in is not None or response.tokens_out is not None
+            else None
+        )
 
         return ok_response(
             "ask",
-            result,
+            {"text": str(response)},
             request,
             schema_model=AskEnvelope,
             provider=provider,
-            model_name=model_name,
+            model_name=response.model,
             usage=usage,
         )
 
-    except Exception as e:
+    except Exception as error:
         logger.exception("Error processing request")
-        return error_response(str(e), request, status=500, code="internal_error", task="ask")
+        return execution_error_response(error, request, "ask")
+
+
+def stream_payload(
+    request_id: str,
+    model: Optional[str],
+    *,
+    result: Optional[dict[str, Any]] = None,
+    error: Optional[dict[str, Any]] = None,
+) -> dict[str, Any]:
+    payload = {
+        "request_id": request_id,
+        "service": "brain",
+        "task": "stream",
+        "capability": "reason-over-context",
+        "provider": None,
+        "model": model,
+        "usage": None,
+    }
+    payload["error" if error is not None else "result"] = error if error is not None else result
+    return payload
+
+
+async def write_sse_event(
+    response: StreamResponse,
+    payload: dict[str, Any],
+    schema: type[BaseModel],
+) -> None:
+    validate_response(schema, payload)
+    event = json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
+    await response.write(f"data: {event}\n\n".encode())
 
 
 async def handle_stream(request: Request) -> StreamResponse:
-    """
-    Handle streaming AI request.
+    """Stream a validated AI request as server-sent events."""
+    request_data, validation_error = await parse_json_request(request, StreamRequest, "stream")
+    if validation_error is not None:
+        return validation_error
+    assert request_data is not None
 
-    POST /stream
-    {
-        "prompt": "Tell me a story",
-        "model": "gpt-4",           // optional
-        "system": "Be creative",    // optional
-        "temperature": 0.9          // optional
-    }
-
-    Response: Server-Sent Events (SSE)
-    data: {"request_id":"req-123","service":"brain","task":"stream","capability":"reason-over-context","provider":null,"model":"gpt-4","usage":null,"result":{"delta":"Once"}}
-    data: {"request_id":"req-123","service":"brain","task":"stream","capability":"reason-over-context","provider":null,"model":"gpt-4","usage":null,"result":{"delta":" upon"}}
-    data: {"request_id":"req-123","service":"brain","task":"stream","capability":"reason-over-context","provider":null,"model":"gpt-4","usage":null,"result":{"delta":" a time..."}}
-    data: {"request_id":"req-123","service":"brain","task":"stream","capability":"reason-over-context","provider":null,"model":"gpt-4","usage":null,"result":{"done": true}}
-    """
-    try:
-        data = await request.json()
-    except json.JSONDecodeError:
-        return error_response("Invalid JSON", request, task="stream")
-
-    prompt = data.get("prompt")
-    if not prompt:
-        return error_response("Missing 'prompt' field", request, task="stream")
-
-    # Build CORS headers safely - only include Access-Control-Allow-Origin if origin is allowed
-    stream_headers = {
-        "Content-Type": "text/event-stream",
-        "Cache-Control": "no-cache",
-        "Connection": "keep-alive",
-        "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type, Authorization",
-    }
-
-    # Only add Access-Control-Allow-Origin if the request origin is allowed
-    req_origin = request.headers.get("Origin")
-    if req_origin and is_origin_allowed(req_origin, ALLOWED_ORIGINS):
-        stream_headers["Access-Control-Allow-Origin"] = req_origin
-
-    response = StreamResponse(
-        status=200,
-        headers=stream_headers,
+    request_id = str(uuid.uuid4())
+    response = add_cors_headers(
+        StreamResponse(
+            status=200,
+            headers={
+                "Content-Type": "text/event-stream",
+                "Cache-Control": "no-cache",
+                "Connection": "keep-alive",
+            },
+        ),
+        request,
     )
     await response.prepare(request)
 
     try:
-        request_id = str(uuid.uuid4())
         async for chunk in stream_async(
-            prompt,
-            model=data.get("model"),
-            system=data.get("system"),
-            temperature=data.get("temperature"),
-            max_tokens=data.get("max_tokens"),
+            request_data.prompt,
+            model=request_data.model,
+            system=request_data.system,
+            temperature=request_data.temperature,
+            max_tokens=request_data.max_tokens,
         ):
-            event_data = json.dumps(
-                {
-                    "request_id": request_id,
-                    "service": "brain",
-                    "task": "stream",
-                    "capability": "reason-over-context",
-                    "provider": None,
-                    "model": data.get("model"),
-                    "usage": None,
-                    "result": {"delta": chunk},
-                }
+            await write_sse_event(
+                response,
+                stream_payload(request_id, request_data.model, result={"delta": chunk}),
+                StreamEnvelope,
             )
-            await response.write(f"data: {event_data}\n\n".encode())
-
-        # Send done event
-        done_event = json.dumps(
-            {
-                "request_id": request_id,
-                "service": "brain",
-                "task": "stream",
-                "capability": "reason-over-context",
-                "provider": None,
-                "model": data.get("model"),
-                "usage": None,
-                "result": {"done": True},
-            }
+        await write_sse_event(
+            response,
+            stream_payload(request_id, request_data.model, result={"done": True}),
+            StreamEnvelope,
         )
-        await response.write(f"data: {done_event}\n\n".encode())
-
-    except Exception as e:
+    except ConnectionResetError:
+        logger.info("Streaming client disconnected")
+    except Exception as error:
         logger.exception("Error during streaming")
-        error_data = json.dumps(
-            {
-                "request_id": str(uuid.uuid4()),
-                "service": "brain",
-                "task": "stream",
-                "provider": None,
-                "model": data.get("model"),
-                "usage": None,
-                "error": {"message": str(e), "code": "internal_error", "retryable": True},
-            }
+        message, status, code = execution_error_details(error)
+        error_payload = stream_payload(
+            request_id,
+            request_data.model,
+            error={"message": message, "code": code, "retryable": status >= 500 or status == 429},
         )
-        await response.write(f"data: {error_data}\n\n".encode())
-
-    await response.write_eof()
+        with suppress(ConnectionResetError, RuntimeError):
+            await write_sse_event(response, error_payload, ErrorEnvelope)
+    finally:
+        with suppress(ConnectionResetError, RuntimeError):
+            await response.write_eof()
     return response
 
 
 async def handle_list_sessions(request: Request) -> Response:
-    """
-    List all chat sessions.
-
-    GET /api/sessions
-
-    Response:
-    {
-        "request_id": "req-123",
-        "service": "brain",
-        "task": "sessions",
-        "provider": null,
-        "model": null,
-        "usage": null,
-        "result": [
-            {
-                "id": "20250101_120000_abc12345",
-                "created_at": "2025-01-01T12:00:00",
-                "updated_at": "2025-01-01T12:05:00",
-                "message_count": 5,
-                "last_message": "What is Python?...",
-                "model": "gpt-4"
-            }
-        ]
-    }
-    """
+    """List persisted chat sessions."""
     try:
         manager = get_session_manager()
         sessions = manager.list_sessions()
         return ok_response("sessions", sessions, request, schema_model=SessionListEnvelope)
-    except Exception as e:
+    except Exception as error:
         logger.exception("Error listing sessions")
-        return error_response(str(e), request, status=500, code="internal_error", task="sessions")
+        return execution_error_response(error, request, "sessions")
 
 
 async def handle_get_session(request: Request) -> Response:
-    """
-    Get a specific session by ID.
-
-    GET /api/sessions/{id}
-
-    Response:
-    {
-        "request_id": "req-123",
-        "service": "brain",
-        "task": "session",
-        "provider": null,
-        "model": null,
-        "usage": null,
-        "result": {
-            "id": "20250101_120000_abc12345",
-            "created_at": "2025-01-01T12:00:00",
-            "updated_at": "2025-01-01T12:05:00",
-            "messages": [...],
-            "model": "gpt-4"
-        }
-    }
-    """
+    """Return one persisted chat session."""
     session_id = request.match_info.get("id")
     if not session_id:
         return error_response("Missing session ID", request, task="session")
@@ -513,28 +425,13 @@ async def handle_get_session(request: Request) -> Response:
             )
 
         return ok_response("session", session.to_dict(), request, schema_model=SessionDetailEnvelope)
-    except Exception as e:
-        logger.exception(f"Error loading session {session_id}")
-        return error_response(str(e), request, status=500, code="internal_error", task="session")
+    except Exception as error:
+        logger.exception("Error loading session %s", session_id)
+        return execution_error_response(error, request, "session")
 
 
 async def handle_delete_session(request: Request) -> Response:
-    """
-    Delete a session by ID.
-
-    DELETE /api/sessions/{id}
-
-    Response:
-    {
-        "request_id": "req-123",
-        "service": "brain",
-        "task": "delete_session",
-        "provider": null,
-        "model": null,
-        "usage": null,
-        "result": {"id": "session_id"}
-    }
-    """
+    """Delete one persisted chat session."""
     session_id = request.match_info.get("id")
     if not session_id:
         return error_response("Missing session ID", request, task="delete_session")
@@ -545,32 +442,16 @@ async def handle_delete_session(request: Request) -> Response:
 
         if deleted:
             return ok_response("delete_session", {"id": session_id}, request, schema_model=DeleteSessionEnvelope)
-        else:
-            return error_response(
-                f"Session '{session_id}' not found", request, status=404, code="not_found", task="delete_session"
-            )
-    except Exception as e:
-        logger.exception(f"Error deleting session {session_id}")
-        return error_response(str(e), request, status=500, code="internal_error", task="delete_session")
+        return error_response(
+            f"Session '{session_id}' not found", request, status=404, code="not_found", task="delete_session"
+        )
+    except Exception as error:
+        logger.exception("Error deleting session %s", session_id)
+        return execution_error_response(error, request, "delete_session")
 
 
 async def handle_reload(request: Request) -> Response:
-    """
-    Reload configuration from disk.
-
-    POST /reload
-
-    Response:
-    {
-        "request_id": "req-123",
-        "service": "brain",
-        "task": "reload",
-        "provider": null,
-        "model": null,
-        "usage": null,
-        "result": {"message": "Configuration reloaded"}
-    }
-    """
+    """Reload configuration from disk."""
     try:
         from .config.schema import load_config, set_config
 
@@ -581,9 +462,9 @@ async def handle_reload(request: Request) -> Response:
 
         logger.info("Configuration reloaded via API")
         return ok_response("reload", {"message": "Configuration reloaded"}, request, schema_model=ReloadEnvelope)
-    except Exception as e:
+    except Exception as error:
         logger.exception("Error reloading configuration")
-        return error_response(str(e), request, status=500, code="internal_error", task="reload")
+        return execution_error_response(error, request, "reload")
 
 
 async def _cleanup_async_http_clients(_app: web.Application) -> None:
@@ -603,9 +484,20 @@ async def _cleanup_async_http_clients(_app: web.Application) -> None:
             logger.debug(f"LiteLLM async client cleanup failed: {exc}")
 
 
-def create_app() -> web.Application:
+def create_app(
+    *,
+    api_token: Optional[str] = None,
+    allowed_origins: Optional[Sequence[str]] = None,
+) -> web.Application:
     """Create the aiohttp application."""
-    app = web.Application(middlewares=[auth_middleware])
+    active_token = get_or_create_token() if api_token is None else api_token.strip()
+    if not active_token or any(character.isspace() for character in active_token):
+        raise ValueError("API token must be non-empty and contain no whitespace")
+    active_origins = tuple(get_allowed_origins() if allowed_origins is None else allowed_origins)
+    app = web.Application(
+        middlewares=[security_middleware(active_token, active_origins)],
+        client_max_size=1024**2,
+    )
 
     # Routes
     app.router.add_route("OPTIONS", "/{path:.*}", handle_options)
@@ -624,12 +516,15 @@ def create_app() -> web.Application:
     return app
 
 
-def run_server(host: str = "0.0.0.0", port: int = 8772):
+def run_server(host: str = "127.0.0.1", port: int = 8772) -> None:
     """Run the HTTP server."""
     app = create_app()
     transport = resolve_transport("MATILDA_BRAIN_TRANSPORT", "MATILDA_BRAIN_ENDPOINT", host, port)
 
-    print(f"Starting Brain server on http://{host}:{port}")
+    address = (
+        transport.endpoint if transport.transport in {"unix", "pipe"} else f"http://{transport.host}:{transport.port}"
+    )
+    print(f"Starting Brain server on {address}")
     print()
     print("AI Endpoints:")
     print("  POST /ask    - One-shot AI request")
@@ -651,7 +546,7 @@ def run_server(host: str = "0.0.0.0", port: int = 8772):
     if transport.transport == "pipe":
         ensure_pipe_supported(transport)
 
-        async def run_pipe():
+        async def run_pipe() -> None:
             runner = web.AppRunner(app)
             await runner.setup()
             site = web.NamedPipeSite(runner, transport.endpoint)
@@ -664,10 +559,10 @@ def run_server(host: str = "0.0.0.0", port: int = 8772):
     web.run_app(app, host=transport.host, port=transport.port, print=None)
 
 
-def main():
+def main() -> None:
     """CLI entry point."""
     parser = argparse.ArgumentParser(description="TTT HTTP Server")
-    parser.add_argument("--host", default="0.0.0.0", help="Host to bind to")
+    parser.add_argument("--host", default="127.0.0.1", help="Host to bind to")
     parser.add_argument("--port", "-p", type=int, default=8772, help="Port to listen on")
     args = parser.parse_args()
 

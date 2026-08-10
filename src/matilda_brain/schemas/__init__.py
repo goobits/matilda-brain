@@ -15,7 +15,9 @@ from .responses import (
     SessionMessage,
     SessionSummary,
     StreamChunk,
+    StreamDelta,
     StreamDone,
+    StreamEnvelope,
     StreamError,
 )
 
@@ -37,7 +39,9 @@ __all__ = [
     "SessionMessage",
     "SessionSummary",
     "StreamChunk",
+    "StreamDelta",
     "StreamDone",
+    "StreamEnvelope",
     "StreamError",
     "StreamRequest",
 ]

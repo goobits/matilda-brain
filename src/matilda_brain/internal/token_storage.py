@@ -29,13 +29,30 @@ def _get_token_file_path() -> Path:
 def _read_token_from_file() -> Optional[str]:
     """Read token from persistent storage if it exists."""
     token_path = _get_token_file_path()
-    if token_path.exists():
+    if token_path.is_symlink():
+        return None
+
+    flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0)
+    try:
+        descriptor = os.open(token_path, flags)
         try:
-            token = token_path.read_text().strip()
-            if token:
-                return token
-        except (OSError, IOError):
-            pass
+            if hasattr(os, "fchmod"):
+                try:
+                    os.fchmod(descriptor, 0o600)
+                except (OSError, NotImplementedError):
+                    pass
+            token_file = os.fdopen(descriptor, encoding="utf-8")
+            descriptor = -1
+            with token_file:
+                token = token_file.read().strip()
+        finally:
+            if descriptor >= 0:
+                os.close(descriptor)
+    except OSError:
+        return None
+
+    if token:
+        return token
     return None
 
 
@@ -49,21 +66,20 @@ def _write_token_to_file(token: str) -> bool:
     config_dir = token_path.parent
 
     try:
-        # Create config directory if it doesn't exist
-        config_dir.mkdir(parents=True, exist_ok=True)
-
-        # Write token to file
-        token_path.write_text(token)
-
-        # Set restrictive permissions (owner read/write only)
+        config_dir.mkdir(mode=0o700, parents=True, exist_ok=True)
+        flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0)
+        descriptor = os.open(token_path, flags, 0o600)
         try:
-            token_path.chmod(0o600)
-        except (OSError, NotImplementedError):
-            # chmod may fail on Windows or some filesystems
-            pass
+            token_file = os.fdopen(descriptor, "w", encoding="utf-8")
+            descriptor = -1
+            with token_file:
+                token_file.write(token)
+        finally:
+            if descriptor >= 0:
+                os.close(descriptor)
 
         return True
-    except (OSError, IOError):
+    except OSError:
         return False
 
 
@@ -80,7 +96,7 @@ def get_or_create_token() -> str:
         The API token string.
     """
     # 1. Check environment variable (highest priority)
-    env_token = os.getenv("MATILDA_API_TOKEN")
+    env_token = os.getenv("MATILDA_API_TOKEN", "").strip()
     if env_token:
         return env_token
 
@@ -96,9 +112,9 @@ def get_or_create_token() -> str:
     if _write_token_to_file(new_token):
         print(f"Generated new API token and saved to: {token_path}")
         print("Set MATILDA_API_TOKEN environment variable to use a custom token.")
-    else:
-        print("WARNING: Could not persist API token to file.")
-        print(f"Generated temporary token: {new_token}")
-        print("Set MATILDA_API_TOKEN in your environment for persistence.")
+        return new_token
 
-    return new_token
+    raced_token = _read_token_from_file()
+    if raced_token:
+        return raced_token
+    raise RuntimeError("Could not securely persist an API token; set MATILDA_API_TOKEN explicitly")

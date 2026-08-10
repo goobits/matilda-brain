@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import List, Optional
+from typing import List, Optional, Union
 
 from pydantic import BaseModel, ConfigDict
 
@@ -42,6 +42,12 @@ class StreamChunk(BaseModel):
     chunk: str
 
 
+class StreamDelta(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    delta: str
+
+
 class StreamDone(BaseModel):
     model_config = ConfigDict(extra="allow")
 
@@ -54,6 +60,10 @@ class StreamError(BaseModel):
     message: str
 
 
+class StreamEnvelope(EnvelopeBase):
+    result: Union[StreamDelta, StreamDone]
+
+
 class SessionSummary(BaseModel):
     model_config = ConfigDict(extra="allow")
 
@@ -62,7 +72,7 @@ class SessionSummary(BaseModel):
     updated_at: str
     message_count: int
     last_message: str
-    model: str
+    model: Optional[str] = None
 
 
 class SessionMessage(BaseModel):

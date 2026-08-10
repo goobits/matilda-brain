@@ -125,7 +125,7 @@ def on_stateless(
 
 def on_serve(
     command_name: str,
-    host: str = "0.0.0.0",
+    host: str = "127.0.0.1",
     port: int = 8772,
     **kwargs,
 ) -> None:
@@ -135,7 +135,7 @@ def on_serve(
     Exposes TTT functionality over HTTP with CORS support.
 
     Args:
-        host: Host address to bind to (default: 0.0.0.0)
+        host: Host address to bind to (default: 127.0.0.1)
         port: Port to listen on (default: 8772)
     """
     from matilda_brain.server import run_server
