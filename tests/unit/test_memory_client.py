@@ -1,4 +1,5 @@
 import json
+from pathlib import Path
 
 import httpx
 
@@ -27,6 +28,7 @@ def test_memory_client_contract_and_identity_cache():
             assert json.loads(request.content) == {"messages": [{"role": "user", "content": "hello"}]}
             return httpx.Response(200)
         if path.endswith("/conversations/recent"):
+            assert dict(request.url.params) == {"n": "7"}
             return httpx.Response(200, json={"messages": [{"role": "user", "content": "hello", "count": 1}, "bad"]})
         if path.endswith("/identity"):
             return httpx.Response(200, json={"persona": {"name": "Matilda"}})
@@ -45,7 +47,7 @@ def test_memory_client_contract_and_identity_cache():
     ]
     assert client.add_knowledge("matilda", "notes/item", "fact", commit_message="remember") is True
     assert client.log_conversation("matilda", [{"role": "user", "content": "hello"}]) is True
-    assert client.get_recent_messages("matilda") == [{"role": "user", "content": "hello"}]
+    assert client.get_recent_messages("matilda", n=7) == [{"role": "user", "content": "hello"}]
     assert client.get_identity("matilda") == {"persona": {"name": "Matilda"}}
     assert client.get_identity("matilda") == {"persona": {"name": "Matilda"}}
     assert len([request for request in requests if request.url.path.endswith("/identity")]) == 1
@@ -107,3 +109,36 @@ def test_disabled_memory_is_a_complete_noop():
     assert memory.get_recent_messages("assistant") == []
     assert memory.get_identity("assistant") is None
     assert memory.close() is None
+
+
+def test_default_memory_connection_uses_shared_tcp_config(monkeypatch):
+    monkeypatch.setenv("MATILDA_MEMORY_TRANSPORT", "tcp")
+    monkeypatch.setenv("MATILDA_LOCAL_HOST", "memory.local")
+    monkeypatch.setenv("MATILDA_PORT_MEMORY", "4321")
+    monkeypatch.delenv("MATILDA_MEMORY_ENDPOINT", raising=False)
+
+    client = MemoryClient()
+
+    assert client.base_url == "http://memory.local:4321"
+
+
+def test_default_memory_connection_supports_unix_socket(monkeypatch, tmp_path: Path):
+    endpoint = tmp_path / "memory.sock"
+    monkeypatch.setenv("MATILDA_MEMORY_TRANSPORT", "unix")
+    monkeypatch.setenv("MATILDA_MEMORY_ENDPOINT", str(endpoint))
+
+    client = MemoryClient()
+
+    assert client.base_url == "http://matilda-memory"
+    assert client._uds == str(endpoint)
+
+
+def test_pipe_connection_routes_through_authenticated_gateway(monkeypatch):
+    monkeypatch.setenv("MATILDA_MEMORY_TRANSPORT", "pipe")
+    monkeypatch.setenv("MATILDA_GATEWAY_URL", "http://gateway.local:3210")
+    monkeypatch.setenv("MATILDA_API_TOKEN", "test-token")
+
+    client = MemoryClient(agent_name="matilda")
+
+    assert client.base_url == "http://gateway.local:3210/v1/memory"
+    assert client._headers == {"Authorization": "Bearer test-token"}

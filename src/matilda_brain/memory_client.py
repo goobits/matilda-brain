@@ -3,11 +3,38 @@ HTTP client for matilda-memory service.
 Gracefully degrades to no-op if memory service unavailable.
 """
 
+import os
 import time
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Protocol
 
 import httpx
+
+DEFAULT_MEMORY_PORT = 3214
+DEFAULT_GATEWAY_PORT = 3210
+
+
+def _default_connection() -> tuple[str, Optional[str], Dict[str, str]]:
+    transport = os.getenv("MATILDA_MEMORY_TRANSPORT", "tcp").strip().lower() or "tcp"
+    endpoint = os.getenv("MATILDA_MEMORY_ENDPOINT", "").strip()
+    host = os.getenv("MATILDA_LOCAL_HOST", "127.0.0.1")
+
+    if transport == "unix" and endpoint:
+        return "http://matilda-memory", endpoint, {}
+
+    if transport == "pipe":
+        gateway = os.getenv("MATILDA_GATEWAY_URL", "").rstrip("/")
+        if not gateway:
+            gateway_port = os.getenv("MATILDA_PORT_GATEWAY", str(DEFAULT_GATEWAY_PORT))
+            gateway = f"http://{host}:{gateway_port}"
+        token = os.getenv("MATILDA_API_TOKEN")
+        headers = {"Authorization": f"Bearer {token}"} if token else {}
+        return f"{gateway}/v1/memory", None, headers
+
+    if endpoint.startswith(("http://", "https://")):
+        return endpoint.rstrip("/"), None, {}
+    port = os.getenv("MATILDA_PORT_MEMORY", str(DEFAULT_MEMORY_PORT))
+    return f"http://{host}:{port}", None, {}
 
 
 class MemoryStore(Protocol):
@@ -39,8 +66,9 @@ class MemoryResult:
 class MemoryClient(MemoryStore):
     """HTTP client for matilda-memory Rust service"""
 
-    def __init__(self, base_url: str = "http://localhost:3215", timeout: float = 5.0, agent_name: str = "assistant"):
-        self.base_url = base_url
+    def __init__(self, base_url: Optional[str] = None, timeout: float = 5.0, agent_name: str = "assistant"):
+        resolved_url, self._uds, self._headers = _default_connection() if base_url is None else (base_url, None, {})
+        self.base_url = resolved_url.rstrip("/")
         self.timeout = timeout
         self.agent_name = agent_name
         self._client: Optional[httpx.Client] = None
@@ -52,8 +80,12 @@ class MemoryClient(MemoryStore):
     @property
     def client(self) -> httpx.Client:
         if self._client is None:
+            headers = {**self._headers, "X-Agent-Name": self.agent_name}
             self._client = httpx.Client(
-                base_url=self.base_url, timeout=self.timeout, headers={"X-Agent-Name": self.agent_name}
+                base_url=self.base_url,
+                timeout=self.timeout,
+                headers=headers,
+                transport=httpx.HTTPTransport(uds=self._uds) if self._uds else None,
             )
         return self._client
 
@@ -125,7 +157,7 @@ class MemoryClient(MemoryStore):
         if not self.is_available():
             return []
         try:
-            resp = self.client.get(f"/vaults/{agent}/conversations/recent")
+            resp = self.client.get(f"/vaults/{agent}/conversations/recent", params={"n": n})
             if resp.status_code != 200:
                 return []
             data = resp.json()
