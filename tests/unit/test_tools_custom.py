@@ -1,7 +1,7 @@
 """Comprehensive tests for the tool system."""
 
 import asyncio
-from typing import List
+from typing import List, Optional
 from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
@@ -484,7 +484,7 @@ class TestToolSchemas:
         """Test OpenAI-compatible schema generation."""
 
         @tool(register=False)
-        def example_tool(text: str, count: int = 1, enabled: bool = True, options: List[str] = None) -> dict:
+        def example_tool(text: str, count: int = 1, enabled: bool = True, options: Optional[List[str]] = None) -> dict:
             """Example tool with various parameter types.
 
             Args:

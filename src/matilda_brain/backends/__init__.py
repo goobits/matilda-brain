@@ -12,7 +12,7 @@ try:
     from .local import LocalBackend
 
     HAS_LOCAL_BACKEND = True
-    __all__ = ["BaseBackend", "CloudBackend", "LocalBackend", "HubBackend", "TestingBackend"]
+    __all__ = ["BaseBackend", "CloudBackend", "HubBackend", "LocalBackend", "TestingBackend"]
 except ImportError:
     if TYPE_CHECKING:
         from .local import LocalBackend

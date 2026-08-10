@@ -4,14 +4,13 @@ This module provides tools for running Python code and mathematical calculations
 """
 
 import ast
+import asyncio
 import math
 import operator
 import os
 import shutil
 import tempfile
 from typing import Any, Callable, Optional
-
-import asyncio
 
 from matilda_brain.tools import tool
 
@@ -221,10 +220,10 @@ async def run_python(code: str, timeout: Optional[int] = None) -> str:
             try:
                 stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=timeout)
                 returncode = process.returncode
-            except asyncio.TimeoutError:
+            except asyncio.TimeoutError as exc:
                 process.kill()
                 await process.communicate()
-                raise TimeoutError(f"Code execution timed out after {timeout} seconds")
+                raise TimeoutError(f"Code execution timed out after {timeout} seconds") from exc
 
             stdout_str = stdout.decode()
             stderr_str = stderr.decode()
@@ -293,7 +292,7 @@ def calculate(expression: str) -> str:
     except ZeroDivisionError:
         return "Error: Division by zero"
     except ValueError as e:
-        return f"Error: {str(e)}"
+        return f"Error: {e!s}"
     except Exception:
         from matilda_brain.internal.utils import get_logger
 
@@ -302,9 +301,9 @@ def calculate(expression: str) -> str:
 
 
 __all__ = [
-    "run_python",
-    "calculate",
-    "MathEvaluator",
     "ALLOWED_MATH_NAMES",
     "ALLOWED_MATH_OPERATORS",
+    "MathEvaluator",
+    "calculate",
+    "run_python",
 ]

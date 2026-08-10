@@ -49,7 +49,7 @@ class BackendConnectionError(BackendError):
     def __init__(self, backend_name: str, original_error: Optional[Exception] = None):
         message = f"Failed to connect to backend '{backend_name}'"
         if original_error:
-            message += f": {str(original_error)}"
+            message += f": {original_error!s}"
         super().__init__(
             message,
             {

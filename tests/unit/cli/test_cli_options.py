@@ -1,8 +1,8 @@
 """Tests for CLI debug functionality and parameter passing validation."""
 
 import os
-from unittest.mock import patch
 from pathlib import Path
+from unittest.mock import patch
 
 from matilda_brain.cli import cli as main
 from tests.cli.conftest import IntegrationTestBase

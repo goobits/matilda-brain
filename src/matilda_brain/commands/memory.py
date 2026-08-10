@@ -4,7 +4,7 @@ import click
 from rich.console import Console
 from rich.table import Table
 
-from ..memory_client import get_memory, MemoryClient
+from ..memory_client import MemoryClient, get_memory
 
 console = Console()
 

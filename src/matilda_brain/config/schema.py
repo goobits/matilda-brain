@@ -1,10 +1,10 @@
 """Configuration system for the AI library."""
 
 import os
+import tomllib
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
-import tomllib
 import toml
 from dotenv import load_dotenv
 
@@ -144,7 +144,7 @@ def load_config(config_file: Optional[Union[str, Path]] = None) -> ConfigModel:
 
     # Also search up the directory tree from current working directory
     current_path = Path.cwd()
-    for parent in [current_path] + list(current_path.parents):
+    for parent in [current_path, *current_path.parents]:
         env_path = parent / ".env"
         if env_path not in env_paths:
             env_paths.append(env_path)

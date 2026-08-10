@@ -22,13 +22,14 @@ from typing import Any, Optional
 
 from aiohttp import web
 from aiohttp.web import Request, Response, StreamResponse
-
-from matilda_transport import ensure_pipe_supported, prepare_unix_socket, resolve_transport  # type: ignore[import-untyped]
+from matilda_transport import (  # type: ignore[import-untyped]
+    ensure_pipe_supported,
+    prepare_unix_socket,
+    resolve_transport,
+)
 
 from .core.api import stream_async
 from .internal.security import get_allowed_origins, is_origin_allowed
-from .session.manager import ChatSessionManager
-from .session.chat import PersistentChatSession
 from .internal.token_storage import get_or_create_token
 from .internal.utils import get_logger
 from .schemas.responses import (
@@ -39,6 +40,8 @@ from .schemas.responses import (
     SessionDetailEnvelope,
     SessionListEnvelope,
 )
+from .session.chat import PersistentChatSession
+from .session.manager import ChatSessionManager
 
 logger = get_logger(__name__)
 

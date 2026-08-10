@@ -30,16 +30,14 @@ class TestCLIStructure:
     def test_version_option_works(self):
         """Test that --version flag works."""
         result = self.runner.invoke(main, ["--version"])
-        assert result.exit_code in [0, 2]
-        if result.exit_code == 0:
-            # Version output should contain a version number pattern
-            assert any(char.isdigit() for char in result.output)
+        assert result.exit_code == 0
+        assert any(char.isdigit() for char in result.output)
 
     def test_no_command_displays_help_text_and_exits_gracefully(self):
         """Test that invoking with no command shows help and exits gracefully."""
-        result = self.runner.invoke(main, [])
-        # When no command is given, Click shows help and exits with code 0 or 2
-        assert result.exit_code in [0, 2]
+        with patch("click.testing._NamedTextIOWrapper.isatty", return_value=True):
+            result = self.runner.invoke(main, [])
+        assert result.exit_code == 0
         # Should produce some output (the help text)
         assert len(result.output) > 0
 

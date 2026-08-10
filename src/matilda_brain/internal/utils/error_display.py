@@ -4,7 +4,7 @@ This module provides templates for converting technical errors into actionable
 user messages with emoji indicators and concise suggestions.
 """
 
-from typing import Optional, List
+from typing import List, Optional
 
 
 def format_model_overload_error(model: Optional[str] = None) -> str:
@@ -246,10 +246,10 @@ def should_use_error_template(exception: Exception) -> bool:
         APIKeyError,
         BackendConnectionError,
         BackendTimeoutError,
-        ModelNotFoundError,
-        RateLimitError,
-        QuotaExceededError,
         ConfigurationError,
+        ModelNotFoundError,
+        QuotaExceededError,
+        RateLimitError,
         ValidationError,
     )
 

@@ -2,10 +2,10 @@
 
 import os
 import shutil
+import tomllib
 from pathlib import Path
 from typing import Any, Dict, cast
 
-import tomllib
 import toml
 from rich.console import Console
 from rich.syntax import Syntax

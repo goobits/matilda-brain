@@ -3,10 +3,11 @@ HTTP client for matilda-memory service.
 Gracefully degrades to no-op if memory service unavailable.
 """
 
-from typing import Any, Dict, List, Optional, Protocol
-import httpx
-from dataclasses import dataclass
 import time
+from dataclasses import dataclass
+from typing import Any, Dict, List, Optional, Protocol
+
+import httpx
 
 
 class MemoryStore(Protocol):

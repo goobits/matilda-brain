@@ -1,12 +1,13 @@
 """Tests for stateless TTT functionality."""
 
 import json
-import pytest
 from unittest.mock import Mock, patch
 
-from matilda_brain.internal.stateless import StatelessRequest, StatelessResponse, execute_stateless
+import pytest
+
 from matilda_brain.core.api import stateless
 from matilda_brain.core.models import AIResponse
+from matilda_brain.internal.stateless import StatelessRequest, StatelessResponse, execute_stateless
 
 
 class TestStatelessRequest:
@@ -107,7 +108,7 @@ class TestExecuteStateless:
     @pytest.mark.unit
     def test_basic_request(self, mock_backend):
         """Test basic stateless request."""
-        backend, ai_response = mock_backend
+        backend, _ai_response = mock_backend
 
         with patch("matilda_brain.internal.stateless.router") as mock_router:
             mock_router.smart_route.return_value = (backend, "test-model")
@@ -123,7 +124,7 @@ class TestExecuteStateless:
     @pytest.mark.unit
     def test_request_with_system_prompt(self, mock_backend):
         """Test request with system prompt."""
-        backend, ai_response = mock_backend
+        backend, _ai_response = mock_backend
 
         with patch("matilda_brain.internal.stateless.router") as mock_router:
             mock_router.smart_route.return_value = (backend, "test-model")
@@ -136,7 +137,7 @@ class TestExecuteStateless:
     @pytest.mark.unit
     def test_request_with_history(self, mock_backend):
         """Test request with conversation history."""
-        backend, ai_response = mock_backend
+        backend, _ai_response = mock_backend
 
         with patch("matilda_brain.internal.stateless.router") as mock_router:
             mock_router.smart_route.return_value = (backend, "test-model")
@@ -153,7 +154,7 @@ class TestExecuteStateless:
     @pytest.mark.unit
     def test_request_with_tools(self, mock_backend):
         """Test request with tools enabled."""
-        backend, ai_response = mock_backend
+        backend, _ai_response = mock_backend
 
         with patch("matilda_brain.internal.stateless.router") as mock_router:
             mock_router.smart_route.return_value = (backend, "test-model")
@@ -166,7 +167,7 @@ class TestExecuteStateless:
     @pytest.mark.unit
     def test_request_with_custom_params(self, mock_backend):
         """Test request with custom temperature and max_tokens."""
-        backend, ai_response = mock_backend
+        backend, _ai_response = mock_backend
 
         with patch("matilda_brain.internal.stateless.router") as mock_router:
             mock_router.smart_route.return_value = (backend, "test-model")

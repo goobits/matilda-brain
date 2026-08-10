@@ -9,7 +9,7 @@ import time
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, cast
+from typing import Any, Callable, ClassVar, Dict, List, Optional, cast
 
 import bleach  # type: ignore[import-untyped]
 import validators
@@ -80,7 +80,7 @@ class InputSanitizer:
     """Professional input sanitization using battle-tested libraries."""
 
     # Only block truly dangerous patterns (much more targeted)
-    DANGEROUS_PATTERNS = [
+    DANGEROUS_PATTERNS: ClassVar[List[str]] = [
         # Actual command injection (not legitimate code)
         r"^\s*sudo\s+",
         r"\brm\s+-rf\s+/",
@@ -99,7 +99,7 @@ class InputSanitizer:
     ]
 
     # Patterns that are dangerous specifically in code execution contexts
-    CODE_DANGEROUS_PATTERNS = [
+    CODE_DANGEROUS_PATTERNS: ClassVar[List[str]] = [
         # OS module execution methods
         r"os\.system\s*\(",
         r"os\.popen\s*\(",
@@ -265,7 +265,7 @@ class ErrorRecoverySystem:
     """Smart error recovery and fallback system."""
 
     # Pre-defined error patterns for common issues
-    ERROR_PATTERNS = [
+    ERROR_PATTERNS: ClassVar[List[ErrorPattern]] = [
         ErrorPattern(
             pattern=r"connection.*timeout|timeout.*connection|timed out",
             error_type=ErrorType.TIMEOUT_ERROR,
@@ -312,7 +312,7 @@ class ErrorRecoverySystem:
     ]
 
     # Tool fallback mappings
-    TOOL_FALLBACKS = {
+    TOOL_FALLBACKS: ClassVar[Dict[str, List[str]]] = {
         "web_search": ["http_request"],
         "http_request": ["web_search"],
         "read_file": ["list_directory"],

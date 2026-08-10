@@ -4,10 +4,10 @@ This module provides realistic HTTP response mocks for different AI providers
 to avoid rate limiting while preserving real behavior testing.
 """
 
+import asyncio
 import time
 from typing import AsyncIterator, Optional, Union
 from unittest.mock import Mock
-import asyncio
 
 # Realistic response templates for different providers
 OPENAI_RESPONSE_TEMPLATE = {
@@ -124,7 +124,7 @@ class SmartHTTPMocker:
         self.call_count = 0
         self.last_params = None
 
-    def get_response_for_prompt(self, prompt: str, model: str, messages: list = None) -> str:
+    def get_response_for_prompt(self, prompt: str, model: str, messages: Optional[list] = None) -> str:
         """Generate appropriate response based on the prompt content and message history."""
         prompt_lower = prompt.lower()
 

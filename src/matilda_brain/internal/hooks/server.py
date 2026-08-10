@@ -9,7 +9,7 @@ from rich.console import Console
 
 console = Console()
 
-from .utils import setup_logging_level, resolve_model_alias, parse_tools_arg
+from .utils import parse_tools_arg, resolve_model_alias, setup_logging_level
 
 
 def on_stateless(
@@ -39,7 +39,7 @@ def on_stateless(
         max_tokens: Maximum tokens in response
         **kwargs: Additional parameters
     """
-    from matilda_brain.internal.stateless import execute_stateless_protocol, StatelessRequest
+    from matilda_brain.internal.stateless import StatelessRequest, execute_stateless_protocol
 
     # Setup logging (JSON mode to avoid noise)
     setup_logging_level(json_output=True)

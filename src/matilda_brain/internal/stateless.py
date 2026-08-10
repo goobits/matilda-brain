@@ -1,13 +1,13 @@
 """Stateless entry point for TTT - accepts message, history, tools without creating sessions."""
 
+import json
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional
-import json
 
 from ..core.models import AIResponse
 from ..core.routing import router
+from .protocol import ContentKind, Message, Proposal, RiskLevel, Role
 from .utils import get_logger, run_async
-from .protocol import ContentKind, Message, Proposal, Role, RiskLevel
 
 logger = get_logger(__name__)
 

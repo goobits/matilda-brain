@@ -14,9 +14,13 @@ def on_ask(
     session: Optional[str] = None,
     system: Optional[str] = None,
     stream: Optional[bool] = None,
+    no_stream: Optional[bool] = None,
     json: bool = False,
     **kwargs,
 ) -> None:
+    if stream and no_stream:
+        raise ValueError("--stream and --no-stream cannot be used together")
+
     internal_hooks.on_ask(
         command_name="ask",
         prompt=prompt or (),
@@ -26,7 +30,7 @@ def on_ask(
         tools=bool(tools),
         session=session,
         system=system,
-        stream=bool(stream),
+        stream=bool(stream) or not bool(no_stream),
         json=bool(json),
         **kwargs,
     )
@@ -133,6 +137,30 @@ def on_enable(tool_name: str, **kwargs) -> None:
 
 def on_disable(tool_name: str, **kwargs) -> None:
     internal_hooks.on_tools_disable(command_name="tools", tool_name=tool_name, **kwargs)
+
+
+def on_config_get(key: str, **kwargs) -> None:
+    on_get(key=key, **kwargs)
+
+
+def on_config_set(key: str, value: str, **kwargs) -> None:
+    on_set(key=key, value=value, **kwargs)
+
+
+def on_config_list(show_secrets: bool = False, **kwargs) -> None:
+    internal_hooks.on_config_list(command_name="config", show_secrets=bool(show_secrets), **kwargs)
+
+
+def on_tools_enable(tool_name: str, **kwargs) -> None:
+    on_enable(tool_name=tool_name, **kwargs)
+
+
+def on_tools_disable(tool_name: str, **kwargs) -> None:
+    on_disable(tool_name=tool_name, **kwargs)
+
+
+def on_tools_list(show_disabled: bool = False, **kwargs) -> None:
+    internal_hooks.on_tools_list(command_name="tools", show_disabled=bool(show_disabled), **kwargs)
 
 
 def on_serve(host: Optional[str] = None, port: Optional[int] = None, **kwargs) -> None:

@@ -412,8 +412,9 @@ def smart_integration_mocking(request, monkeypatch):
         return
 
     # Import mocking utilities
+    from unittest.mock import AsyncMock, patch
+
     from tests.utils.http_mocks import get_http_mocker, reset_http_mocker
-    from unittest.mock import patch, AsyncMock
 
     # Reset mocker state for clean test
     reset_http_mocker()
@@ -431,8 +432,9 @@ def smart_integration_mocking(request, monkeypatch):
 @pytest.fixture
 def mock_rate_limit_error():
     """Fixture to simulate rate limit errors in integration tests."""
+    from unittest.mock import AsyncMock, patch
+
     from tests.utils.http_mocks import ErrorHTTPMocker
-    from unittest.mock import patch, AsyncMock
 
     error_mocker = ErrorHTTPMocker("rate_limit")
 
@@ -446,8 +448,9 @@ def mock_rate_limit_error():
 @pytest.fixture
 def mock_auth_error():
     """Fixture to simulate authentication errors in integration tests."""
+    from unittest.mock import AsyncMock, patch
+
     from tests.utils.http_mocks import ErrorHTTPMocker
-    from unittest.mock import patch, AsyncMock
 
     error_mocker = ErrorHTTPMocker("auth")
 

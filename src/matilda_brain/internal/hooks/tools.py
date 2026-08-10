@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Hook handlers for TTT CLI."""
 
-
 import rich_click as click
 from rich.console import Console
 

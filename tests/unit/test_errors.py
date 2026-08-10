@@ -222,6 +222,7 @@ class TestCloudBackendExceptions:
         fake_litellm = FakeLiteLLM()
         with patch.dict("sys.modules", {"litellm": fake_litellm}):
             import importlib
+
             from matilda_brain.backends import cloud
 
             importlib.reload(cloud)
@@ -250,6 +251,7 @@ class TestCloudBackendExceptions:
         fake_litellm = FakeLiteLLM()
         with patch.dict("sys.modules", {"litellm": fake_litellm}):
             import importlib
+
             from matilda_brain.backends import cloud
 
             importlib.reload(cloud)

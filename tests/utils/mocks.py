@@ -1,6 +1,7 @@
 """Shared mock objects for testing."""
 
-from typing import AsyncIterator, Dict, List, Optional, Any, Union
+from typing import Any, AsyncIterator, Dict, List, Optional, Union
+
 from matilda_brain import AIResponse
 from matilda_brain.backends import BaseBackend
 

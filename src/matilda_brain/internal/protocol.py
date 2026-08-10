@@ -1,9 +1,10 @@
+import json
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Dict, Optional
 from uuid import UUID, uuid4
-from datetime import datetime, timezone
+
 from pydantic import BaseModel, Field
-import json
 
 PROTOCOL_VERSION = "v1"
 

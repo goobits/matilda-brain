@@ -9,6 +9,7 @@ import urllib.parse
 from typing import Any, Dict, Optional, Union
 
 import httpx
+
 from matilda_brain.tools import tool
 
 from .config import _get_timeout_bounds, _get_web_timeout, _safe_execute_async
@@ -182,7 +183,7 @@ async def http_request(
             return f"HTTP Error {e.response.status_code}: {e.response.reason_phrase}"
 
     except httpx.RequestError as e:
-        return f"Network error: {str(e)}"
+        return f"Network error: {e!s}"
     except Exception:
         from matilda_brain.internal.utils import get_logger
 
@@ -190,4 +191,4 @@ async def http_request(
         return "Error making request - see logs for details"
 
 
-__all__ = ["web_search", "http_request"]
+__all__ = ["http_request", "web_search"]

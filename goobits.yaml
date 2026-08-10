@@ -12,7 +12,7 @@ cli_path: "src/matilda_brain/cli.py"
 cli_hooks_path: "src/matilda_brain/app_hooks.py"
 
 python:
-  minimum_version: "3.8"
+  minimum_version: "3.11"
   maximum_version: "3.13"
 
 dependencies:
@@ -73,6 +73,7 @@ messages:
 # CLI fields for cli.py generation
 cli:
   name: "MATILDA BRAIN CLI"
+  version: "1.1.0"
   display_version: true
   tagline: "Talk to Transformer"
   description: "AI-powered conversations, straight from your command line"
@@ -145,8 +146,12 @@ cli:
           desc: "System prompt to set AI behavior"
         - name: "stream"
           type: "bool"
-          desc: "Stream the response"
-          default: true
+          desc: "Force streaming output"
+          default: false
+        - name: "no-stream"
+          type: "bool"
+          desc: "Return the completed response without streaming"
+          default: false
         - name: "json"
           type: "flag"
           desc: "Output response in JSON format"
@@ -323,7 +328,7 @@ cli:
         - name: "host"
           type: "str"
           desc: "Host address to bind to"
-          default: "0.0.0.0"
+          default: "127.0.0.1"
         - name: "port"
           short: "p"
           type: "int"

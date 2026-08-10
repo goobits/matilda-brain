@@ -3,6 +3,7 @@
 from unittest.mock import AsyncMock, patch
 
 import pytest
+
 from tests.utils.http_mocks import get_http_mocker, reset_http_mocker
 
 
@@ -104,8 +105,9 @@ def test_real_api_bypass_env_var(monkeypatch):
 
 def test_real_api_bypass_config():
     """Test that --real-api flag bypasses mocking."""
-    from tests.conftest import _should_use_real_api
     from unittest.mock import Mock
+
+    from tests.conftest import _should_use_real_api
 
     # Mock config object
     config = Mock()

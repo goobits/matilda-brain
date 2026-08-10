@@ -3,7 +3,6 @@
 import os
 from typing import Dict, Optional
 
-
 # Centralized mapping of provider names to environment variable names
 PROVIDER_ENV_VARS: Dict[str, str] = {
     "openai": "OPENAI_API_KEY",
@@ -133,7 +132,7 @@ def configure_api_keys_from_config(config: Dict[str, str]) -> int:
     """
     count = 0
     for config_key, env_var in CONFIG_KEY_TO_ENV_VAR.items():
-        if config_key in config and config[config_key]:
+        if config.get(config_key):
             # Check if key is present but not the placeholder value
             value = config[config_key]
             if value and value != env_var:  # Avoid setting the env var name as the value

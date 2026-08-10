@@ -14,8 +14,8 @@ from .schema import (
 )
 
 __all__ = [
-    "configure",
     "ConfigManager",
+    "configure",
     "get_config",
     "get_model_registry",
     "get_project_config",

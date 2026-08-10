@@ -4,10 +4,9 @@ The Unified AI Library
 A single, elegant interface for local and cloud AI models.
 """
 
-from importlib import metadata
-from importlib import import_module
-from pathlib import Path
 import tomllib
+from importlib import import_module, metadata
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 

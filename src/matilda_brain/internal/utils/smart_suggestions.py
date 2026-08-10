@@ -327,7 +327,7 @@ def suggest_troubleshooting_steps(error_type: str, error_message: str = "") -> L
             "Consider getting an OpenRouter key for access to 100+ models",
         ]
 
-    elif error_type == "model_not_found" or "model" in error_message.lower() and "not found" in error_message.lower():
+    elif error_type == "model_not_found" or ("model" in error_message.lower() and "not found" in error_message.lower()):
         steps = [
             "Run 'ttt models' to see all available models",
             "Check if you meant to use a model alias like @gpt4 or @claude",

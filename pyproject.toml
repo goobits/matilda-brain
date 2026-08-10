@@ -19,7 +19,7 @@ text = "MIT"
 
 [project.optional-dependencies]
 local = [ "httpx>=0.24.0,<1.0",]
-dev = [ "pytest>=8.2.0,<10.0", "pytest-asyncio>=1.0.0,<2.0", "pytest-cov>=4.0,<8.0", "pytest-timeout>=2.0,<3.0", "pytest-xdist>=3.0.0,<4.0", "pytest-sugar>=0.9.0,<2.0", "pytest-clarity>=1.0.0,<2.0", "pytest-html>=3.0.0,<5.0", "pytest-json-report>=1.5.0,<2.0", "black>=22.0,<27.0", "ruff>=0.1.0,<1.0", "mypy>=1.0.0,<3.0", "types-PyYAML>=6.0,<7.0", "types-toml>=0.10.8,<1.0",]
+dev = [ "pytest>=9.1,<9.2", "pytest-asyncio>=1.0.0,<2.0", "pytest-cov>=4.0,<8.0", "pytest-timeout>=2.0,<3.0", "pytest-xdist>=3.0.0,<4.0", "pytest-sugar>=0.9.0,<2.0", "pytest-clarity>=1.0.0,<2.0", "pytest-html>=3.0.0,<5.0", "pytest-json-report>=1.5.0,<2.0", "black>=26.5,<26.6", "ruff>=0.16.2,<0.17", "mypy>=2.3,<2.4", "types-PyYAML>=6.0,<7.0", "types-toml>=0.10.8,<1.0",]
 publish = [ "build>=1.0,<2.0", "twine>=4.0,<8.0",]
 
 [project.scripts]
@@ -49,34 +49,21 @@ no_implicit_optional = true
 warn_unused_ignores = true
 cache_dir = ".artifacts/cache/mypy"
 exclude = "(^|/)cli\\.py$$"
-
 [[tool.mypy.overrides]]
-module = [
-  "matilda_brain.cli",
-]
+module = [ "matilda_brain.cli",]
 ignore_errors = true
 
 [[tool.mypy.overrides]]
-module = [
-  "matilda_brain.app_hooks",
-  "matilda_brain.commands.memory",
-  "matilda_brain.config.schema",
-  "matilda_brain.core.api",
-  "matilda_brain.internal.hooks.config",
-  "matilda_brain.internal.hooks.core",
-  "matilda_brain.internal.hooks.models",
-  "matilda_brain.internal.hooks.server",
-  "matilda_brain.internal.hooks.tools",
-  "matilda_brain.server",
-  "matilda_brain.session.chat",
-  "matilda_brain.__init__",
-  "matilda_brain",
-]
+module = [ "matilda_brain.app_hooks", "matilda_brain.commands.memory", "matilda_brain.config.schema", "matilda_brain.core.api", "matilda_brain.internal.hooks.config", "matilda_brain.internal.hooks.core", "matilda_brain.internal.hooks.models", "matilda_brain.internal.hooks.server", "matilda_brain.internal.hooks.tools", "matilda_brain.server", "matilda_brain.session.chat", "matilda_brain.__init__", "matilda_brain",]
 ignore_errors = true
 
 [tool.setuptools]
 zip-safe = false
 include-package-data = false
+
+[tool.ruff.lint]
+select = [ "E4", "E7", "E9", "F", "I", "B", "ASYNC", "RUF",]
+ignore = [ "ASYNC109", "ASYNC240", "RUF022",]
 
 [tool.setuptools.package-data]
 matilda_brain = [ "setup.sh", "py.typed",]

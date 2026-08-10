@@ -185,4 +185,4 @@ def list_directory(
         return "Error listing directory - see logs for details"
 
 
-__all__ = ["read_file", "write_file", "list_directory"]
+__all__ = ["list_directory", "read_file", "write_file"]

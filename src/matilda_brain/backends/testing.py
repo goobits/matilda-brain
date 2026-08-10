@@ -8,8 +8,8 @@ from __future__ import annotations
 
 from typing import Any, AsyncIterator, Dict, List, Optional, Union
 
-from .base import BaseBackend
 from ..core.models import AIResponse, ImageInput
+from .base import BaseBackend
 
 
 class TestingBackend(BaseBackend):

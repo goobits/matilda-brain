@@ -132,4 +132,4 @@ def setup_logging(
 
 
 # Export console for direct use
-__all__ = ["get_logger", "set_log_level", "console", "setup_logging"]
+__all__ = ["console", "get_logger", "set_log_level", "setup_logging"]

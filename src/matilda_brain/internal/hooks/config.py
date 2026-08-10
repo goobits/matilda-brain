@@ -12,6 +12,7 @@ console = Console()
 
 from matilda_brain.config.manager import ConfigManager
 from matilda_brain.session.manager import ChatSessionManager
+
 from .models import show_models_list
 
 

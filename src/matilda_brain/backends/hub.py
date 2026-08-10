@@ -6,8 +6,8 @@ from typing import TYPE_CHECKING, Any, AsyncIterator, Dict, List, Optional, Unio
 
 import httpx
 
-from ..core.models import AIResponse, ImageInput
 from ..core.exceptions import BackendNotAvailableError
+from ..core.models import AIResponse, ImageInput
 from .base import BaseBackend
 
 if TYPE_CHECKING:

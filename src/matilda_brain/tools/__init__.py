@@ -20,7 +20,7 @@ Example usage:
 
 import inspect
 from functools import wraps
-from typing import Any, Callable, Optional
+from typing import Any, Callable, Optional, cast
 
 from .base import (
     ToolCall,
@@ -50,7 +50,10 @@ from .registry import (
 )
 
 
-# Type alias for functions with tool attributes
+def _attach_tool_metadata(func: Callable, definition: ToolDefinition) -> None:
+    target = cast(Any, func)
+    target._tool_definition = definition
+    target._is_tool = True
 
 
 def tool(
@@ -98,8 +101,7 @@ def tool(
                 pass
 
         # Add tool metadata to the function
-        setattr(f, "_tool_definition", tool_def)
-        setattr(f, "_is_tool", True)
+        _attach_tool_metadata(f, tool_def)
 
         # Create appropriate wrapper based on function type
         if inspect.iscoroutinefunction(f):
@@ -110,8 +112,7 @@ def tool(
                 return await f(*args, **kwargs)
 
             # Preserve tool metadata on wrapper
-            setattr(async_wrapper, "_tool_definition", tool_def)
-            setattr(async_wrapper, "_is_tool", True)
+            _attach_tool_metadata(async_wrapper, tool_def)
 
             return async_wrapper
         else:
@@ -122,8 +123,7 @@ def tool(
                 return f(*args, **kwargs)
 
             # Preserve tool metadata on wrapper
-            setattr(wrapper, "_tool_definition", tool_def)
-            setattr(wrapper, "_is_tool", True)
+            _attach_tool_metadata(wrapper, tool_def)
 
             return wrapper
 

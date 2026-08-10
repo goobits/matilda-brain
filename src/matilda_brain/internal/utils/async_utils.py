@@ -13,6 +13,7 @@ _background_loop = None
 _background_thread = None
 _executor = None
 _lock = threading.Lock()
+_background_tasks: set[asyncio.Task[None]] = set()
 
 
 def _start_background_loop() -> None:
@@ -112,7 +113,9 @@ def _stop_background_loop() -> None:
                 if _background_loop is not None:
                     _background_loop.stop()
 
-            asyncio.create_task(stop_when_ready())
+            stop_task = asyncio.create_task(stop_when_ready())
+            _background_tasks.add(stop_task)
+            stop_task.add_done_callback(_background_tasks.discard)
 
         _background_loop.call_soon_threadsafe(cancel_tasks)
         # Give more time for graceful shutdown

@@ -104,11 +104,12 @@ class AIResponse(str):
 
     def __repr__(self) -> str:
         """String representation showing metadata."""
+        elapsed = f"{self.time_taken:.2f}s" if self.time_taken is not None else "n/a"
         return (
             f"AIResponse('{str(self)[:50]}...', "
             f"model='{self.model}', "
             f"backend='{self.backend}', "
-            f"time={self.time_taken:.2f}s)"
+            f"time={elapsed})"
         )
 
 
@@ -230,16 +231,16 @@ class ImageInput:
             try:
                 with open(self.source, "rb") as f:
                     self._base64_cache = base64.b64encode(f.read()).decode("utf-8")
-            except FileNotFoundError:
-                raise FileNotFoundError(f"Image file not found: {source_display}")
-            except PermissionError:
-                raise PermissionError(f"Permission denied reading image file: {source_display}")
-            except IsADirectoryError:
-                raise IsADirectoryError(f"Path is a directory, not a file: {source_display}")
+            except FileNotFoundError as exc:
+                raise FileNotFoundError(f"Image file not found: {source_display}") from exc
+            except PermissionError as exc:
+                raise PermissionError(f"Permission denied reading image file: {source_display}") from exc
+            except IsADirectoryError as exc:
+                raise IsADirectoryError(f"Path is a directory, not a file: {source_display}") from exc
             except OSError as e:
-                raise OSError(f"Error reading image file {source_display}: {e}")
+                raise OSError(f"Error reading image file {source_display}: {e}") from e
             except Exception as e:
-                raise RuntimeError(f"Unexpected error reading image file {source_display}: {e}")
+                raise RuntimeError(f"Unexpected error reading image file {source_display}: {e}") from e
         elif self.is_url:
             # URL images typically sent as-is to APIs
             return str(self.source)

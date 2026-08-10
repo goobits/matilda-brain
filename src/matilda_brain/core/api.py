@@ -4,12 +4,11 @@ from contextlib import asynccontextmanager, contextmanager
 from typing import Any, AsyncIterator, Iterator, List, Optional, Union
 
 from ..backends import BaseBackend
+from ..internal.utils import get_logger, run_async, run_coro_in_background
 from ..plugins import discover_plugins
 from ..session.chat import PersistentChatSession
-from ..internal.utils import get_logger, run_async, run_coro_in_background
 from .models import AIResponse, ImageInput
 from .routing import router
-
 
 logger = get_logger(__name__)
 
@@ -173,11 +172,10 @@ def stream(
                 # The async generator is exhausted - no cleanup needed
                 break
     finally:
-        # Note: We deliberately do NOT call async_gen.aclose() here because
-        # it can cause "Task was destroyed but it is pending" errors with aiohttp
-        # connections. The LiteLLM library and aiohttp will handle cleanup
-        # automatically when the generator goes out of scope.
-        pass
+        try:
+            run_coro_in_background(async_gen.aclose())
+        except (RuntimeError, StopAsyncIteration):
+            logger.debug("Streaming generator was already closed")
 
 
 @contextmanager

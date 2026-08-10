@@ -91,6 +91,7 @@ class TestCLIParameterValidation(IntegrationTestBase):
             ("int", ["ask", "test", "--max-tokens", "2048"], int, 2048),
             ("bool_true_tools", ["ask", "test", "--tools"], bool, True),
             ("bool_true_stream", ["ask", "test", "--stream"], bool, True),
+            ("bool_true_no_stream", ["ask", "test", "--no-stream"], bool, True),
             ("str", ["ask", "test", "--model", "gpt-4"], str, "gpt-4"),
             ("str", ["ask", "test", "--session", "test-session"], str, "test-session"),
             ("str", ["ask", "test", "--system", "You are helpful"], str, "You are helpful"),

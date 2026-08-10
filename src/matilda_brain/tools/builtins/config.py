@@ -132,7 +132,7 @@ def _handle_error_and_return_msg(func_name: str, e: Exception) -> str:
     elif error_pattern.error_type.value == "validation_error":
         return f"Validation Error: {error_pattern.message}\n{error_pattern.suggested_action}"
     else:
-        return f"Error in {func_name}: {str(e)}\n{error_pattern.suggested_action}"
+        return f"Error in {func_name}: {e!s}\n{error_pattern.suggested_action}"
 
 
 def _safe_execute(func_name: str, func: Callable[..., Any], **kwargs: Any) -> str:
@@ -166,10 +166,10 @@ async def _safe_execute_async(func_name: str, func: Callable[..., Any], **kwargs
 
 
 __all__ = [
-    "_get_max_file_size",
     "_get_code_timeout",
-    "_get_web_timeout",
+    "_get_max_file_size",
     "_get_timeout_bounds",
+    "_get_web_timeout",
     "_safe_execute",
     "_safe_execute_async",
     "recovery_system",

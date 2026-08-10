@@ -29,7 +29,7 @@ import os
 import sys
 import threading
 from pathlib import Path
-from typing import Any, Callable, Dict, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Callable, Dict, Optional
 
 
 def _find_i18n_root() -> Path | None:
@@ -137,10 +137,10 @@ get_language = _loader.get_language
 
 # Re-export for convenience
 __all__ = [
+    "I18nLoader",
+    "get_language",
+    "set_language",
     "t",
     "t_brain",
     "t_common",
-    "set_language",
-    "get_language",
-    "I18nLoader",
 ]

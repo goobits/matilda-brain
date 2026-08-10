@@ -181,6 +181,19 @@ class TestRouterFallback:
             assert not response.failed
 
     @pytest.mark.asyncio
+    async def test_route_with_fallback_forwards_model_once(self):
+        """An explicit model is used for routing without duplicate kwargs."""
+        router = Router()
+        mock_backend = MockBackend()
+
+        with patch.object(router, "smart_route", return_value=(mock_backend, "resolved-model")) as mock_route:
+            response = await router.route_with_fallback("Test prompt", model="requested-model")
+
+        assert not response.failed
+        mock_route.assert_called_once_with("Test prompt", model="requested-model")
+        assert mock_backend.last_kwargs["model"] == "resolved-model"
+
+    @pytest.mark.asyncio
     async def test_route_with_fallback_retry(self):
         """Test routing with fallback on failure."""
         router = Router()

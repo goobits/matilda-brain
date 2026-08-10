@@ -251,7 +251,7 @@ class TestPerformanceBenchmarks:
 
         # Just verify we got timing data
         assert len(results) > 0
-        for model, duration in results.items():
+        for _model, duration in results.items():
             assert duration > 0
 
 

@@ -11,9 +11,9 @@ from .loader import (
 
 __all__ = [
     "BackendPlugin",
+    "PluginRegistry",
     "discover_plugins",
     "load_plugin",
-    "PluginRegistry",
     "plugin_registry",
     "register_backend",
 ]

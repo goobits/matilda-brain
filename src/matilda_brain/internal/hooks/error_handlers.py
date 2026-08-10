@@ -55,8 +55,8 @@ def display_error_rich(
         BackendConnectionError,
         BackendTimeoutError,
         ModelNotFoundError,
-        RateLimitError,
         QuotaExceededError,
+        RateLimitError,
     )
     from matilda_brain.internal.utils.smart_suggestions import (
         suggest_model_alternatives,
@@ -170,7 +170,7 @@ def display_error_rich(
                 output_fn(f"   • [bold]{suggestion['provider']}[/bold]: {suggestion['description']}")
 
     else:
-        output_fn(f"[red]Error: {str(error)}[/red]" if is_chat else f"Error: {str(error)}")
+        output_fn(f"[red]Error: {error!s}[/red]" if is_chat else f"Error: {error!s}")
 
         if not is_chat:
             steps = suggest_troubleshooting_steps("generic", str(error))

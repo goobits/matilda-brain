@@ -2,10 +2,9 @@
 
 import os
 import sys
+import tomllib
 from pathlib import Path
 from typing import Any, Dict, Optional
-
-import tomllib
 
 from ..internal.utils import get_logger
 

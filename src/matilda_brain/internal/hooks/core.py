@@ -14,11 +14,12 @@ from matilda_brain.core.api import ask as ttt_ask
 from matilda_brain.core.api import chat as ttt_chat
 from matilda_brain.core.api import stream as ttt_stream
 from matilda_brain.session.manager import ChatSessionManager
+
 from .error_handlers import handle_error
 from .utils import (
-    setup_logging_level,
     resolve_model_alias,
     resolve_tools,
+    setup_logging_level,
 )
 
 

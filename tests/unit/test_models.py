@@ -64,6 +64,11 @@ class TestAIResponse:
         assert "test" in repr_str
         assert "0.50s" in repr_str
 
+    @pytest.mark.unit
+    def test_repr_without_timing_metadata(self):
+        """Representation remains available before timing is recorded."""
+        assert "time=n/a" in repr(AIResponse("Response"))
+
 
 class TestModelInfo:
     """Test ModelInfo dataclass."""

@@ -10,6 +10,7 @@ console = Console()
 
 import asyncio
 import logging
+
 from rich.logging import RichHandler
 
 from matilda_brain.config.manager import ConfigManager
@@ -26,7 +27,7 @@ def is_verbose_mode() -> bool:
         import click
 
         ctx = click.get_current_context(silent=True)
-        if ctx and hasattr(ctx, "obj") and ctx.obj and ctx.obj.get("debug"):
+        if ctx and getattr(ctx, "obj", None) and getattr(ctx.obj, "debug", False):
             return True
     except (RuntimeError, AttributeError):
         pass

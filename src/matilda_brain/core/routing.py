@@ -4,8 +4,8 @@ from typing import Any, Dict, List, Optional, Union, cast
 
 from ..backends import HAS_LOCAL_BACKEND, BaseBackend, CloudBackend, HubBackend, TestingBackend
 from ..config.schema import get_config
-from ..plugins.loader import plugin_registry
 from ..internal.utils import get_logger
+from ..plugins.loader import plugin_registry
 from .exceptions import BackendNotAvailableError
 from .models import AIResponse, ImageInput
 
@@ -392,13 +392,15 @@ class Router:
         """
         max_retries = max_retries or self.config.max_retries
 
-        # Get primary backend and model
-        backend, model = self.smart_route(prompt, **kwargs)
+        # Resolve routing-only values once so they are not forwarded twice.
+        request_kwargs = dict(kwargs)
+        requested_model = request_kwargs.pop("model", None)
+        backend, model = self.smart_route(prompt, model=requested_model, **request_kwargs)
 
         # Try primary backend
         try:
             if method == "ask":
-                response = await backend.ask(prompt, model=model, **kwargs)
+                response = await backend.ask(prompt, model=model, **request_kwargs)
                 if not response.failed:
                     return response
         except (ConnectionError, TimeoutError, ValueError, RuntimeError) as e:
@@ -422,10 +424,10 @@ class Router:
                 logger.info(f"Trying fallback backend: {backend_name}")
 
                 # Resolve model for this backend
-                fallback_model = self.resolve_model(model, fallback_backend)
+                fallback_model = self.resolve_model(requested_model, fallback_backend)
 
                 if method == "ask":
-                    response = await fallback_backend.ask(prompt, model=fallback_model, **kwargs)
+                    response = await fallback_backend.ask(prompt, model=fallback_model, **request_kwargs)
                     if not response.failed:
                         return response
 
