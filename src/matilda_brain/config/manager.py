@@ -70,6 +70,7 @@ DEFAULT_CONFIG: Dict[str, Any] = {
         "math_max_iterations": 1000,
         "retry": {"max_attempts": 3, "base_delay": 1.0, "max_delay": 60.0, "rate_limit_min_delay": 5.0},
         "executor": {"max_retries": 3, "timeout_seconds": 30.0},
+        "loop": {"max_rounds": 8, "parallel": True},
         "policy": {"allow_private_networks": False, "file_roots": [], "require_approval": False},
     },
     "chat": {"default_system_prompt": None, "max_history_length": 100, "auto_save": True},

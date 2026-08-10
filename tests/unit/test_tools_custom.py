@@ -264,6 +264,16 @@ class TestToolRegistry:
 class TestToolIntegration:
     """Test end-to-end tool integration with AI backends."""
 
+    def test_cloud_backend_rejects_malformed_tool_arguments(self):
+        function = Mock()
+        function.name = "broken"
+        function.arguments = "{not-json"
+        request = CloudBackend._decode_tool_request(Mock(id="call_1", type="function", function=function), 0)
+
+        assert request.arguments == {}
+        assert request.error is not None
+        assert "Invalid arguments" in request.error
+
     @pytest.mark.asyncio
     async def test_cloud_backend_tool_integration(self):
         """Test tool integration with CloudBackend."""
@@ -289,12 +299,6 @@ class TestToolIntegration:
                 return x * y
             return 0
 
-        # Register tools temporarily for the test
-        from matilda_brain.tools.registry import register_tool, unregister_tool
-
-        register_tool(get_weather, "get_weather", "Get weather for a city", "test")
-        register_tool(test_calculate, "test_calculate", "Perform calculation", "test")
-
         # Mock litellm response with tool calls
         mock_tool_call_1 = Mock()
         mock_tool_call_1.id = "call_1"
@@ -315,13 +319,18 @@ class TestToolIntegration:
         # Mock the litellm response
         mock_response = Mock()
         mock_message = Mock()
-        mock_message.content = "I'll help you with that."
+        mock_message.content = None
         mock_message.tool_calls = mock_tool_calls
-        mock_response.choices = [Mock(message=mock_message)]
+        mock_response.choices = [Mock(message=mock_message, finish_reason="tool_calls")]
         mock_response.usage = Mock(prompt_tokens=50, completion_tokens=30)
 
+        final_response = Mock()
+        final_message = Mock(content="NYC is sunny and 15 + 25 is 40.", tool_calls=None)
+        final_response.choices = [Mock(message=final_message, finish_reason="stop")]
+        final_response.usage = Mock(prompt_tokens=20, completion_tokens=10)
+
         with patch.object(backend, "litellm") as mock_litellm:
-            mock_litellm.acompletion = AsyncMock(return_value=mock_response)
+            mock_litellm.acompletion = AsyncMock(side_effect=[mock_response, final_response])
 
             response = await backend.ask(
                 "What's the weather in NYC and what's 15 + 25?",
@@ -331,6 +340,10 @@ class TestToolIntegration:
             assert response.succeeded
             assert response.tools_called
             assert len(response.tool_calls) == 2
+            assert str(response) == "NYC is sunny and 15 + 25 is 40."
+            assert response.tokens_in == 70
+            assert response.tokens_out == 40
+            assert response.metadata["tool_rounds"] == 1
 
             # Check tool results
             weather_call = next(call for call in response.tool_calls if call.name == "get_weather")
@@ -340,13 +353,50 @@ class TestToolIntegration:
             calc_call = next(call for call in response.tool_calls if call.name == "test_calculate")
             assert calc_call.succeeded
             assert calc_call.result == 40
+            assert calc_call.id == "call_2"
 
-        # Clean up registered tools
-        try:
-            unregister_tool("get_weather")
-            unregister_tool("test_calculate")
-        except Exception:
-            pass  # Tools might not be registered
+            follow_up_messages = mock_litellm.acompletion.call_args_list[1].kwargs["messages"]
+            assert follow_up_messages[-3]["role"] == "assistant"
+            assert follow_up_messages[-2] == {
+                "role": "tool",
+                "tool_call_id": "call_1",
+                "name": "get_weather",
+                "content": "Weather in NYC: 72°F, sunny",
+            }
+            assert follow_up_messages[-1]["content"] == "40"
+
+    @pytest.mark.asyncio
+    async def test_cloud_stream_with_tools_yields_final_model_answer(self):
+        class FakeLiteLLM:
+            pass
+
+        with patch.dict("sys.modules", {"litellm": FakeLiteLLM()}):
+            backend = CloudBackend()
+
+        @tool(register=False)
+        def echo(value: str) -> str:
+            return value
+
+        function = Mock()
+        function.name = "echo"
+        function.arguments = '{"value": "hello"}'
+        tool_call = Mock(id="call_1", type="function", function=function)
+        tool_response = Mock(
+            choices=[Mock(message=Mock(content=None, tool_calls=[tool_call]), finish_reason="tool_calls")],
+            usage=None,
+        )
+        final_response = Mock(
+            choices=[Mock(message=Mock(content="The tool said hello.", tool_calls=None), finish_reason="stop")],
+            usage=None,
+        )
+
+        with patch.object(backend, "litellm") as mock_litellm:
+            mock_litellm.acompletion = AsyncMock(side_effect=[tool_response, final_response])
+            chunks = [chunk async for chunk in backend.astream("Echo hello", tools=[echo])]
+
+        assert chunks == ["The tool said hello."]
+        assert mock_litellm.acompletion.await_count == 2
+        assert mock_litellm.acompletion.call_args_list[1].kwargs["messages"][-1]["content"] == "hello"
 
     def test_api_function_with_tools(self):
         """Test the main ask() function with tools."""

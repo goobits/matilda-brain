@@ -12,14 +12,18 @@ from ..core.exceptions import (
     BackendNotAvailableError,
     BackendTimeoutError,
     EmptyResponseError,
+    InvalidParameterError,
     ModelNotFoundError,
     QuotaExceededError,
     RateLimitError,
+    ResponseError,
 )
 from ..core.models import AIResponse, ImageInput
 from ..internal.utils import get_logger
 from ..internal.utils.messages import build_message_list, extract_messages_from_kwargs
 from ..internal.utils.providers import PROVIDER_ENV_VARS
+from ..tools.base import ToolDefinition
+from ..tools.loop import ToolCompletion, ToolRequest, run_tool_loop
 from .base import BaseBackend
 
 logger = get_logger(__name__)
@@ -117,7 +121,7 @@ class CloudBackend(BaseBackend):
         tools: Optional[List[Any]],
         stream: bool,
         kwargs: Dict[str, Any],
-    ) -> tuple[str, Dict[str, Any]]:
+    ) -> tuple[str, Dict[str, Any], Dict[str, ToolDefinition]]:
         """
         Prepare parameters for LiteLLM API request.
 
@@ -135,7 +139,7 @@ class CloudBackend(BaseBackend):
             kwargs: Additional parameters
 
         Returns:
-            Tuple of (used_model, params_dict)
+            Tuple of model name, provider parameters, and scoped tool definitions
         """
         used_model = model or self.default_model
 
@@ -157,14 +161,15 @@ class CloudBackend(BaseBackend):
             params["max_tokens"] = max_tokens
 
         # Add tools if provided
+        tool_definitions: Dict[str, ToolDefinition] = {}
         if tools:
             from ..tools import resolve_tools
 
-            resolved_tools = resolve_tools(tools)
-            tool_definitions = [tool_def.to_openai_schema() for tool_def in resolved_tools]
+            tool_definitions = {tool.name: tool for tool in resolve_tools(tools)}
+            tool_schemas = [tool.to_openai_schema() for tool in tool_definitions.values()]
 
-            if tool_definitions:
-                params["tools"] = tool_definitions
+            if tool_schemas:
+                params["tools"] = tool_schemas
                 params["tool_choice"] = "auto"
 
         # Add any additional parameters, filtering out None values and 'messages'
@@ -175,7 +180,7 @@ class CloudBackend(BaseBackend):
         if used_model.startswith("openrouter/") and os.getenv("OPENROUTER_API_KEY"):
             params["api_key"] = os.getenv("OPENROUTER_API_KEY")
 
-        return used_model, params
+        return used_model, params, tool_definitions
 
     def _handle_request_error(self, e: Exception, used_model: str, request_type: str = "request") -> NoReturn:
         """
@@ -296,6 +301,60 @@ class CloudBackend(BaseBackend):
         """Check if backend supports message history format."""
         return True
 
+    def _decode_completion(self, response: Any, used_model: str) -> ToolCompletion:
+        if not response.choices:
+            raise EmptyResponseError(used_model, self.name)
+
+        choice = response.choices[0]
+        message = choice.message
+        requests = [
+            self._decode_tool_request(tool_call, index)
+            for index, tool_call in enumerate(getattr(message, "tool_calls", None) or [])
+        ]
+        usage = getattr(response, "usage", None)
+        hidden = getattr(response, "_hidden_params", None)
+        cost = hidden.get("response_cost") if isinstance(hidden, dict) else None
+        return ToolCompletion(
+            content=str(getattr(message, "content", None) or ""),
+            tool_calls=requests,
+            finish_reason=self._string_or_none(getattr(choice, "finish_reason", None)),
+            tokens_in=self._int_or_none(getattr(usage, "prompt_tokens", None)),
+            tokens_out=self._int_or_none(getattr(usage, "completion_tokens", None)),
+            cost=float(cost) if isinstance(cost, (int, float)) else None,
+        )
+
+    @staticmethod
+    def _decode_tool_request(tool_call: Any, index: int) -> ToolRequest:
+        call_id = str(getattr(tool_call, "id", None) or f"tool_call_{index}")
+        if getattr(tool_call, "type", "function") != "function":
+            return ToolRequest(call_id, "unknown", error="Unsupported tool call type")
+
+        function = getattr(tool_call, "function", None)
+        name = str(getattr(function, "name", None) or "unknown")
+        raw_arguments = getattr(function, "arguments", None) or "{}"
+        if not isinstance(raw_arguments, str):
+            raw_arguments = json.dumps(raw_arguments, default=str)
+        try:
+            arguments = json.loads(raw_arguments)
+            if not isinstance(arguments, dict):
+                raise ValueError("tool arguments must be a JSON object")
+            return ToolRequest(call_id, name, arguments, raw_arguments)
+        except (json.JSONDecodeError, ValueError) as exc:
+            return ToolRequest(
+                call_id,
+                name,
+                raw_arguments=raw_arguments,
+                error=f"Invalid arguments for tool '{name}': {exc}",
+            )
+
+    @staticmethod
+    def _int_or_none(value: Any) -> Optional[int]:
+        return value if isinstance(value, int) and not isinstance(value, bool) else None
+
+    @staticmethod
+    def _string_or_none(value: Any) -> Optional[str]:
+        return value if isinstance(value, str) else None
+
     async def ask(
         self,
         prompt: Union[str, List[Union[str, ImageInput]]],
@@ -322,9 +381,23 @@ class CloudBackend(BaseBackend):
             AIResponse containing the response and metadata
         """
         start_time = time.time()
+        from ..config.manager import get_config_value
 
-        # Use unified parameter preparation
-        used_model, params = self._prepare_params(
+        max_tool_rounds = kwargs.pop("max_tool_rounds", get_config_value("tools.loop.max_rounds", 8))
+        execute_tools_parallel = kwargs.pop(
+            "execute_tools_parallel",
+            get_config_value("tools.loop.parallel", True),
+        )
+        approve_tools = kwargs.pop("approve_tools", False)
+        if not isinstance(max_tool_rounds, int) or isinstance(max_tool_rounds, bool) or max_tool_rounds < 0:
+            raise InvalidParameterError("max_tool_rounds", max_tool_rounds, "Expected a non-negative integer")
+        for name, value in {
+            "execute_tools_parallel": execute_tools_parallel,
+            "approve_tools": approve_tools,
+        }.items():
+            if not isinstance(value, bool):
+                raise InvalidParameterError(name, value, "Expected true or false")
+        used_model, params, tool_definitions = self._prepare_params(
             prompt=prompt,
             model=model,
             system=system,
@@ -335,26 +408,18 @@ class CloudBackend(BaseBackend):
             kwargs=kwargs,
         )
 
-        tool_result = None
-
         try:
             logger.debug(f"Sending request to {used_model}")
             logger.debug(f"Parameters: max_tokens={params.get('max_tokens')}, temperature={params.get('temperature')}")
 
-            response = await self.litellm.acompletion(**params)
-
-            # Handle streaming response if stream=True
             if kwargs.get("stream", False):
-                # Collect all chunks from the stream
+                response = await self.litellm.acompletion(**params)
                 response_content = ""
                 async for chunk in response:
                     if chunk.choices and chunk.choices[0].delta:
                         content = chunk.choices[0].delta.content
                         if content:
                             response_content += str(content)
-
-                # For streaming, we don't have tool calls or other metadata
-                # Just return the content
                 return AIResponse(
                     content=response_content,
                     model=used_model,
@@ -365,90 +430,43 @@ class CloudBackend(BaseBackend):
                     },
                 )
 
-            # Extract response content for non-streaming
-            if not response.choices:
-                raise EmptyResponseError(used_model, self.name)
+            async def complete(messages: List[Dict[str, Any]]) -> ToolCompletion:
+                response = await self.litellm.acompletion(**{**params, "messages": messages})
+                return self._decode_completion(response, used_model)
 
-            response_content = response.choices[0].message.content or ""
-
-            # Handle tool calls if present
-            message = response.choices[0].message
-            if hasattr(message, "tool_calls") and message.tool_calls:
-                # Import tool execution here to avoid circular imports
-                from ..tools import execute_tools
-
-                # Build tool calls data
-                tool_calls_data = []
-
-                for tool_call in message.tool_calls:
-                    if tool_call.type == "function":
-                        func_call = tool_call.function
-                        try:
-                            arguments = json.loads(func_call.arguments) if func_call.arguments else {}
-                        except json.JSONDecodeError:
-                            arguments = {}
-
-                        tool_calls_data.append(
-                            {
-                                "id": tool_call.id,
-                                "name": func_call.name,
-                                "arguments": arguments,
-                            }
-                        )
-
-                # Execute tool calls
-                if tool_calls_data and tools:
-                    # The new executor doesn't need tool definitions map
-                    tool_result = await execute_tools(tool_calls_data, parallel=True)
-
-                    # Update content with tool results if content is empty
-                    if not response_content:
-                        # Generate a response based on tool results
-                        results_summary = []
-                        for call in tool_result.calls:
-                            if call.succeeded:
-                                results_summary.append(f"{call.name}: {call.result}")
-                            else:
-                                results_summary.append(f"{call.name}: Error - {call.error}")
-                        response_content = "Tool execution completed:\n" + "\n".join(results_summary)
-
+            outcome = await run_tool_loop(
+                list(params["messages"]),
+                tool_definitions,
+                complete,
+                max_rounds=max_tool_rounds,
+                parallel=execute_tools_parallel,
+                approved=approve_tools,
+            )
+            response_content = outcome.completion.content
+            if outcome.approval_required and not response_content:
+                response_content = "Tool approval is required before execution."
             if not response_content:
                 raise EmptyResponseError(used_model, self.name)
-
-            time_taken = time.time() - start_time
-
-            # Extract usage information
-            usage = response.usage
-            tokens_in = usage.prompt_tokens if usage else None
-            tokens_out = usage.completion_tokens if usage else None
-
-            # Calculate cost if available
-            cost = None
-            if hasattr(response, "_hidden_params"):
-                try:
-                    if isinstance(response._hidden_params, dict) and "response_cost" in response._hidden_params:
-                        cost = response._hidden_params["response_cost"]
-                except (TypeError, AttributeError):
-                    # Handle mocks or other non-dict types
-                    pass
 
             return AIResponse(
                 response_content,
                 model=used_model,
                 backend=self.name,
-                tokens_in=tokens_in,
-                tokens_out=tokens_out,
-                time_taken=time_taken,
-                tool_result=tool_result,
-                cost=cost,
+                tokens_in=outcome.tokens_in,
+                tokens_out=outcome.tokens_out,
+                time_taken=time.time() - start_time,
+                tool_result=outcome.tool_result,
+                cost=outcome.cost,
                 metadata={
                     "provider": self._get_provider_from_model(used_model),
-                    "finish_reason": response.choices[0].finish_reason,
+                    "finish_reason": (
+                        "tool_approval_required" if outcome.approval_required else outcome.completion.finish_reason
+                    ),
+                    "tool_rounds": outcome.rounds,
                 },
             )
 
-        except EmptyResponseError:
-            # Re-raise EmptyResponseError as-is
+        except (EmptyResponseError, ResponseError):
             raise
         except Exception as e:
             self._handle_request_error(e, used_model)
@@ -480,8 +498,20 @@ class CloudBackend(BaseBackend):
         """
 
         async def _gen() -> AsyncIterator[str]:
-            # Use unified parameter preparation
-            used_model, params = self._prepare_params(
+            if tools:
+                response = await self.ask(
+                    prompt,
+                    model=model,
+                    system=system,
+                    temperature=temperature,
+                    max_tokens=max_tokens,
+                    tools=tools,
+                    **kwargs,
+                )
+                yield str(response)
+                return
+
+            used_model, params, _ = self._prepare_params(
                 prompt=prompt,
                 model=model,
                 system=system,

@@ -7,7 +7,13 @@ import pytest
 
 from matilda_brain.core.api import stateless
 from matilda_brain.core.models import AIResponse
-from matilda_brain.internal.stateless import StatelessRequest, StatelessResponse, execute_stateless
+from matilda_brain.internal.protocol import Proposal, RiskLevel
+from matilda_brain.internal.stateless import (
+    StatelessRequest,
+    StatelessResponse,
+    execute_stateless,
+    execute_stateless_protocol,
+)
 
 
 class TestStatelessRequest:
@@ -78,6 +84,35 @@ class TestStatelessResponse:
         assert resp.finish_reason == "stop"
         assert resp.usage["prompt_tokens"] == 10
         assert resp.model == "gpt-4"
+
+
+class TestStatelessProtocol:
+    def test_completed_tool_calls_return_final_text(self):
+        response = StatelessResponse(
+            content="Final answer",
+            tool_calls=[{"name": "calculate", "result": 42, "succeeded": True}],
+        )
+        with patch("matilda_brain.internal.stateless.execute_stateless", return_value=response):
+            payload = json.loads(execute_stateless_protocol(StatelessRequest("Question")))
+
+        assert payload["kind"] == "text"
+        assert payload["text"] == "Final answer"
+
+    def test_approval_call_returns_original_proposal(self):
+        proposal = Proposal(
+            tool_name="write_file",
+            action_name="execute",
+            params={"file_path": "/tmp/example"},
+            risk_level=RiskLevel.HIGH,
+            reasoning="Approval required",
+        )
+        response = StatelessResponse(content="", tool_calls=[{"proposal": proposal.model_dump(mode="json")}])
+        with patch("matilda_brain.internal.stateless.execute_stateless", return_value=response):
+            payload = json.loads(execute_stateless_protocol(StatelessRequest("Question")))
+
+        assert payload["kind"] == "proposal"
+        assert payload["tool_name"] == "write_file"
+        assert payload["risk_level"] == "high"
 
 
 class TestExecuteStateless:

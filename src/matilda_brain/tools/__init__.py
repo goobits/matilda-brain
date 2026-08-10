@@ -31,6 +31,7 @@ from .base import (
     create_tool_definition,
 )
 from .executor import ToolExecutor, execute_tool, execute_tools, get_execution_stats
+from .loop import ToolCompletion, ToolLoopResult, ToolRequest, run_tool_loop
 from .policy import ExecutionConfig, InputSanitizer, ToolPolicy
 from .registry import (
     ToolRegistry,
@@ -171,4 +172,8 @@ __all__ = [
     "execute_tool",
     "execute_tools",
     "get_execution_stats",
+    "ToolRequest",
+    "ToolCompletion",
+    "ToolLoopResult",
+    "run_tool_loop",
 ]
