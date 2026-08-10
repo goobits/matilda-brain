@@ -8,7 +8,7 @@ from ..internal.utils import get_logger, iterate_async, run_async
 from ..plugins import discover_plugins
 from ..session.chat import PersistentChatSession
 from .models import AIResponse, ImageInput
-from .request import AIRequest, execute_request, stream_request
+from .request import AIRequest, StatelessResponse, execute_request, stream_request
 from .routing import router
 
 logger = get_logger(__name__)
@@ -229,10 +229,7 @@ def chat(
     try:
         yield session
     finally:
-        # No specific cleanup needed here anymore. The session object
-        # can handle its own state. Auto-save logic could be
-        # implemented within PersistentChatSession if desired.
-        pass
+        session.close()
 
 
 # Async versions for advanced users
@@ -353,7 +350,7 @@ async def achat(
     try:
         yield session
     finally:
-        pass
+        session.close()
 
 
 def stateless(
@@ -366,7 +363,7 @@ def stateless(
     temperature: float = 0.7,
     max_tokens: int = 2048,
     **kwargs: Any,
-):
+) -> StatelessResponse:
     """
     Execute a stateless AI request without creating a session.
 

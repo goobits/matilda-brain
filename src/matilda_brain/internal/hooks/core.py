@@ -34,7 +34,7 @@ def on_ask(
     system: Optional[str],
     stream: bool,
     json: bool,
-    **kwargs,
+    **kwargs: Any,
 ) -> None:
     """Hook for 'ask' command.
 
@@ -188,7 +188,7 @@ def on_ask(
         )
 
 
-def on_chat(command_name: str, model: Optional[str], session: Optional[str], tools: bool, **kwargs) -> None:
+def on_chat(command_name: str, model: Optional[str], session: Optional[str], tools: bool, **kwargs: Any) -> None:
     """Hook for 'chat' command.
 
     Starts an interactive chat session with an AI model. Supports session

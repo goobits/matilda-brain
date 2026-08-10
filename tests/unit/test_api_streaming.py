@@ -1,6 +1,6 @@
 """Advanced tests for the API module to increase coverage."""
 
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import pytest
 
@@ -309,9 +309,10 @@ class TestAsyncFunctions:
             async with achat(system="Async system") as session:
                 assert isinstance(session, ChatSession)
                 assert session.system == "Async system"
+                close = Mock(wraps=session.memory.close)
+                session.memory.close = close
 
-                # Can't directly test ask in async context without more setup
-                # but the context manager itself works
+            close.assert_called_once_with()
 
 
 class TestErrorHandling:

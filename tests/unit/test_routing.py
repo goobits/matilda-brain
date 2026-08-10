@@ -6,6 +6,8 @@ import pytest
 
 from matilda_brain import AIResponse, BackendNotAvailableError, ModelInfo
 from matilda_brain.config import model_registry
+from matilda_brain.core import routing
+from matilda_brain.core.models import ImageInput
 from matilda_brain.core.routing import Router
 from matilda_brain.plugins import plugin_registry
 from tests.utils import MockBackend
@@ -155,6 +157,26 @@ class TestSmartRouting:
         assert backend.name == "local"
         assert model == "test-local-model"
 
+    def test_images_force_cloud_vision_routing(self):
+        router = Router()
+        cloud = MockBackend("cloud")
+        router._backends["cloud"] = cloud
+
+        backend, model = router.smart_route(["Describe this", ImageInput(b"image")], backend="local")
+
+        assert backend is cloud
+        assert model == "gpt-4-vision-preview"
+
+    def test_cloud_model_prefix_routes_to_cloud(self):
+        router = Router()
+        cloud = MockBackend("cloud")
+        router._backends["cloud"] = cloud
+
+        backend, model = router.smart_route("Hello", model="anthropic/claude-test")
+
+        assert backend is cloud
+        assert model == "anthropic/claude-test"
+
     # Note: Tests for prefer_local, code_detection, speed_preference,
     # quality_preference, and custom_keywords have been removed as these
     # features were removed from the codebase per user request.
@@ -237,3 +259,89 @@ class TestRouterFallback:
                 assert response.backend == "local"
                 assert response.error is None
                 assert str(response) == "Success"
+
+    @pytest.mark.asyncio
+    async def test_route_with_fallback_disabled_returns_explicit_failure(self):
+        router = Router()
+        primary = MockBackend("cloud")
+        router.config.enable_fallbacks = False
+
+        async def fail(*_args, **_kwargs):
+            return AIResponse("", error="failed", backend="cloud")
+
+        primary.ask = fail
+        with patch.object(router, "smart_route", return_value=(primary, "model")):
+            response = await router.route_with_fallback("Test prompt")
+
+        assert response.failed is True
+        assert response.error == "Primary backend failed and fallbacks disabled"
+
+    @pytest.mark.asyncio
+    async def test_route_with_fallback_reports_when_every_backend_fails(self):
+        router = Router()
+        primary = MockBackend("cloud")
+        unavailable = MockBackend("local")
+        unavailable._is_available = False
+        router.config.enable_fallbacks = True
+        router.config.fallback_order = ["cloud", "local"]
+
+        async def fail(*_args, **_kwargs):
+            raise TimeoutError("primary timeout")
+
+        primary.ask = fail
+        with patch.object(router, "smart_route", return_value=(primary, "model")):
+            with patch.object(router, "get_backend", return_value=unavailable):
+                response = await router.route_with_fallback("Test prompt")
+
+        assert response.failed is True
+        assert response.error == "All backends failed"
+
+
+class TestAutomaticBackendSelection:
+    def test_configured_default_is_used_when_available(self):
+        router = Router()
+        configured = MockBackend("testing")
+        router.config.default_backend = "testing"
+
+        with patch.object(router, "_try_backend_safely", return_value=configured) as try_backend:
+            assert router._auto_select_backend() is configured
+
+        try_backend.assert_called_once_with("testing", "Using configured default backend: testing")
+
+    @pytest.mark.parametrize("backend_name", ["local", "testing"])
+    def test_unavailable_configured_default_fails_clearly(self, backend_name):
+        router = Router()
+        router.config.default_backend = backend_name
+
+        with patch.object(router, "_try_backend_safely", return_value=None):
+            with pytest.raises(BackendNotAvailableError, match=r"configured as default|Configured default backend"):
+                router._auto_select_backend()
+
+    def test_auto_selection_uses_configured_fallback_order(self):
+        router = Router()
+        fallback = MockBackend("hub")
+        router.config.default_backend = "auto"
+        router.config.fallback_order = ["cloud", "local", "hub"]
+
+        def try_backend(name, _message):
+            return fallback if name == "hub" else None
+
+        with patch.object(router, "_try_backend_safely", side_effect=try_backend) as mocked:
+            with patch.object(routing, "HAS_LOCAL_BACKEND", False):
+                assert router._auto_select_backend() is fallback
+
+        assert [call.args[0] for call in mocked.call_args_list] == ["cloud", "hub"]
+
+
+def test_shared_router_can_be_reset(monkeypatch):
+    first = MockBackend("first")
+    second = MockBackend("second")
+    constructed = iter([first, second])
+    monkeypatch.setattr(routing, "Router", lambda: next(constructed))
+    routing.reset_router()
+
+    assert routing.get_router() is first
+    assert routing.get_router() is first
+    routing.reset_router()
+    assert routing.get_router() is second
+    routing.reset_router()

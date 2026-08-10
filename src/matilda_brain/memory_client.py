@@ -25,6 +25,8 @@ class MemoryStore(Protocol):
 
     def get_identity(self, agent: str) -> Optional[Dict[str, Any]]: ...
 
+    def close(self) -> None: ...
+
 
 @dataclass
 class MemoryResult:
@@ -65,6 +67,14 @@ class MemoryClient(MemoryStore):
         except Exception:
             self._available = False
         return self._available
+
+    def close(self) -> None:
+        if self._client is not None:
+            self._client.close()
+            self._client = None
+        self._available = None
+        self._identity_cache = None
+        self._identity_cache_time = 0.0
 
     def query(self, agent: str, question: str, limit: int = 5) -> List[MemoryResult]:
         """Search memory for relevant context."""
@@ -172,6 +182,9 @@ class NullMemory(MemoryStore):
     def get_identity(self, agent: str) -> Optional[Dict[str, Any]]:
         return None
 
+    def close(self) -> None:
+        return None
+
 
 def get_memory(enabled: bool = True, agent_name: str = "assistant") -> MemoryStore:
     """Factory function - returns real client or null implementation."""
@@ -182,5 +195,5 @@ def get_memory(enabled: bool = True, agent_name: str = "assistant") -> MemorySto
     if client.is_available():
         return client
 
-    # Service not running - return null implementation
+    client.close()
     return NullMemory()

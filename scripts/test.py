@@ -1,17 +1,15 @@
 #!/usr/bin/env python3
-"""Unified test runner for Matilda Brain.
+"""Unified test runner for offline, mocked-integration, and real-API suites."""
 
-Runs unit tests (free/fast) and integration tests (costs money, requires API keys).
-"""
 from __future__ import annotations
 
-import sys
-import subprocess
 import argparse
 import os
+import subprocess
+import sys
 import tomllib
-from pathlib import Path
 import venv
+from pathlib import Path
 
 
 def _get_version() -> str:
@@ -29,7 +27,8 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
 def _test_env_python() -> Path:
-    return REPO_ROOT / ".artifacts" / "test" / "test-env" / "bin" / "python"
+    relative_path = Path("Scripts/python.exe") if os.name == "nt" else Path("bin/python")
+    return REPO_ROOT / ".artifacts" / "test" / "test-env" / relative_path
 
 
 def _ensure_test_env() -> None:
@@ -58,21 +57,21 @@ def _ensure_test_env() -> None:
         subprocess.run(
             [str(py), "-m", "pip", "install", "-q", "--disable-pip-version-check", "-e", str(transport_dir)],
             env=env,
-            check=False,
+            check=True,
         )
     subprocess.run(
         [str(py), "-m", "pip", "install", "-q", "--disable-pip-version-check", "-e", ".[dev]"],
         cwd=str(REPO_ROOT),
         env=env,
-        check=False,
+        check=True,
     )
 
     # Re-exec under the test env interpreter for consistent plugin resolution.
-    os.environ["MATILDA_BRAIN_TEST_ENV"] = "1"
-    os.execv(str(py), [str(py), str(Path(__file__).resolve()), *sys.argv[1:]])
+    env["MATILDA_BRAIN_TEST_ENV"] = "1"
+    os.execve(str(py), [str(py), str(Path(__file__).resolve()), *sys.argv[1:]], env)
 
 
-def show_examples():
+def show_examples() -> None:
     """Show comprehensive usage examples."""
     examples = """
 🧪 MATILDA BRAIN TEST RUNNER
@@ -80,8 +79,9 @@ def show_examples():
 BASIC USAGE:
   ./test.py                                    # Run unit tests (default)
   ./test.py unit                               # Run unit tests explicitly
-  ./test.py integration                        # Run integration tests (with confirmation)
-  ./test.py all                                # Run unit tests, then integration
+  ./test.py integration                        # Run integration tests with HTTP mocks
+  ./test.py integration --real-api             # Run paid/network integration tests
+  ./test.py all                                # Run unit + mocked integration tests
 
 OPTIONS:
   ./test.py --coverage                         # Generate coverage report
@@ -91,13 +91,13 @@ OPTIONS:
   ./test.py --parallel 4                       # Run tests with 4 workers
   ./test.py --test test_api                    # Run specific test pattern
   ./test.py --markers "not slow"               # Filter by markers
-  ./test.py --force                            # Skip confirmation prompts
+  ./test.py --force                            # Skip real-API confirmation prompts
 
 EXAMPLES:
   ./test.py unit --coverage --verbose          # Unit tests with coverage
   ./test.py unit --parallel                    # Fast parallel unit tests
-  ./test.py integration --force                # Integration tests, no prompt
-  ./test.py all --force                        # All tests, no prompts
+  ./test.py integration --real-api --force     # Paid integration without prompt
+  ./test.py all --real-api --force             # Unit + paid integration
 
 COST INFORMATION:
   - Unit tests: FREE (uses mocked API calls)
@@ -111,7 +111,7 @@ API KEYS (for integration tests):
     print(examples)
 
 
-def check_api_keys():
+def check_api_keys() -> bool:
     """Check for available API keys and print status."""
     keys = {
         "OPENAI_API_KEY": "OpenAI",
@@ -133,7 +133,7 @@ def check_api_keys():
     return True
 
 
-def check_virtual_env():
+def check_virtual_env() -> None:
     """Check if running in a virtual environment."""
     if os.environ.get("VIRTUAL_ENV"):
         venv_name = os.path.basename(os.environ["VIRTUAL_ENV"])
@@ -143,14 +143,14 @@ def check_virtual_env():
         print("   Consider running: source .venv/bin/activate")
 
 
-def check_xdist():
+def check_xdist() -> bool:
     """Check if pytest-xdist is available."""
     import importlib.util
 
     return importlib.util.find_spec("xdist") is not None
 
 
-def build_pytest_cmd(args, test_type):
+def build_pytest_cmd(args: argparse.Namespace, test_type: str) -> list[str]:
     """Build the pytest command based on arguments and test type."""
     cmd = [sys.executable, "-m", "pytest"]
 
@@ -168,14 +168,19 @@ def build_pytest_cmd(args, test_type):
     if args.markers:
         cmd.extend(["-m", args.markers])
 
+    if args.real_api and test_type == "integration":
+        cmd.append("--real-api")
+
     # Verbose
     if args.verbose:
         cmd.append("-v")
 
     # Coverage
     if args.coverage:
-        cmd.extend(["--cov=matilda_brain", "--cov-report=term-missing", "--cov-report=html:.temp/htmlcov"])
-        print("📊 Coverage report will be generated in .temp/htmlcov/")
+        cmd.extend(["--cov=matilda_brain", "--cov-report=term-missing", "--cov-report=html:.artifacts/coverage/html"])
+        if getattr(args, "coverage_append", False):
+            cmd.append("--cov-append")
+        print("📊 Coverage report will be generated in .artifacts/coverage/html/")
 
     # Parallel execution
     if args.parallel != "off":
@@ -190,22 +195,25 @@ def build_pytest_cmd(args, test_type):
     return cmd
 
 
-def run_tests(cmd):
+def run_tests(cmd: list[str], *, include_external: bool = False, real_api: bool = False) -> int:
     """Run pytest with the given command."""
     print(f"Running: {' '.join(cmd)}")
     print()
     env = os.environ.copy()
-    local_transport = os.path.abspath(
-        os.path.join(os.path.dirname(__file__), "..", "..", "matilda-transport", "src")
-    )
+    if include_external:
+        env["BRAIN_RUN_CRED_TESTS"] = "1"
+    if real_api:
+        env["REAL_API_TESTS"] = "1"
+    local_transport = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "matilda-transport", "src"))
     if os.path.isdir(local_transport):
         existing = env.get("PYTHONPATH", "")
         env["PYTHONPATH"] = f"{local_transport}{os.pathsep}{existing}" if existing else local_transport
+    sys.stdout.flush()
     result = subprocess.run(cmd, env=env)
     return result.returncode
 
 
-def run_unit_tests(args):
+def run_unit_tests(args: argparse.Namespace) -> int:
     """Run unit tests."""
     print("🧪 Running Unit Tests")
     print("=" * 40)
@@ -218,27 +226,33 @@ def run_unit_tests(args):
     if exit_code == 0:
         print("✅ Unit tests passed!")
         if args.coverage:
-            print("📊 Coverage report: .temp/htmlcov/index.html")
+            print("📊 Coverage report: .artifacts/coverage/html/index.html")
     else:
         print(f"❌ Unit tests failed (exit code: {exit_code})")
 
     return exit_code
 
 
-def run_integration_tests(args):
+def run_integration_tests(args: argparse.Namespace) -> int:
     """Run integration tests."""
     print("🧪 Running Integration Tests")
     print("=" * 40)
     print()
 
-    check_api_keys()
-    print()
+    if args.real_api and not check_api_keys():
+        print("❌ Real API tests require at least one configured provider key.")
+        return 2
 
-    print("⚠️  WARNING: These tests will make real API calls and consume credits!")
-    print("💰 Estimated cost: $0.01 - $0.10 depending on models used")
-    print()
+    if args.real_api:
+        print()
+        print("⚠️  WARNING: These tests will make real API calls and consume credits!")
+        print("💰 Estimated cost: $0.01 - $0.10 depending on models used")
+        print()
+    else:
+        print("Using deterministic HTTP mocks; no provider charges will be incurred.")
+        print()
 
-    if not args.force:
+    if args.real_api and not args.force:
         try:
             response = input("Continue with integration tests? [y/N]: ").strip().lower()
             if response != "y":
@@ -250,7 +264,7 @@ def run_integration_tests(args):
 
     print()
     cmd = build_pytest_cmd(args, "integration")
-    exit_code = run_tests(cmd)
+    exit_code = run_tests(cmd, include_external=True, real_api=args.real_api)
 
     print()
     if exit_code == 0:
@@ -261,7 +275,7 @@ def run_integration_tests(args):
     return exit_code
 
 
-def main():
+def main() -> int:
     """Main entry point."""
     _ensure_test_env()
 
@@ -287,6 +301,7 @@ def main():
     parser.add_argument("--test", "-t", help="Run specific test file or pattern")
     parser.add_argument("--markers", "-m", help="Run tests matching marker expression")
     parser.add_argument("--force", "-f", action="store_true", help="Skip confirmation prompts")
+    parser.add_argument("--real-api", action="store_true", help="Use real provider APIs instead of HTTP mocks")
     parser.add_argument("--version", action="store_true", help="Show version")
 
     args = parser.parse_args()
@@ -330,6 +345,7 @@ def main():
 
         print()
         args.force = True  # Skip prompt for subsequent tests
+        args.coverage_append = args.coverage
         exit_code = run_integration_tests(args)
 
         if exit_code == 0:

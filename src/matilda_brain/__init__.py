@@ -4,21 +4,23 @@ The Unified AI Library
 A single, elegant interface for local and cloud AI models.
 """
 
+from __future__ import annotations
+
 import tomllib
 from importlib import import_module, metadata
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, cast
 
 
-def _get_model_registry():
+def _get_model_registry() -> ModelRegistry:
     from .config import model_registry
 
-    return model_registry
+    return cast("ModelRegistry", model_registry)
 
 
 # Create a lazy proxy for model_registry
 class _ModelRegistryProxy:
-    def __getattr__(self, name: str):
+    def __getattr__(self, name: str) -> Any:
         return getattr(_get_model_registry(), name)
 
 
@@ -64,7 +66,7 @@ if TYPE_CHECKING:
     from .tools.base import ToolCall, ToolDefinition, ToolResult
 
 
-model_registry: "ModelRegistry" = _ModelRegistryProxy()  # type: ignore[assignment]
+model_registry = cast("ModelRegistry", _ModelRegistryProxy())
 
 _EXPORTS = {
     "ask": (".core.api", "ask"),
@@ -124,7 +126,7 @@ _EXPORTS = {
 }
 
 
-def __getattr__(name: str):
+def __getattr__(name: str) -> Any:
     if name == "model_registry":
         return model_registry
 

@@ -28,7 +28,7 @@ def on_ask(
     stream: Optional[bool] = None,
     no_stream: Optional[bool] = None,
     json: bool = False,
-    **kwargs,
+    **kwargs: Any,
 ) -> None:
     if stream and no_stream:
         raise ValueError("--stream and --no-stream cannot be used together")
@@ -54,7 +54,7 @@ def on_chat(
     session: Optional[str] = None,
     tools: Optional[bool] = None,
     markdown: Optional[bool] = None,
-    **kwargs,
+    **kwargs: Any,
 ) -> None:
     internal_hooks.on_chat(
         command_name="chat",
@@ -75,7 +75,7 @@ def on_stateless(
     model: Optional[str] = None,
     temperature: Optional[float] = None,
     max_tokens: Optional[int] = None,
-    **kwargs,
+    **kwargs: Any,
 ) -> None:
     internal_hooks.on_stateless(
         command_name="stateless",
@@ -91,7 +91,7 @@ def on_stateless(
 
 
 @_uses_cli_config
-def on_list(format: Optional[str] = None, **kwargs) -> None:
+def on_list(format: Optional[str] = None, **kwargs: Any) -> None:
     if "show_secrets" in kwargs:
         internal_hooks.on_config_list(command_name="config", show_secrets=bool(kwargs["show_secrets"]))
         return
@@ -110,17 +110,17 @@ def on_list(format: Optional[str] = None, **kwargs) -> None:
 
 
 @_uses_cli_config
-def on_status(json: bool = False, **kwargs) -> None:
+def on_status(json: bool = False, **kwargs: Any) -> None:
     internal_hooks.on_status(command_name="status", json=bool(json), **kwargs)
 
 
 @_uses_cli_config
-def on_models(json: bool = False, **kwargs) -> None:
+def on_models(json: bool = False, **kwargs: Any) -> None:
     internal_hooks.on_models(command_name="models", json=bool(json), **kwargs)
 
 
 @_uses_cli_config
-def on_info(model: Optional[str] = None, json: bool = False, **kwargs) -> None:
+def on_info(model: Optional[str] = None, json: bool = False, **kwargs: Any) -> None:
     internal_hooks.on_info(command_name="info", model=model, json=bool(json), **kwargs)
 
 
@@ -130,7 +130,7 @@ def on_export(
     format: Optional[str] = None,
     output: Optional[str] = None,
     include_metadata: Optional[bool] = None,
-    **kwargs,
+    **kwargs: Any,
 ) -> None:
     internal_hooks.on_export(
         command_name="export",
@@ -143,51 +143,51 @@ def on_export(
 
 
 @_uses_cli_config
-def on_get(key: str, **kwargs) -> None:
+def on_get(key: str, **kwargs: Any) -> None:
     internal_hooks.on_config_get(command_name="config", key=key, **kwargs)
 
 
 @_uses_cli_config
-def on_set(key: str, value: str, **kwargs) -> None:
+def on_set(key: str, value: str, **kwargs: Any) -> None:
     internal_hooks.on_config_set(command_name="config", key=key, value=value, **kwargs)
 
 
 @_uses_cli_config
-def on_enable(tool_name: str, **kwargs) -> None:
+def on_enable(tool_name: str, **kwargs: Any) -> None:
     internal_hooks.on_tools_enable(command_name="tools", tool_name=tool_name, **kwargs)
 
 
 @_uses_cli_config
-def on_disable(tool_name: str, **kwargs) -> None:
+def on_disable(tool_name: str, **kwargs: Any) -> None:
     internal_hooks.on_tools_disable(command_name="tools", tool_name=tool_name, **kwargs)
 
 
-def on_config_get(key: str, **kwargs) -> None:
+def on_config_get(key: str, **kwargs: Any) -> None:
     on_get(key=key, **kwargs)
 
 
-def on_config_set(key: str, value: str, **kwargs) -> None:
+def on_config_set(key: str, value: str, **kwargs: Any) -> None:
     on_set(key=key, value=value, **kwargs)
 
 
 @_uses_cli_config
-def on_config_list(show_secrets: bool = False, **kwargs) -> None:
+def on_config_list(show_secrets: bool = False, **kwargs: Any) -> None:
     internal_hooks.on_config_list(command_name="config", show_secrets=bool(show_secrets), **kwargs)
 
 
-def on_tools_enable(tool_name: str, **kwargs) -> None:
+def on_tools_enable(tool_name: str, **kwargs: Any) -> None:
     on_enable(tool_name=tool_name, **kwargs)
 
 
-def on_tools_disable(tool_name: str, **kwargs) -> None:
+def on_tools_disable(tool_name: str, **kwargs: Any) -> None:
     on_disable(tool_name=tool_name, **kwargs)
 
 
 @_uses_cli_config
-def on_tools_list(show_disabled: bool = False, **kwargs) -> None:
+def on_tools_list(show_disabled: bool = False, **kwargs: Any) -> None:
     internal_hooks.on_tools_list(command_name="tools", show_disabled=bool(show_disabled), **kwargs)
 
 
 @_uses_cli_config
-def on_serve(host: Optional[str] = None, port: Optional[int] = None, **kwargs) -> None:
+def on_serve(host: Optional[str] = None, port: Optional[int] = None, **kwargs: Any) -> None:
     internal_hooks.on_serve(command_name="serve", host=host or "127.0.0.1", port=port or 8772, **kwargs)

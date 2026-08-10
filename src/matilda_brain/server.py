@@ -23,6 +23,7 @@ from datetime import datetime, timezone
 from typing import Any, Optional, Sequence, TypeVar
 
 from aiohttp import web
+from aiohttp.typedefs import Handler, Middleware
 from aiohttp.web import Request, Response, StreamResponse
 from matilda_transport import (  # type: ignore[import-untyped]
     ensure_pipe_supported,
@@ -71,11 +72,11 @@ ALLOWED_ORIGINS_CONTEXT: ContextVar[Sequence[str]] = ContextVar("allowed_origins
 _session_manager: Optional[ChatSessionManager] = None
 
 
-def security_middleware(api_token: str, allowed_origins: Sequence[str]):
+def security_middleware(api_token: str, allowed_origins: Sequence[str]) -> Middleware:
     """Create request-scoped authentication and CORS policy middleware."""
 
     @web.middleware
-    async def middleware(request: Request, handler):
+    async def middleware(request: Request, handler: Handler) -> StreamResponse:
         context_token = ALLOWED_ORIGINS_CONTEXT.set(allowed_origins)
         try:
             if request.path in {"/", "/health"} or request.method == "OPTIONS":
@@ -136,7 +137,7 @@ def ok_response(
     task: str,
     payload: Any,
     request: Request,
-    schema_model=None,
+    schema_model: Optional[type[BaseModel]] = None,
     provider: Optional[str] = None,
     model_name: Optional[str] = None,
     usage: Optional[dict[str, Any]] = None,
@@ -274,20 +275,19 @@ async def handle_ask(request: Request) -> Response:
             if message.role != "system"
         ]
 
-        session = PersistentChatSession(
+        async with PersistentChatSession(
             system=system,
             model=request_data.model,
             agent_name=agent_name,
             memory_enabled=memory_enabled,
-        )
-        session.history = history_messages
-
-        response = await session.ask_async(
-            request_data.prompt,
-            model=request_data.model,
-            temperature=request_data.temperature,
-            max_tokens=request_data.max_tokens,
-        )
+        ) as session:
+            session.history = history_messages
+            response = await session.ask_async(
+                request_data.prompt,
+                model=request_data.model,
+                temperature=request_data.temperature,
+                max_tokens=request_data.max_tokens,
+            )
 
         provider = response.metadata.get("provider") or response.backend
         usage = (
@@ -318,7 +318,7 @@ def stream_payload(
     result: Optional[dict[str, Any]] = None,
     error: Optional[dict[str, Any]] = None,
 ) -> dict[str, Any]:
-    payload = {
+    payload: dict[str, Any] = {
         "request_id": request_id,
         "service": "brain",
         "task": "stream",

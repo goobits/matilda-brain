@@ -270,8 +270,6 @@ class TestCLIParameterValidation(IntegrationTestBase):
         assert result.exit_code == 0, f"Config get failed: {result.output}"
         assert "gpt-4" in result.output, f"Config get didn't return expected value: {result.output}"
 
-    @pytest.mark.requires_credentials
-    @pytest.mark.requires_network
     def test_mocked_ask_parameter_validation(self):
         """Test ask command parameter conversion with mocked hooks to verify exact parameter passing."""
         with patch("matilda_brain.app_hooks.on_ask") as mock_ask:
@@ -304,11 +302,12 @@ class TestCLIParameterValidation(IntegrationTestBase):
             kwargs = mock_ask.call_args[1]
 
             # Verify all parameters were passed correctly with proper types
-            assert kwargs["prompt"] == "test prompt for mocked validation"
+            assert kwargs["prompt"] == ("test prompt for mocked validation",)
             assert kwargs["model"] == "gpt-4"
             assert kwargs["temperature"] == 0.7  # Float conversion
             assert kwargs["max_tokens"] == 100  # Int conversion
             assert kwargs["tools"] is True  # Bool conversion
             assert kwargs["session"] == "mock-test-session"
             assert kwargs["system"] == "You are helpful for testing"
-            assert kwargs["stream"] is True  # Bool conversion
+            assert kwargs["stream"] is False  # Default is applied by the hook adapter
+            assert kwargs["no_stream"] is False

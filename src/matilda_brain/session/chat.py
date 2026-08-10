@@ -5,6 +5,7 @@ import os
 import warnings
 from datetime import datetime
 from pathlib import Path
+from types import TracebackType
 from typing import Any, AsyncIterator, Dict, Iterator, List, Optional, Union
 
 from ..backends import BaseBackend
@@ -113,8 +114,16 @@ class PersistentChatSession:
     async def __aenter__(self) -> "PersistentChatSession":
         return self
 
-    async def __aexit__(self, exc_type, exc, tb) -> None:
-        return None
+    async def __aexit__(
+        self,
+        exc_type: Optional[type[BaseException]],
+        exc: Optional[BaseException],
+        tb: Optional[TracebackType],
+    ) -> None:
+        self.close()
+
+    def close(self) -> None:
+        self.memory.close()
 
     def _generate_session_id(self) -> str:
         """Generate a unique session ID."""
@@ -193,19 +202,15 @@ class PersistentChatSession:
         messages = ([{"role": "system", "content": system_content}] if system_content else []) + [
             {"role": message["role"], "content": message["content"]} for message in self.history
         ]
-        supports_messages = hasattr(self.backend, "supports_messages")
-        request_prompt = (
-            self._messages_to_conversation(messages)
-            if supports_messages and not self.backend.supports_messages
-            else prompt
-        )
+        supports_messages = getattr(self.backend, "supports_messages", None)
+        request_prompt = self._messages_to_conversation(messages) if supports_messages is False else prompt
         request = AIRequest(
             prompt=request_prompt,
             model=model or self.model,
             system=system_content if len(self.history) == 1 else None,
             backend=self.backend,
             tools=self.tools,
-            messages=messages if supports_messages else None,
+            messages=messages if supports_messages is not None else None,
             include_messages=True,
             route=False,
             options={**self.kwargs, **options},

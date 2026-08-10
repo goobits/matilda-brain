@@ -45,7 +45,7 @@ class ModelRegistry:
                         ModelInfo(
                             name=model_name,
                             provider=model_config.get("provider", ""),
-                            provider_name=model_config.get("provider_name", model_name),
+                            provider_name=str(model_config.get("provider_name") or model_name),
                             aliases=model_config.get("aliases", []),
                             speed=model_config.get("speed", "medium"),
                             quality=model_config.get("quality", "medium"),

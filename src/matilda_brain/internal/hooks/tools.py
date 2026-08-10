@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Hook handlers for TTT CLI."""
 
+from typing import Any
+
 import rich_click as click
 from rich.console import Console
 
@@ -9,7 +11,7 @@ console = Console()
 from matilda_brain.config.manager import ConfigManager
 
 
-def on_tools_enable(command_name: str, tool_name: str, **kwargs) -> None:
+def on_tools_enable(command_name: str, tool_name: str, **kwargs: Any) -> None:
     """Hook for 'tools enable' subcommand.
 
     Removes a tool from the disabled list, making it available for use.
@@ -29,7 +31,7 @@ def on_tools_enable(command_name: str, tool_name: str, **kwargs) -> None:
         click.echo(f"Tool '{tool_name}' is already enabled")
 
 
-def on_tools_disable(command_name: str, tool_name: str, **kwargs) -> None:
+def on_tools_disable(command_name: str, tool_name: str, **kwargs: Any) -> None:
     """Hook for 'tools disable' subcommand.
 
     Adds a tool to the disabled list, preventing it from being used.
@@ -49,7 +51,7 @@ def on_tools_disable(command_name: str, tool_name: str, **kwargs) -> None:
         click.echo(f"Tool '{tool_name}' is already disabled")
 
 
-def on_tools_list(command_name: str, show_disabled: bool, **kwargs) -> None:
+def on_tools_list(command_name: str, show_disabled: bool, **kwargs: Any) -> None:
     """Hook for 'tools list' subcommand.
 
     Lists all available tools with their status (enabled/disabled).

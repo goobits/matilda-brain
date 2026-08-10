@@ -49,13 +49,6 @@ no_implicit_optional = true
 warn_unused_ignores = true
 cache_dir = ".artifacts/cache/mypy"
 exclude = "(^|/)cli\\.py$$"
-[[tool.mypy.overrides]]
-module = [ "matilda_brain.cli",]
-ignore_errors = true
-
-[[tool.mypy.overrides]]
-module = [ "matilda_brain.app_hooks", "matilda_brain.commands.memory", "matilda_brain.config.schema", "matilda_brain.core.api", "matilda_brain.internal.hooks.config", "matilda_brain.internal.hooks.core", "matilda_brain.internal.hooks.models", "matilda_brain.internal.hooks.server", "matilda_brain.internal.hooks.tools", "matilda_brain.server", "matilda_brain.session.chat", "matilda_brain.__init__", "matilda_brain",]
-ignore_errors = true
 
 [tool.setuptools]
 zip-safe = false
@@ -77,6 +70,9 @@ addopts = [ "--strict-markers", "-ra",]
 
 [tool.coverage.run]
 data_file = ".artifacts/cache/.coverage"
+
+[tool.coverage.report]
+show_missing = true
 
 [tool.ruff.lint.per-file-ignores]
 "src/matilda_brain/internal/hooks/*.py" = [ "E402",]

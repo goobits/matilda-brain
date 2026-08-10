@@ -3,7 +3,7 @@
 
 import json as json_module
 from pathlib import Path
-from typing import Optional, Tuple
+from typing import Any, Optional, Tuple
 
 from rich.console import Console
 
@@ -21,7 +21,7 @@ def on_stateless(
     model: Optional[str],
     temperature: float,
     max_tokens: int,
-    **kwargs,
+    **kwargs: Any,
 ) -> None:
     """Hook for 'stateless' command.
 
@@ -127,7 +127,7 @@ def on_serve(
     command_name: str,
     host: str = "127.0.0.1",
     port: int = 8772,
-    **kwargs,
+    **kwargs: Any,
 ) -> None:
     """Hook for 'serve' command.
 

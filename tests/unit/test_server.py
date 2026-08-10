@@ -6,6 +6,7 @@ from aiohttp.test_utils import TestClient, TestServer
 from matilda_brain import server
 from matilda_brain.core.exceptions import BackendTimeoutError
 from matilda_brain.core.models import AIResponse
+from matilda_brain.session.manager import ChatMessage, ChatSession
 
 TOKEN = "test-token"
 AUTH_HEADERS = {"Authorization": f"Bearer {TOKEN}"}
@@ -41,6 +42,16 @@ async def test_health_is_public_but_api_routes_require_a_well_formed_token(clien
 
 
 @pytest.mark.asyncio
+async def test_preflight_only_echoes_allowed_origins(client):
+    allowed = await client.options("/ask", headers={"Origin": "https://app.test"})
+    denied = await client.options("/ask", headers={"Origin": "https://other.test"})
+
+    assert allowed.status == denied.status == 200
+    assert allowed.headers["Access-Control-Allow-Origin"] == "https://app.test"
+    assert "Access-Control-Allow-Origin" not in denied.headers
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     ("body", "content_type", "expected_message"),
     [
@@ -70,7 +81,14 @@ async def test_ask_uses_validated_async_session_and_preserves_supported_fields(c
             self.kwargs = kwargs
             self.history = []
             self.ask_args = None
+            self.closed = False
             instances.append(self)
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *_args):
+            self.closed = True
 
         async def ask_async(self, prompt, **kwargs):
             self.ask_args = (prompt, kwargs)
@@ -124,6 +142,7 @@ async def test_ask_uses_validated_async_session_and_preserves_supported_fields(c
         "hello",
         {"model": "test-model", "temperature": 0.4, "max_tokens": 80},
     )
+    assert session.closed is True
 
 
 @pytest.mark.asyncio
@@ -140,6 +159,30 @@ async def test_ask_rejects_unsafe_agent_header_before_session_creation(client, m
 
     assert response.status == 400
     assert (await response.json())["error"]["code"] == "invalid_request"
+
+
+@pytest.mark.asyncio
+async def test_ask_never_exposes_unexpected_exception_details(client, monkeypatch):
+    class FailingSession:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *_args):
+            return None
+
+        def __init__(self, **_kwargs):
+            self.history = []
+
+        async def ask_async(self, *_args, **_kwargs):
+            raise RuntimeError("secret internal detail")
+
+    monkeypatch.setattr(server, "PersistentChatSession", FailingSession)
+    response = await client.post("/ask", json={"prompt": "hello"}, headers=AUTH_HEADERS)
+    payload = await response.json()
+
+    assert response.status == 500
+    assert payload["error"]["message"] == "Internal server error"
+    assert "secret" not in json.dumps(payload)
 
 
 @pytest.mark.asyncio
@@ -182,6 +225,66 @@ async def test_stream_sanitizes_backend_errors_and_keeps_request_id(client, monk
         "retryable": True,
     }
     assert len({event["request_id"] for event in events}) == 1
+
+
+@pytest.mark.asyncio
+async def test_session_endpoints_keep_one_envelope_contract(client, monkeypatch):
+    session = ChatSession(
+        id="chat_123",
+        created_at="2026-01-01T00:00:00",
+        updated_at="2026-01-01T00:01:00",
+        messages=[ChatMessage(role="user", content="hello", timestamp="2026-01-01T00:00:00")],
+        model=None,
+    )
+
+    class FakeManager:
+        def list_sessions(self):
+            return [
+                {
+                    "id": session.id,
+                    "created_at": session.created_at,
+                    "updated_at": session.updated_at,
+                    "message_count": 1,
+                    "last_message": "hello",
+                    "model": None,
+                }
+            ]
+
+        def load_session(self, session_id):
+            return session if session_id == session.id else None
+
+        def delete_session(self, session_id):
+            return session_id == session.id
+
+    monkeypatch.setattr(server, "get_session_manager", lambda: FakeManager())
+
+    listed = await client.get("/api/sessions", headers=AUTH_HEADERS)
+    loaded = await client.get(f"/api/sessions/{session.id}", headers=AUTH_HEADERS)
+    missing = await client.get("/api/sessions/missing", headers=AUTH_HEADERS)
+    deleted = await client.delete(f"/api/sessions/{session.id}", headers=AUTH_HEADERS)
+    delete_missing = await client.delete("/api/sessions/missing", headers=AUTH_HEADERS)
+
+    assert listed.status == loaded.status == deleted.status == 200
+    assert (await listed.json())["result"][0]["model"] is None
+    assert (await loaded.json())["result"]["messages"][0]["content"] == "hello"
+    assert (await deleted.json())["result"] == {"id": session.id}
+    assert missing.status == delete_missing.status == 404
+
+
+@pytest.mark.asyncio
+async def test_reload_replaces_active_config(client, monkeypatch):
+    from matilda_brain.config import schema
+
+    replacement = object()
+    captured = []
+    monkeypatch.setattr(schema, "load_config", lambda: replacement)
+    monkeypatch.setattr(schema, "set_config", captured.append)
+
+    response = await client.post("/reload", headers=AUTH_HEADERS)
+
+    assert response.status == 200
+    assert (await response.json())["result"] == {"message": "Configuration reloaded"}
+    assert captured == [replacement]
 
 
 def test_create_app_with_explicit_policy_has_no_token_or_origin_side_effects(monkeypatch):

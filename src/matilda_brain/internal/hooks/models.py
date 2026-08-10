@@ -259,7 +259,7 @@ def show_backend_status(json_output: bool = False) -> None:
 # Add hook functions for missing commands that need to be added to CLI
 
 
-def on_status(command_name: str, json: bool, **kwargs) -> None:
+def on_status(command_name: str, json: bool, **kwargs: Any) -> None:
     """Hook for 'status' command.
 
     Shows the overall status of TTT backends and connectivity.
@@ -270,7 +270,7 @@ def on_status(command_name: str, json: bool, **kwargs) -> None:
     show_backend_status(json_output=json)
 
 
-def on_models(command_name: str, json: bool, **kwargs) -> None:
+def on_models(command_name: str, json: bool, **kwargs: Any) -> None:
     """Hook for 'models' command.
 
     Lists all available AI models with their details.
@@ -281,7 +281,7 @@ def on_models(command_name: str, json: bool, **kwargs) -> None:
     show_models_list(json_output=json)
 
 
-def on_info(command_name: str, model: Optional[str] = None, json: bool = False, **kwargs) -> None:
+def on_info(command_name: str, model: Optional[str] = None, json: bool = False, **kwargs: Any) -> None:
     """Hook for 'info' command.
 
     Shows detailed information about a specific AI model.

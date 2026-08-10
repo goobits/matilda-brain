@@ -10,13 +10,13 @@ console = Console()
 
 
 @click.group(name="memory")
-def memory_group():
+def memory_group() -> None:
     """Manage agent memory and knowledge."""
     pass
 
 
 @memory_group.command(name="status")
-def status_command():
+def status_command() -> None:
     """Check memory service status."""
     client = get_memory()
     if isinstance(client, MemoryClient) and client.is_available():
@@ -30,7 +30,7 @@ def status_command():
 @memory_group.command(name="search")
 @click.argument("query")
 @click.option("--agent", default="assistant", help="Agent name to search")
-def search_command(query: str, agent: str):
+def search_command(query: str, agent: str) -> None:
     """Search knowledge base."""
     client = get_memory(agent_name=agent)
 
@@ -63,7 +63,7 @@ def search_command(query: str, agent: str):
 @click.argument("path")
 @click.argument("content")
 @click.option("--agent", default="assistant", help="Agent name")
-def add_command(path: str, content: str, agent: str):
+def add_command(path: str, content: str, agent: str) -> None:
     """Add knowledge manually."""
     client = get_memory(agent_name=agent)
     if client.add_knowledge(agent, path, content, commit_message="Manual addition via CLI"):

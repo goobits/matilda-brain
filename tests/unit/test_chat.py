@@ -502,6 +502,13 @@ class TestChatContextManager:
         with chat(session_id="custom_123") as session:
             assert session.metadata["session_id"] == "custom_123"
 
+    def test_chat_closes_memory_client(self):
+        with chat(backend=MockBackend(), memory_enabled=False) as session:
+            close = Mock(wraps=session.memory.close)
+            session.memory.close = close
+
+        close.assert_called_once_with()
+
     def test_save_and_resume_workflow(self, tmp_path):
         """Test the save and resume workflow."""
         save_path = tmp_path / "workflow_test.json"

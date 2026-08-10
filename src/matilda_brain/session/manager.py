@@ -3,7 +3,7 @@
 import json
 import uuid
 from dataclasses import asdict, dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -53,7 +53,13 @@ class ChatSession:
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "ChatSession":
         """Create session from dictionary."""
-        messages = [ChatMessage(**msg) for msg in data.get("messages", [])]
+        for key in ("id", "created_at", "updated_at"):
+            if not isinstance(data.get(key), str):
+                raise ValueError(f"Invalid session field: {key}")
+        messages_data = data.get("messages", [])
+        if not isinstance(messages_data, list) or not all(isinstance(message, dict) for message in messages_data):
+            raise ValueError("Invalid session field: messages")
+        messages = [ChatMessage(**message) for message in messages_data]
         return cls(
             id=data["id"],
             created_at=data["created_at"],
@@ -85,13 +91,13 @@ class ChatSessionManager:
         tools: Optional[List[str]] = None,
     ) -> ChatSession:
         """Create a new chat session."""
-        now = datetime.utcnow().isoformat()
-        session_id = datetime.utcnow().strftime("%Y%m%d_%H%M%S_") + str(uuid.uuid4())[:8]
+        now = datetime.now(timezone.utc)
+        session_id = now.strftime("%Y%m%d_%H%M%S_") + str(uuid.uuid4())[:8]
 
         session = ChatSession(
             id=session_id,
-            created_at=now,
-            updated_at=now,
+            created_at=now.isoformat(),
+            updated_at=now.isoformat(),
             messages=[],
             model=model,
             system_prompt=system_prompt,
@@ -122,13 +128,19 @@ class ChatSessionManager:
             return None
 
         try:
-            with open(session_file) as f:
-                data = json.load(f)
-            return ChatSession.from_dict(data)
+            return self._load_session_file(session_file)
         except Exception as e:
-            logger.exception(f"Error loading session {session_id}")
+            logger.exception("Error loading session %s", session_id)
             console.print(f"[red]Error loading session {session_id}: {e}[/red]")
             return None
+
+    @staticmethod
+    def _load_session_file(session_file: Path) -> ChatSession:
+        with open(session_file) as file:
+            data = json.load(file)
+        if not isinstance(data, dict):
+            raise ValueError("Session file must contain an object")
+        return ChatSession.from_dict(data)
 
     def load_last_session(self) -> Optional[ChatSession]:
         """Load the most recently modified session."""
@@ -145,7 +157,7 @@ class ChatSessionManager:
 
     def save_session(self, session: ChatSession) -> None:
         """Save a session to disk."""
-        session.updated_at = datetime.utcnow().isoformat()
+        session.updated_at = datetime.now(timezone.utc).isoformat()
         self._save_session(session)
 
     def _save_session(self, session: ChatSession) -> None:
@@ -173,7 +185,7 @@ class ChatSessionManager:
         message = ChatMessage(
             role=role,
             content=content,
-            timestamp=datetime.utcnow().isoformat(),
+            timestamp=datetime.now(timezone.utc).isoformat(),
             model=model,
         )
         session.messages.append(message)
@@ -181,35 +193,25 @@ class ChatSessionManager:
 
     def list_sessions(self) -> List[Dict[str, Any]]:
         """List all available sessions with metadata."""
-        sessions = []
+        sessions: List[Dict[str, Any]] = []
 
         for session_file in self.sessions_dir.glob("*.json"):
             try:
-                # Get basic info without loading full session
-                session_file.stat()
-                session_id = session_file.stem
-
-                # Load just enough to get message count and last message
-                with open(session_file) as f:
-                    data = json.load(f)
-
-                messages = data.get("messages", [])
-                last_message = messages[-1] if messages else None
+                session = self._load_session_file(session_file)
+                last_message = session.messages[-1] if session.messages else None
 
                 sessions.append(
                     {
-                        "id": session_id,
-                        "created_at": data.get("created_at", "Unknown"),
-                        "updated_at": data.get("updated_at", "Unknown"),
-                        "message_count": len(messages),
-                        "last_message": (
-                            last_message.get("content", "")[:50] + "..." if last_message else "Empty session"
-                        ),
-                        "model": data.get("model", "default"),
+                        "id": session.id,
+                        "created_at": session.created_at,
+                        "updated_at": session.updated_at,
+                        "message_count": len(session.messages),
+                        "last_message": last_message.content[:50] + "..." if last_message else "Empty session",
+                        "model": session.model,
                     }
                 )
             except Exception as e:
-                logger.exception(f"Could not read session {session_file.name}")
+                logger.exception("Could not read session %s", session_file.name)
                 console.print(f"[yellow]Warning: Could not read session {session_file.name}: {e}[/yellow]")
 
         # Sort by updated_at, newest first
