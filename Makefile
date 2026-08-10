@@ -22,7 +22,7 @@ test-fast: ## Run tests without rate limiting delays
 	@BRAIN_RUN_CRED_TESTS=0 REAL_API_TESTS=0 $(PY) -m pytest tests/ -x -q --fast
 
 test-coverage: ## Run the full offline suite with the coverage floor
-	@BRAIN_RUN_CRED_TESTS=0 REAL_API_TESTS=0 $(PY) -m pytest tests/ -q --fast --timeout=20 --cov=matilda_brain --cov-report=term-missing:skip-covered --cov-fail-under=70
+	@BRAIN_RUN_CRED_TESTS=0 REAL_API_TESTS=0 $(PY) -m pytest tests/ -q --fast --timeout=20 --cov=src/matilda_brain --cov-report=term-missing:skip-covered --cov-fail-under=70
 
 lint: ## Run linting with ruff
 	@echo "Running linter..."

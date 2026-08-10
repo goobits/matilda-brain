@@ -177,7 +177,9 @@ def build_pytest_cmd(args: argparse.Namespace, test_type: str) -> list[str]:
 
     # Coverage
     if args.coverage:
-        cmd.extend(["--cov=matilda_brain", "--cov-report=term-missing", "--cov-report=html:.artifacts/coverage/html"])
+        cmd.extend(
+            ["--cov=src/matilda_brain", "--cov-report=term-missing", "--cov-report=html:.artifacts/coverage/html"]
+        )
         if getattr(args, "coverage_append", False):
             cmd.append("--cov-append")
         print("📊 Coverage report will be generated in .artifacts/coverage/html/")

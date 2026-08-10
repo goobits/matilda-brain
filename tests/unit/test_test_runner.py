@@ -36,7 +36,10 @@ def test_real_api_flag_is_forwarded_only_to_integration_pytest():
 def test_second_coverage_slice_appends_to_the_first():
     args = runner_args(coverage=True, coverage_append=True)
 
-    assert "--cov-append" in test_runner.build_pytest_cmd(args, "integration")
+    command = test_runner.build_pytest_cmd(args, "integration")
+
+    assert "--cov=src/matilda_brain" in command
+    assert "--cov-append" in command
 
 
 def test_run_tests_marks_external_and_real_api_modes(monkeypatch):
