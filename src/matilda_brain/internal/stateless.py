@@ -1,10 +1,15 @@
 """Stateless entry point for TTT - accepts message, history, tools without creating sessions."""
 
 import json
-from dataclasses import dataclass, field
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from ..core.models import AIResponse
+from ..core.request import (
+    AIRequest,
+    StatelessRequest,
+    StatelessResponse,
+    execute_request_with_model,
+)
 from ..core.routing import router
 from .protocol import ContentKind, Message, Proposal, RiskLevel, Role
 from .utils import get_logger, run_async
@@ -12,144 +17,68 @@ from .utils import get_logger, run_async
 logger = get_logger(__name__)
 
 
-@dataclass
-class StatelessRequest:
-    """Request for stateless TTT execution.
-
-    Attributes:
-        message: User message to send
-        system: System prompt to set context (optional)
-        history: Conversation history in standard format (optional)
-        tools: List of tool names or functions to enable (optional)
-        model: Specific model to use (optional)
-        temperature: Sampling temperature 0-2 (default: 0.7)
-        max_tokens: Maximum tokens to generate (default: 2048)
-        timeout: Request timeout in seconds (default: 30)
-    """
-
-    message: str
-    system: Optional[str] = None
-    history: List[Dict[str, str]] = field(default_factory=list)
-    tools: Optional[List[str]] = None
-    model: Optional[str] = None
-    temperature: float = 0.7
-    max_tokens: int = 2048
-    timeout: int = 30
-
-
-@dataclass
-class StatelessResponse:
-    """Response from stateless TTT execution.
-
-    Attributes:
-        content: The response content/text
-        tool_calls: List of tool calls requested by the model (optional)
-        finish_reason: Reason for completion (default: "stop")
-        usage: Token usage statistics (optional)
-        model: Model that generated the response (optional)
-    """
-
-    content: str
-    tool_calls: Optional[List[Dict]] = None
-    finish_reason: str = "stop"
-    usage: Optional[Dict] = None
-    model: Optional[str] = None
-
-
-def execute_stateless(req: StatelessRequest) -> StatelessResponse:
-    """Execute a stateless TTT request and return a StatelessResponse.
-
-    This function processes a single request without creating or persisting
-    any session state. It builds messages from system prompt, history, and
-    user message, then calls the appropriate backend.
-
-    Args:
-        req: StatelessRequest with all parameters
-
-    Returns:
-        StatelessResponse with content, tool_calls, finish_reason, usage, model
-    """
+async def _execute_stateless(req: StatelessRequest) -> StatelessResponse:
     logger.debug(
         f"Stateless request: message={req.message[:50]}..., "
         f"history_len={len(req.history)}, tools={req.tools}, model={req.model}"
     )
-
-    # Use router to select backend
-    backend_instance, resolved_model = router.smart_route(
-        req.message,
-        model=req.model,
-        backend=None,
-    )
-
-    # Build messages list from history and new message
-    messages = []
-
-    # Add system prompt if provided
+    messages: List[Dict[str, Any]] = []
     if req.system:
         messages.append({"role": "system", "content": req.system})
-
-    # Add history (should already be in correct format)
-    if req.history:
-        messages.extend(req.history)
-
-    # Add new user message
+    messages.extend(req.history)
     messages.append({"role": "user", "content": req.message})
+    request = AIRequest(
+        prompt=req.message,
+        model=req.model,
+        system=req.system,
+        temperature=req.temperature,
+        max_tokens=req.max_tokens,
+        backend=req.backend,
+        tools=req.tools,
+        messages=messages if len(messages) > 1 else None,
+        include_messages=True,
+        options={**req.options, "timeout": req.timeout},
+    )
+    ai_response, resolved_model = await execute_request_with_model(request, router)
+    return _to_stateless_response(ai_response, resolved_model)
 
-    async def _execute() -> AIResponse:
-        # Call backend with full context
-        result = await backend_instance.ask(
-            req.message,
-            model=resolved_model,
-            system=req.system,
-            temperature=req.temperature,
-            max_tokens=req.max_tokens,
-            tools=req.tools,
-            # Pass messages for backends that support conversation history
-            messages=messages if len(messages) > 1 else None,
-        )
-        return result
 
+def _to_stateless_response(ai_response: AIResponse, resolved_model: Optional[str]) -> StatelessResponse:
+    content_attr = getattr(ai_response, "content", None)
+    content = content_attr if isinstance(content_attr, str) else str(ai_response)
+    finish_reason_attr = getattr(ai_response, "finish_reason", None)
+    finish_reason = finish_reason_attr if isinstance(finish_reason_attr, str) else "stop"
+    usage_attr = getattr(ai_response, "usage", None)
+    usage: Optional[Dict[str, Any]] = usage_attr if isinstance(usage_attr, dict) else None
+    tool_calls_attr = getattr(ai_response, "tool_calls", None)
+    tool_calls = tool_calls_attr if isinstance(tool_calls_attr, list) else None
+    tool_result = getattr(ai_response, "tool_result", None)
+    if tool_calls is None and tool_result:
+        tool_calls = [call.to_dict() for call in tool_result.calls]
+
+    tokens_in = getattr(ai_response, "tokens_in", None)
+    tokens_out = getattr(ai_response, "tokens_out", None)
+    if usage is None:
+        usage = {
+            "prompt_tokens": tokens_in,
+            "completion_tokens": tokens_out,
+            "total_tokens": (
+                (tokens_in or 0) + (tokens_out or 0) if (tokens_in is not None or tokens_out is not None) else None
+            ),
+        }
+    return StatelessResponse(
+        content=content,
+        tool_calls=tool_calls,
+        finish_reason=finish_reason,
+        usage=usage,
+        model=resolved_model,
+    )
+
+
+def execute_stateless(req: StatelessRequest) -> StatelessResponse:
+    """Execute a request without creating or persisting session state."""
     try:
-        # Execute the request
-        ai_response = run_async(_execute())
-
-        # Convert AIResponse (string with metadata) to StatelessResponse
-        content_attr = getattr(ai_response, "content", None)
-        content = content_attr if isinstance(content_attr, str) else str(ai_response)
-
-        finish_reason_attr = getattr(ai_response, "finish_reason", None)
-        finish_reason = finish_reason_attr if isinstance(finish_reason_attr, str) else "stop"
-
-        usage_attr = getattr(ai_response, "usage", None)
-        usage: Optional[Dict] = usage_attr if isinstance(usage_attr, dict) else None
-
-        tool_calls_attr = getattr(ai_response, "tool_calls", None)
-        tool_calls = tool_calls_attr if isinstance(tool_calls_attr, list) else None
-
-        # New-style tool results (matilda_brain.core.models.AIResponse + tools.base.ToolResult)
-        tool_result = getattr(ai_response, "tool_result", None)
-        if tool_calls is None and tool_result:
-            tool_calls = [call.to_dict() for call in tool_result.calls]
-
-        tokens_in = getattr(ai_response, "tokens_in", None)
-        tokens_out = getattr(ai_response, "tokens_out", None)
-        if usage is None:
-            usage = {
-                "prompt_tokens": tokens_in,
-                "completion_tokens": tokens_out,
-                "total_tokens": (
-                    (tokens_in or 0) + (tokens_out or 0) if (tokens_in is not None or tokens_out is not None) else None
-                ),
-            }
-
-        return StatelessResponse(
-            content=content,
-            tool_calls=tool_calls,
-            finish_reason=finish_reason,
-            usage=usage,
-            model=resolved_model,
-        )
-
+        return run_async(_execute_stateless(req))
     except Exception:
         logger.exception("Error during stateless execution")
         raise

@@ -4,7 +4,7 @@ from typing import TypeVar
 
 from rich.console import Console
 
-from .async_utils import optimized_run_async, run_coro_in_background
+from .async_utils import iterate_async, optimized_run_async, run_coro_in_background
 from .logger import get_logger
 from .messages import build_message_list, extract_messages_from_kwargs
 from .providers import (
@@ -29,6 +29,7 @@ __all__ = [
     "console",
     "run_async",
     "run_coro_in_background",
+    "iterate_async",
     "optimized_run_async",
     # Message building utilities
     "build_message_list",

@@ -4,7 +4,7 @@ import asyncio
 import atexit
 import concurrent.futures
 import threading
-from typing import Awaitable, TypeVar, cast
+from typing import AsyncIterator, Awaitable, Iterator, TypeVar, cast
 
 T = TypeVar("T")
 
@@ -173,6 +173,24 @@ def run_coro_in_background(coro: Awaitable[T]) -> T:
 
     result = future.result()
     return result
+
+
+def iterate_async(source: AsyncIterator[T]) -> Iterator[T]:
+    """Bridge an async iterator into synchronous code using the shared loop."""
+    iterator = source.__aiter__()
+    try:
+        while True:
+            try:
+                yield run_coro_in_background(iterator.__anext__())
+            except StopAsyncIteration:
+                break
+    finally:
+        close = getattr(iterator, "aclose", None)
+        if close is not None:
+            try:
+                run_coro_in_background(close())
+            except (RuntimeError, StopAsyncIteration):
+                pass
 
 
 def optimized_run_async(coro: Awaitable[T]) -> T:

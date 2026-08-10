@@ -4,10 +4,11 @@ from contextlib import asynccontextmanager, contextmanager
 from typing import Any, AsyncIterator, Iterator, List, Optional, Union
 
 from ..backends import BaseBackend
-from ..internal.utils import get_logger, run_async, run_coro_in_background
+from ..internal.utils import get_logger, iterate_async, run_async
 from ..plugins import discover_plugins
 from ..session.chat import PersistentChatSession
 from .models import AIResponse, ImageInput
+from .request import AIRequest, execute_request, stream_request
 from .routing import router
 
 logger = get_logger(__name__)
@@ -17,6 +18,29 @@ try:
     discover_plugins()
 except Exception as e:
     logger.debug(f"Plugin discovery failed: {e}")
+
+
+def _make_request(
+    prompt: Union[str, List[Union[str, ImageInput]]],
+    *,
+    model: Optional[str],
+    system: Optional[str],
+    temperature: Optional[float],
+    max_tokens: Optional[int],
+    backend: Optional[Union[str, BaseBackend]],
+    tools: Optional[List],
+    options: dict[str, Any],
+) -> AIRequest:
+    return AIRequest(
+        prompt=prompt,
+        model=model,
+        system=system,
+        temperature=temperature,
+        max_tokens=max_tokens,
+        backend=backend,
+        tools=tools,
+        options=options,
+    )
 
 
 def ask(
@@ -76,26 +100,17 @@ def ask(
         AIResponse that behaves like a string but contains metadata
     """
     logger.debug(f"API ask() called with: model={model}, max_tokens={max_tokens}, temperature={temperature}")
-    # Use smart routing
-    backend_instance, resolved_model = router.smart_route(
+    request = _make_request(
         prompt,
         model=model,
+        system=system,
+        temperature=temperature,
+        max_tokens=max_tokens,
         backend=backend,
-        **kwargs,
+        tools=tools,
+        options=kwargs,
     )
-
-    async def _ask_wrapper() -> AIResponse:
-        return await backend_instance.ask(
-            prompt,
-            model=resolved_model,
-            system=system,
-            temperature=temperature,
-            max_tokens=max_tokens,
-            tools=tools,
-            **kwargs,
-        )
-
-    return run_async(_ask_wrapper())
+    return run_async(execute_request(request, router))
 
 
 def stream(
@@ -136,46 +151,17 @@ def stream(
     Yields:
         String chunks as they arrive
     """
-    # Use smart routing
-    backend_instance, resolved_model = router.smart_route(
+    request = _make_request(
         prompt,
         model=model,
+        system=system,
+        temperature=temperature,
+        max_tokens=max_tokens,
         backend=backend,
-        **kwargs,
+        tools=tools,
+        options=kwargs,
     )
-
-    # This creates an async generator from the backend
-    async def _async_generator() -> AsyncIterator[str]:
-        async for chunk in backend_instance.astream(
-            prompt,
-            model=resolved_model,
-            system=system,
-            temperature=temperature,
-            max_tokens=max_tokens,
-            tools=tools,
-            **kwargs,
-        ):
-            yield chunk
-
-    # Get the async generator
-    async_gen = _async_generator()
-
-    # We create a bridge to pull from the async generator synchronously
-    # Using the optimized approach to avoid creating new event loops
-    try:
-        while True:
-            try:
-                # Use the background loop to get the next item
-                chunk = run_coro_in_background(async_gen.__anext__())
-                yield chunk
-            except StopAsyncIteration:
-                # The async generator is exhausted - no cleanup needed
-                break
-    finally:
-        try:
-            run_coro_in_background(async_gen.aclose())
-        except (RuntimeError, StopAsyncIteration):
-            logger.debug("Streaming generator was already closed")
+    yield from iterate_async(stream_request(request, router))
 
 
 @contextmanager
@@ -277,23 +263,17 @@ async def ask_async(
     Returns:
         AIResponse that behaves like a string but contains metadata
     """
-    # Use smart routing (same as synchronous version)
-    backend_instance, resolved_model = router.smart_route(
+    request = _make_request(
         prompt,
         model=model,
-        backend=backend,
-        **kwargs,
-    )
-
-    return await backend_instance.ask(
-        prompt,
-        model=resolved_model,
         system=system,
         temperature=temperature,
         max_tokens=max_tokens,
+        backend=backend,
         tools=tools,
-        **kwargs,
+        options=kwargs,
     )
+    return await execute_request(request, router)
 
 
 async def stream_async(
@@ -323,23 +303,17 @@ async def stream_async(
     Yields:
         String chunks as they arrive
     """
-    # Use smart routing (same as synchronous version)
-    backend_instance, resolved_model = router.smart_route(
+    request = _make_request(
         prompt,
         model=model,
-        backend=backend,
-        **kwargs,
-    )
-
-    async for chunk in backend_instance.astream(
-        prompt,
-        model=resolved_model,
         system=system,
         temperature=temperature,
         max_tokens=max_tokens,
+        backend=backend,
         tools=tools,
-        **kwargs,
-    ):
+        options=kwargs,
+    )
+    async for chunk in stream_request(request, router):
         yield chunk
 
 
@@ -440,6 +414,7 @@ def stateless(
     """
     from ..internal.stateless import StatelessRequest, execute_stateless
 
+    timeout = kwargs.pop("timeout", 30)
     request = StatelessRequest(
         message=message,
         system=system,
@@ -448,7 +423,9 @@ def stateless(
         model=model,
         temperature=temperature,
         max_tokens=max_tokens,
-        **kwargs,
+        timeout=timeout,
+        backend=kwargs.pop("backend", None),
+        options=kwargs,
     )
 
     return execute_stateless(request)

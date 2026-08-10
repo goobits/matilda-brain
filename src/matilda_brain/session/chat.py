@@ -1,6 +1,5 @@
 """Enhanced chat functionality with persistence support."""
 
-import asyncio
 import json
 import os
 import warnings
@@ -11,8 +10,9 @@ from typing import Any, AsyncIterator, Dict, Iterator, List, Optional, Union
 from ..backends import BaseBackend
 from ..core.exceptions import InvalidParameterError, SessionLoadError, SessionSaveError
 from ..core.models import AIResponse, ImageInput
+from ..core.request import AIRequest, execute_request, stream_request
 from ..core.routing import router
-from ..internal.utils import get_logger, run_async
+from ..internal.utils import get_logger, iterate_async, run_async
 from ..memory_client import get_memory
 from .serialization import (
     deserialize_tools,
@@ -154,88 +154,65 @@ class PersistentChatSession:
         Returns:
             AIResponse with the assistant's reply
         """
-        # Record timestamp
-        timestamp = datetime.now().isoformat()
+        return run_async(self.ask_async(prompt, model=model, **kwargs))
 
-        # Helper to extract text from prompt
-        user_text = ""
-        if isinstance(prompt, str):
-            user_text = prompt
-        elif isinstance(prompt, list):
-            for item in prompt:
-                if isinstance(item, str):
-                    user_text += item + " "
-
-        # Query memory for context
+    def _prepare_request(
+        self,
+        prompt: Union[str, List[Union[str, ImageInput]]],
+        model: Optional[str],
+        options: Dict[str, Any],
+        *,
+        include_memory: bool,
+    ) -> tuple[str, AIRequest]:
+        user_text = prompt if isinstance(prompt, str) else " ".join(item for item in prompt if isinstance(item, str))
         memory_context = ""
-        if user_text:
+        if include_memory and user_text:
             try:
                 results = self.memory.query(self.agent_name, user_text.strip(), limit=3)
                 if results:
-                    context_items = [f"[{r.type}:{r.path}]\n{r.content[:500]}" for r in results]
+                    context_items = [f"[{result.type}:{result.path}]\n{result.content[:500]}" for result in results]
                     memory_context = "\n\nRelevant knowledge:\n" + "\n---\n".join(context_items)
             except Exception as e:
                 logger.debug(f"Memory query failed: {e}")
 
-        # Add user message to history
-        self.history.append({"role": "user", "content": prompt, "timestamp": timestamp})
+        self.history.append({"role": "user", "content": prompt, "timestamp": datetime.now().isoformat()})
         self._trim_history()
-
-        # Track multimodal usage
         if isinstance(prompt, list):
-            # Count images in the prompt
-            image_count = sum(1 for item in prompt if isinstance(item, ImageInput))
-            if image_count > 0:
-                if "multimodal_messages" not in self.metadata:
-                    self.metadata["multimodal_messages"] = 0
-                if "total_images" not in self.metadata:
-                    self.metadata["total_images"] = 0
-                self.metadata["multimodal_messages"] += 1
-                self.metadata["total_images"] += image_count
+            image_count = sum(isinstance(item, ImageInput) for item in prompt)
+            if image_count:
+                self.metadata["multimodal_messages"] = self.metadata.get("multimodal_messages", 0) + 1
+                self.metadata["total_images"] = self.metadata.get("total_images", 0) + image_count
 
-        # Build messages for API
-        messages = []
-
-        # Inject system prompt with memory context
         system_content = self.system or ""
         if memory_context:
-            if system_content:
-                system_content += "\n\n" + memory_context
-            else:
-                system_content = "You are a helpful AI assistant.\n\n" + memory_context
-
-        if system_content:
-            messages.append({"role": "system", "content": system_content})
-
-        for msg in self.history:
-            messages.append({"role": msg["role"], "content": msg["content"]})
-
-        # For backends that don't support message format, convert to string
-        if hasattr(self.backend, "supports_messages") and not self.backend.supports_messages:
-            # Convert to conversation format
-            conversation = self._messages_to_conversation(messages)
-            full_prompt: Union[str, List[Union[str, ImageInput]]] = conversation
-        else:
-            # Use last message as prompt (backend will handle history)
-            full_prompt = prompt
-
-        # Merge parameters
-        params = {**self.kwargs, **kwargs}
-
-        # Make the request
-        async def _ask_wrapper() -> AIResponse:
-            return await self.backend.ask(
-                full_prompt,
-                model=model or self.model,
-                system=system_content if len(self.history) == 1 else None,
-                messages=(messages if hasattr(self.backend, "supports_messages") else None),
-                tools=self.tools,
-                **params,
+            system_content = (
+                f"{system_content}\n\n{memory_context}"
+                if system_content
+                else f"You are a helpful AI assistant.\n\n{memory_context}"
             )
+        messages = ([{"role": "system", "content": system_content}] if system_content else []) + [
+            {"role": message["role"], "content": message["content"]} for message in self.history
+        ]
+        supports_messages = hasattr(self.backend, "supports_messages")
+        request_prompt = (
+            self._messages_to_conversation(messages)
+            if supports_messages and not self.backend.supports_messages
+            else prompt
+        )
+        request = AIRequest(
+            prompt=request_prompt,
+            model=model or self.model,
+            system=system_content if len(self.history) == 1 else None,
+            backend=self.backend,
+            tools=self.tools,
+            messages=messages if supports_messages else None,
+            include_messages=True,
+            route=False,
+            options={**self.kwargs, **options},
+        )
+        return user_text, request
 
-        response = run_async(_ask_wrapper())
-
-        # Add assistant response to history
+    def _record_response(self, response: AIResponse) -> None:
         response_entry: Dict[str, Any] = {
             "role": "assistant",
             "content": str(response),
@@ -246,8 +223,7 @@ class PersistentChatSession:
             "cost": response.cost,
         }
 
-        # Add tool call information if tools were called
-        if hasattr(response, "tools_called") and response.tools_called:
+        if response.tools_called:
             response_entry["tools_called"] = True
             response_entry["tool_calls"] = [
                 {
@@ -261,30 +237,22 @@ class PersistentChatSession:
                 for call in response.tool_calls
             ]
 
-            # Update tools usage metadata
             for call in response.tool_calls:
-                if call.name not in self.metadata["tools_used"]:
-                    self.metadata["tools_used"][call.name] = 0
-                self.metadata["tools_used"][call.name] += 1
+                self.metadata["tools_used"][call.name] = self.metadata["tools_used"].get(call.name, 0) + 1
 
         self.history.append(response_entry)
         self._trim_history()
-
-        # Update metadata
         self._update_metadata(response)
 
-        # Log to long-term memory
+    async def _remember_exchange(self, user_text: str, response: AIResponse) -> None:
         try:
             self.memory.log_conversation(
                 self.agent_name,
                 [{"role": "user", "content": user_text}, {"role": "assistant", "content": str(response)}],
             )
-            # Auto-learning
-            run_async(self._extract_and_store_knowledge(user_text, str(response)))
+            await self._extract_and_store_knowledge(user_text, str(response))
         except Exception as e:
             logger.debug(f"Memory logging failed: {e}")
-
-        return response
 
     async def ask_async(
         self,
@@ -293,117 +261,10 @@ class PersistentChatSession:
         model: Optional[str] = None,
         **kwargs: Any,
     ) -> AIResponse:
-        timestamp = datetime.now().isoformat()
-
-        user_text = ""
-        if isinstance(prompt, str):
-            user_text = prompt
-        elif isinstance(prompt, list):
-            for item in prompt:
-                if isinstance(item, str):
-                    user_text += item + " "
-
-        memory_context = ""
-        if user_text:
-            try:
-                results = self.memory.query(self.agent_name, user_text.strip(), limit=3)
-                if results:
-                    context_items = [f"[{r.type}:{r.path}]\n{r.content[:500]}" for r in results]
-                    memory_context = "\n\nRelevant knowledge:\n" + "\n---\n".join(context_items)
-            except Exception as e:
-                logger.debug(f"Memory query failed: {e}")
-
-        self.history.append({"role": "user", "content": prompt, "timestamp": timestamp})
-        self._trim_history()
-
-        if isinstance(prompt, list):
-            image_count = sum(1 for item in prompt if isinstance(item, ImageInput))
-            if image_count > 0:
-                if "multimodal_messages" not in self.metadata:
-                    self.metadata["multimodal_messages"] = 0
-                if "total_images" not in self.metadata:
-                    self.metadata["total_images"] = 0
-                self.metadata["multimodal_messages"] += 1
-                self.metadata["total_images"] += image_count
-
-        messages = []
-
-        system_content = self.system or ""
-        if memory_context:
-            if system_content:
-                system_content += "\n\n" + memory_context
-            else:
-                system_content = "You are a helpful AI assistant.\n\n" + memory_context
-
-        if system_content:
-            messages.append({"role": "system", "content": system_content})
-
-        for msg in self.history:
-            messages.append({"role": msg["role"], "content": msg["content"]})
-
-        if hasattr(self.backend, "supports_messages") and not self.backend.supports_messages:
-            conversation = self._messages_to_conversation(messages)
-            full_prompt: Union[str, List[Union[str, ImageInput]]] = conversation
-        else:
-            full_prompt = prompt
-
-        params = {**self.kwargs, **kwargs}
-
-        response = await self.backend.ask(
-            full_prompt,
-            model=model or self.model,
-            system=system_content if len(self.history) == 1 else None,
-            messages=(messages if hasattr(self.backend, "supports_messages") else None),
-            tools=self.tools,
-            **params,
-        )
-
-        response_entry: Dict[str, Any] = {
-            "role": "assistant",
-            "content": str(response),
-            "timestamp": datetime.now().isoformat(),
-            "model": response.model,
-            "tokens_in": response.tokens_in,
-            "tokens_out": response.tokens_out,
-            "cost": response.cost,
-        }
-
-        if hasattr(response, "tools_called") and response.tools_called:
-            response_entry["tools_called"] = True
-            response_entry["tool_calls"] = [
-                {
-                    "id": call.id,
-                    "name": call.name,
-                    "arguments": call.arguments,
-                    "result": call.result,
-                    "succeeded": call.succeeded,
-                    "error": call.error,
-                }
-                for call in response.tool_calls
-            ]
-
-            for call in response.tool_calls:
-                if call.name not in self.metadata["tools_used"]:
-                    self.metadata["tools_used"][call.name] = 0
-                self.metadata["tools_used"][call.name] += 1
-
-        self.history.append(response_entry)
-        self._trim_history()
-
-        self._update_metadata(response)
-
-        try:
-            self.memory.log_conversation(
-                self.agent_name,
-                [
-                    {"role": "user", "content": user_text},
-                    {"role": "assistant", "content": str(response)},
-                ],
-            )
-            await self._extract_and_store_knowledge(user_text, str(response))
-        except Exception as e:
-            logger.debug(f"Memory logging failed: {e}")
-
+        user_text, request = self._prepare_request(prompt, model, kwargs, include_memory=True)
+        response = await execute_request(request)
+        self._record_response(response)
+        await self._remember_exchange(user_text, response)
         return response
 
     async def _extract_and_store_knowledge(self, user_input: str, response: str) -> None:
@@ -467,73 +328,7 @@ Assistant: {response}"""
         Yields:
             String chunks as they arrive
         """
-        # Record timestamp
-        timestamp = datetime.now().isoformat()
-
-        # Add user message to history
-        self.history.append({"role": "user", "content": prompt, "timestamp": timestamp})
-        self._trim_history()
-
-        # Build messages for API
-        messages = []
-        if self.system:
-            messages.append({"role": "system", "content": self.system})
-
-        for msg in self.history:
-            messages.append({"role": msg["role"], "content": msg["content"]})
-
-        # Prepare prompt
-        if hasattr(self.backend, "supports_messages") and not self.backend.supports_messages:
-            conversation = self._messages_to_conversation(messages)
-            full_prompt: Union[str, List[Union[str, ImageInput]]] = conversation
-        else:
-            full_prompt = prompt
-
-        # Merge parameters
-        params = {**self.kwargs, **kwargs}
-
-        # Collect response for history
-        response_chunks = []
-
-        # Stream the response
-        async def _async_stream() -> AsyncIterator[str]:
-            async for chunk in self.backend.astream(
-                full_prompt,
-                model=model or self.model,
-                system=self.system if len(self.history) == 1 else None,
-                messages=(messages if hasattr(self.backend, "supports_messages") else None),
-                tools=self.tools,
-                **params,
-            ):
-                response_chunks.append(chunk)
-                yield chunk
-
-        # Run async generator in sync context
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        try:
-            async_gen = _async_stream()
-            while True:
-                try:
-                    chunk = loop.run_until_complete(async_gen.__anext__())
-                    yield chunk
-                except StopAsyncIteration:
-                    break
-        finally:
-            loop.close()
-            asyncio.set_event_loop(None)
-
-        # Add complete response to history
-        full_response = "".join(response_chunks)
-        self.history.append(
-            {
-                "role": "assistant",
-                "content": full_response,
-                "timestamp": datetime.now().isoformat(),
-                "model": model or self.model,
-            }
-        )
-        self._trim_history()
+        yield from iterate_async(self.stream_async(prompt, model=model, **kwargs))
 
     async def stream_async(
         self,
@@ -542,42 +337,15 @@ Assistant: {response}"""
         model: Optional[str] = None,
         **kwargs: Any,
     ) -> AsyncIterator[str]:
-        timestamp = datetime.now().isoformat()
-        self.history.append({"role": "user", "content": prompt, "timestamp": timestamp})
-        self._trim_history()
-
-        messages = []
-        if self.system:
-            messages.append({"role": "system", "content": self.system})
-
-        for msg in self.history:
-            messages.append({"role": msg["role"], "content": msg["content"]})
-
-        if hasattr(self.backend, "supports_messages") and not self.backend.supports_messages:
-            conversation = self._messages_to_conversation(messages)
-            full_prompt: Union[str, List[Union[str, ImageInput]]] = conversation
-        else:
-            full_prompt = prompt
-
-        params = {**self.kwargs, **kwargs}
+        _, request = self._prepare_request(prompt, model, kwargs, include_memory=False)
         response_chunks: List[str] = []
-
-        async for chunk in self.backend.astream(
-            full_prompt,
-            model=model or self.model,
-            system=self.system if len(self.history) == 1 else None,
-            messages=(messages if hasattr(self.backend, "supports_messages") else None),
-            tools=self.tools,
-            **params,
-        ):
+        async for chunk in stream_request(request):
             response_chunks.append(chunk)
             yield chunk
-
-        full_response = "".join(response_chunks)
         self.history.append(
             {
                 "role": "assistant",
-                "content": full_response,
+                "content": "".join(response_chunks),
                 "timestamp": datetime.now().isoformat(),
                 "model": model or self.model,
             }
