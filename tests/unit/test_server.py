@@ -24,6 +24,33 @@ def parse_sse(body: str) -> list[dict]:
     return [json.loads(line.removeprefix("data: ")) for line in body.splitlines() if line.startswith("data: ")]
 
 
+def test_stream_payload_preserves_canonical_success_and_error_shapes():
+    assert server.stream_payload("request-1", "model-1", result={"delta": "hi"}) == {
+        "request_id": "request-1",
+        "service": "brain",
+        "task": "stream",
+        "capability": "reason-over-context",
+        "provider": None,
+        "model": "model-1",
+        "usage": None,
+        "result": {"delta": "hi"},
+    }
+    assert server.stream_payload(
+        "request-1",
+        None,
+        error={"code": "backend_timeout", "message": "timed out", "retryable": True},
+    ) == {
+        "request_id": "request-1",
+        "service": "brain",
+        "task": "stream",
+        "capability": "reason-over-context",
+        "provider": None,
+        "model": None,
+        "usage": None,
+        "error": {"code": "backend_timeout", "message": "timed out", "retryable": True},
+    }
+
+
 @pytest.mark.asyncio
 async def test_health_is_public_but_api_routes_require_a_well_formed_token(client):
     health = await client.get("/health")

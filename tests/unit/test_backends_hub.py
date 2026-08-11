@@ -1,7 +1,6 @@
 import matilda_transport
 import pytest
 
-from matilda_brain.backends import hub
 from matilda_brain.backends.hub import HubBackend
 from matilda_brain.core.models import ImageInput
 
@@ -10,11 +9,11 @@ from matilda_brain.core.models import ImageInput
 async def test_hub_ask_preserves_payload_and_response_metadata(monkeypatch):
     calls = []
 
-    class FakeHubClient:
+    class FakeAsyncHubClient:
         def __init__(self, timeout):
             assert timeout == 12
 
-        def post_capability(self, capability, payload):
+        async def post_capability(self, capability, payload):
             calls.append((capability, payload))
             return {
                 "result": {"text": "answer"},
@@ -23,7 +22,7 @@ async def test_hub_ask_preserves_payload_and_response_metadata(monkeypatch):
                 "usage": {"prompt": 5, "completion": 2},
             }
 
-    monkeypatch.setattr(matilda_transport, "HubClient", FakeHubClient)
+    monkeypatch.setattr(matilda_transport, "AsyncHubClient", FakeAsyncHubClient)
     backend = HubBackend({"timeout": 12})
 
     response = await backend.ask(
@@ -63,14 +62,14 @@ async def test_hub_ask_preserves_payload_and_response_metadata(monkeypatch):
     ],
 )
 async def test_hub_ask_returns_upstream_errors(monkeypatch, hub_result, expected_error):
-    class FakeHubClient:
+    class FakeAsyncHubClient:
         def __init__(self, timeout):
             pass
 
-        def post_capability(self, capability, payload):
+        async def post_capability(self, capability, payload):
             return hub_result
 
-    monkeypatch.setattr(matilda_transport, "HubClient", FakeHubClient)
+    monkeypatch.setattr(matilda_transport, "AsyncHubClient", FakeAsyncHubClient)
 
     response = await HubBackend().ask("question")
 
@@ -80,14 +79,14 @@ async def test_hub_ask_returns_upstream_errors(monkeypatch, hub_result, expected
 
 @pytest.mark.asyncio
 async def test_hub_ask_turns_transport_exceptions_into_failed_responses(monkeypatch):
-    class FakeHubClient:
+    class FakeAsyncHubClient:
         def __init__(self, timeout):
             pass
 
-        def post_capability(self, capability, payload):
+        async def post_capability(self, capability, payload):
             raise OSError("socket unavailable")
 
-    monkeypatch.setattr(matilda_transport, "HubClient", FakeHubClient)
+    monkeypatch.setattr(matilda_transport, "AsyncHubClient", FakeAsyncHubClient)
 
     response = await HubBackend().ask("question")
 
@@ -96,55 +95,24 @@ async def test_hub_ask_turns_transport_exceptions_into_failed_responses(monkeypa
 
 
 @pytest.mark.asyncio
-async def test_hub_stream_parses_only_valid_delta_events_until_done(monkeypatch):
+async def test_hub_stream_uses_shared_async_client_until_done(monkeypatch):
     captured = {}
 
-    class FakeHubClient:
+    class FakeAsyncHubClient:
         def __init__(self, timeout):
-            self.base_url = "http://gateway.test"
-            self.api_token = "gateway-token"
-
-    class FakeResponse:
-        def raise_for_status(self):
-            return None
-
-        async def aiter_lines(self):
-            for line in [
-                "",
-                "event: message",
-                "data:",
-                "data: not-json",
-                'data: {"result":{"delta":"hel"}}',
-                'data: {"result":{"delta":"lo"}}',
-                'data: {"result":{"done":true}}',
-                'data: {"result":{"delta":"ignored"}}',
-            ]:
-                yield line
-
-    class StreamContext:
-        async def __aenter__(self):
-            return FakeResponse()
-
-        async def __aexit__(self, *_args):
-            return None
-
-    class FakeAsyncClient:
-        def __init__(self, *, timeout, headers):
             captured["timeout"] = timeout
-            captured["headers"] = headers
 
-        async def __aenter__(self):
-            return self
+        async def stream_capability(self, capability, payload):
+            captured.update(capability=capability, payload=payload)
+            for envelope in [
+                {"result": {"delta": "hel"}},
+                {"result": {"delta": "lo"}},
+                {"result": {"done": True}},
+                {"result": {"delta": "ignored"}},
+            ]:
+                yield envelope
 
-        async def __aexit__(self, *_args):
-            return None
-
-        def stream(self, method, url, *, json):
-            captured.update(method=method, url=url, payload=json)
-            return StreamContext()
-
-    monkeypatch.setattr(matilda_transport, "HubClient", FakeHubClient)
-    monkeypatch.setattr(hub.httpx, "AsyncClient", FakeAsyncClient)
+    monkeypatch.setattr(matilda_transport, "AsyncHubClient", FakeAsyncHubClient)
     backend = HubBackend({"timeout": 9})
 
     chunks = [chunk async for chunk in backend.astream("question", model="model")]
@@ -152,9 +120,7 @@ async def test_hub_stream_parses_only_valid_delta_events_until_done(monkeypatch)
     assert chunks == ["hel", "lo"]
     assert captured == {
         "timeout": 9,
-        "headers": {"Authorization": "Bearer gateway-token"},
-        "method": "POST",
-        "url": "http://gateway.test/v1/capabilities/reason-over-context/stream",
+        "capability": "reason-over-context",
         "payload": {
             "prompt": "question",
             "model": "model",

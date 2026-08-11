@@ -17,6 +17,7 @@ import json
 import os
 import secrets
 import uuid
+from collections.abc import Mapping
 from contextlib import suppress
 from contextvars import ContextVar
 from datetime import datetime, timezone
@@ -25,7 +26,8 @@ from typing import Any, Optional, Sequence, TypeVar
 from aiohttp import web
 from aiohttp.typedefs import Handler, Middleware
 from aiohttp.web import Request, Response, StreamResponse
-from matilda_transport import (  # type: ignore[import-untyped]
+from matilda_transport import (
+    build_envelope,
     ensure_pipe_supported,
     prepare_unix_socket,
     resolve_transport,
@@ -127,7 +129,7 @@ def should_validate() -> bool:
     return os.getenv("MATILDA_SCHEMA_VALIDATE", "").lower() in {"1", "true", "yes", "on"}
 
 
-def validate_response(model: type[BaseModel], payload: dict[str, Any]) -> None:
+def validate_response(model: type[BaseModel], payload: Mapping[str, Any]) -> None:
     if not should_validate():
         return
     model.model_validate(payload)
@@ -143,15 +145,15 @@ def ok_response(
     usage: Optional[dict[str, Any]] = None,
     request_id: Optional[str] = None,
 ) -> Response:
-    response_payload = {
-        "request_id": request_id or str(uuid.uuid4()),
-        "service": "brain",
-        "task": task,
-        "provider": provider,
-        "model": model_name,
-        "result": payload,
-        "usage": usage,
-    }
+    response_payload = build_envelope(
+        request_id=request_id or str(uuid.uuid4()),
+        service="brain",
+        task=task,
+        provider=provider,
+        model=model_name,
+        result=payload,
+        usage=usage,
+    )
     if schema_model is not None:
         validate_response(schema_model, response_payload)
     return add_cors_headers(web.json_response(response_payload), request)
@@ -166,19 +168,16 @@ def error_response(
     request_id: Optional[str] = None,
     retryable: Optional[bool] = None,
 ) -> Response:
-    response_payload = {
-        "request_id": request_id or str(uuid.uuid4()),
-        "service": "brain",
-        "task": task,
-        "provider": None,
-        "model": None,
-        "usage": None,
-        "error": {
+    response_payload = build_envelope(
+        request_id=request_id or str(uuid.uuid4()),
+        service="brain",
+        task=task,
+        error={
             "message": message,
             "code": code,
             "retryable": status >= 500 or status == 429 if retryable is None else retryable,
         },
-    }
+    )
     validate_response(ErrorEnvelope, response_payload)
     return add_cors_headers(web.json_response(response_payload, status=status), request)
 
@@ -318,17 +317,17 @@ def stream_payload(
     result: Optional[dict[str, Any]] = None,
     error: Optional[dict[str, Any]] = None,
 ) -> dict[str, Any]:
-    payload: dict[str, Any] = {
-        "request_id": request_id,
-        "service": "brain",
-        "task": "stream",
+    return {
         "capability": "reason-over-context",
-        "provider": None,
-        "model": model,
-        "usage": None,
+        **build_envelope(
+            request_id=request_id,
+            service="brain",
+            task="stream",
+            model=model,
+            result=result,
+            error=error,
+        ),
     }
-    payload["error" if error is not None else "result"] = error if error is not None else result
-    return payload
 
 
 async def write_sse_event(
@@ -545,11 +544,13 @@ def run_server(host: str = "127.0.0.1", port: int = 8772) -> None:
         return
     if transport.transport == "pipe":
         ensure_pipe_supported(transport)
+        pipe_endpoint = transport.endpoint
+        assert pipe_endpoint is not None
 
         async def run_pipe() -> None:
             runner = web.AppRunner(app)
             await runner.setup()
-            site = web.NamedPipeSite(runner, transport.endpoint)
+            site = web.NamedPipeSite(runner, pipe_endpoint)
             await site.start()
             await asyncio.Event().wait()
 

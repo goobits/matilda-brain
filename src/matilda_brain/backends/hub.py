@@ -1,17 +1,13 @@
 from __future__ import annotations
 
-import asyncio
-import json
 from typing import TYPE_CHECKING, Any, AsyncIterator, Dict, List, Optional, Union
-
-import httpx
 
 from ..core.exceptions import BackendNotAvailableError
 from ..core.models import AIResponse, ImageInput
 from .base import BaseBackend
 
 if TYPE_CHECKING:
-    from matilda_transport import HubClient  # type: ignore[import-untyped]  # noqa: F401
+    from matilda_transport import AsyncHubClient
 
 
 class HubBackend(BaseBackend):
@@ -22,6 +18,16 @@ class HubBackend(BaseBackend):
     @property
     def is_available(self) -> bool:
         return True
+
+    def _client(self) -> "AsyncHubClient":
+        try:
+            from matilda_transport import AsyncHubClient
+        except ImportError as exc:
+            raise BackendNotAvailableError(
+                self.name,
+                "matilda-transport is required for hub backend. Install matilda-transport and retry.",
+            ) from exc
+        return AsyncHubClient(timeout=self.timeout)
 
     async def ask(
         self,
@@ -35,17 +41,9 @@ class HubBackend(BaseBackend):
         **kwargs: Any,
     ) -> AIResponse:
         payload = self._build_payload(prompt, model, system, temperature, max_tokens)
+        client = self._client()
         try:
-            from matilda_transport import HubClient
-        except ImportError as exc:
-            raise BackendNotAvailableError(
-                self.name,
-                "matilda-transport is required for hub backend. Install matilda-transport and retry.",
-            ) from exc
-
-        client = HubClient(timeout=self.timeout)
-        try:
-            response = await asyncio.to_thread(client.post_capability, "reason-over-context", payload)
+            response = await client.post_capability("reason-over-context", payload)
         except Exception as exc:
             return AIResponse("", error=str(exc))
         error = response.get("error")
@@ -79,43 +77,14 @@ class HubBackend(BaseBackend):
     ) -> AsyncIterator[str]:
         async def _gen() -> AsyncIterator[str]:
             payload = self._build_payload(prompt, model, system, temperature, max_tokens)
-            try:
-                from matilda_transport import HubClient
-            except ImportError as exc:
-                raise BackendNotAvailableError(
-                    self.name,
-                    "matilda-transport is required for hub backend. Install matilda-transport and retry.",
-                ) from exc
-
-            client_info = HubClient(timeout=self.timeout)
-            base_url = client_info.base_url
-            token = client_info.api_token
-            headers = {}
-            if token:
-                headers["Authorization"] = f"Bearer {token}"
-            url = f"{base_url}/v1/capabilities/reason-over-context/stream"
-            async with httpx.AsyncClient(timeout=self.timeout, headers=headers) as client:
-                async with client.stream("POST", url, json=payload) as response:
-                    response.raise_for_status()
-                    async for line in response.aiter_lines():
-                        if not line:
-                            continue
-                        if not line.startswith("data:"):
-                            continue
-                        data = line[5:].strip()
-                        if not data:
-                            continue
-                        try:
-                            envelope = json.loads(data)
-                        except json.JSONDecodeError:
-                            continue
-                        result = envelope.get("result") or {}
-                        if isinstance(result, dict):
-                            delta = result.get("delta")
-                            if delta:
-                                yield str(delta)
-                            if result.get("done"):
-                                break
+            async for envelope in self._client().stream_capability("reason-over-context", payload):
+                result = envelope.get("result") or {}
+                if isinstance(result, dict):
+                    delta = result.get("delta")
+                    if delta:
+                        yield str(delta)
+                    if result.get("done"):
+                        break
 
         return _gen()
 
