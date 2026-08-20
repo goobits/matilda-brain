@@ -27,7 +27,9 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
 def _test_env_python() -> Path:
-    relative_path = Path("Scripts/python.exe") if os.name == "nt" else Path("bin/python")
+    relative_path = (
+        Path("Scripts/python.exe") if os.name == "nt" else Path("bin/python")
+    )
     return REPO_ROOT / ".artifacts" / "test" / "test-env" / relative_path
 
 
@@ -50,17 +52,36 @@ def _ensure_test_env() -> None:
     env = os.environ.copy()
     env["PIP_DISABLE_PIP_VERSION_CHECK"] = "1"
 
-    # Install local deps + pinned dev extras so tests run with consistent versions.
-    # Note: Brain depends on `matilda-transport`, which isn't published to PyPI.
-    transport_dir = REPO_ROOT.parent / "matilda-transport"
-    if transport_dir.is_dir():
+    # Install local packages before the service so unpublished workspace dependencies resolve.
+    for dependency in ("i18n", "matilda-transport"):
+        dependency_dir = REPO_ROOT.parent / dependency
+        if not dependency_dir.is_dir():
+            continue
         subprocess.run(
-            [str(py), "-m", "pip", "install", "-q", "--disable-pip-version-check", "-e", str(transport_dir)],
+            [
+                str(py),
+                "-m",
+                "pip",
+                "install",
+                "-q",
+                "--disable-pip-version-check",
+                "-e",
+                str(dependency_dir),
+            ],
             env=env,
             check=True,
         )
     subprocess.run(
-        [str(py), "-m", "pip", "install", "-q", "--disable-pip-version-check", "-e", ".[dev]"],
+        [
+            str(py),
+            "-m",
+            "pip",
+            "install",
+            "-q",
+            "--disable-pip-version-check",
+            "-e",
+            ".[dev]",
+        ],
         cwd=str(REPO_ROOT),
         env=env,
         check=True,
@@ -178,7 +199,11 @@ def build_pytest_cmd(args: argparse.Namespace, test_type: str) -> list[str]:
     # Coverage
     if args.coverage:
         cmd.extend(
-            ["--cov=src/matilda_brain", "--cov-report=term-missing", "--cov-report=html:.artifacts/coverage/html"]
+            [
+                "--cov=src/matilda_brain",
+                "--cov-report=term-missing",
+                "--cov-report=html:.artifacts/coverage/html",
+            ]
         )
         if getattr(args, "coverage_append", False):
             cmd.append("--cov-append")
@@ -197,7 +222,9 @@ def build_pytest_cmd(args: argparse.Namespace, test_type: str) -> list[str]:
     return cmd
 
 
-def run_tests(cmd: list[str], *, include_external: bool = False, real_api: bool = False) -> int:
+def run_tests(
+    cmd: list[str], *, include_external: bool = False, real_api: bool = False
+) -> int:
     """Run pytest with the given command."""
     print(f"Running: {' '.join(cmd)}")
     print()
@@ -206,10 +233,14 @@ def run_tests(cmd: list[str], *, include_external: bool = False, real_api: bool 
         env["BRAIN_RUN_CRED_TESTS"] = "1"
     if real_api:
         env["REAL_API_TESTS"] = "1"
-    local_transport = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "matilda-transport", "src"))
+    local_transport = os.path.abspath(
+        os.path.join(os.path.dirname(__file__), "..", "..", "matilda-transport", "src")
+    )
     if os.path.isdir(local_transport):
         existing = env.get("PYTHONPATH", "")
-        env["PYTHONPATH"] = f"{local_transport}{os.pathsep}{existing}" if existing else local_transport
+        env["PYTHONPATH"] = (
+            f"{local_transport}{os.pathsep}{existing}" if existing else local_transport
+        )
     sys.stdout.flush()
     result = subprocess.run(cmd, env=env)
     return result.returncode
@@ -288,10 +319,18 @@ def main() -> int:
 
     parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument(
-        "command", nargs="?", default="unit", choices=["unit", "integration", "all", "help"], help="Test type to run"
+        "command",
+        nargs="?",
+        default="unit",
+        choices=["unit", "integration", "all", "help"],
+        help="Test type to run",
     )
-    parser.add_argument("--coverage", "-c", action="store_true", help="Generate coverage report")
-    parser.add_argument("--verbose", "-v", action="store_true", help="Verbose test output")
+    parser.add_argument(
+        "--coverage", "-c", action="store_true", help="Generate coverage report"
+    )
+    parser.add_argument(
+        "--verbose", "-v", action="store_true", help="Verbose test output"
+    )
     parser.add_argument(
         "--parallel",
         "-p",
@@ -302,8 +341,14 @@ def main() -> int:
     )
     parser.add_argument("--test", "-t", help="Run specific test file or pattern")
     parser.add_argument("--markers", "-m", help="Run tests matching marker expression")
-    parser.add_argument("--force", "-f", action="store_true", help="Skip confirmation prompts")
-    parser.add_argument("--real-api", action="store_true", help="Use real provider APIs instead of HTTP mocks")
+    parser.add_argument(
+        "--force", "-f", action="store_true", help="Skip confirmation prompts"
+    )
+    parser.add_argument(
+        "--real-api",
+        action="store_true",
+        help="Use real provider APIs instead of HTTP mocks",
+    )
     parser.add_argument("--version", action="store_true", help="Show version")
 
     args = parser.parse_args()
