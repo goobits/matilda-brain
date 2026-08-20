@@ -29,6 +29,9 @@ from aiohttp.web import Request, Response, StreamResponse
 from matilda_transport import (
     build_envelope,
     ensure_pipe_supported,
+    get_allowed_origins,
+    get_or_create_token,
+    is_origin_allowed,
     prepare_unix_socket,
     resolve_transport,
 )
@@ -48,8 +51,6 @@ from .core.exceptions import (
 from .core.exceptions import (
     ValidationError as BrainValidationError,
 )
-from .internal.security import get_allowed_origins, is_origin_allowed
-from .internal.token_storage import get_or_create_token
 from .internal.utils import get_logger
 from .schemas.requests import AgentName, AskRequest, StreamRequest
 from .schemas.responses import (
@@ -68,7 +69,9 @@ logger = get_logger(__name__)
 RequestModel = TypeVar("RequestModel", bound=BaseModel)
 ResponseType = TypeVar("ResponseType", bound=StreamResponse)
 AGENT_NAME_ADAPTER = TypeAdapter(AgentName)
-ALLOWED_ORIGINS_CONTEXT: ContextVar[Sequence[str]] = ContextVar("allowed_origins", default=())
+ALLOWED_ORIGINS_CONTEXT: ContextVar[Sequence[str]] = ContextVar(
+    "allowed_origins", default=()
+)
 
 # Shared session manager instance
 _session_manager: Optional[ChatSessionManager] = None
@@ -94,7 +97,13 @@ def security_middleware(api_token: str, allowed_origins: Sequence[str]) -> Middl
                     task="auth",
                 )
             if not secrets.compare_digest(parts[1], api_token):
-                return error_response("Forbidden: Invalid token", request, status=403, code="forbidden", task="auth")
+                return error_response(
+                    "Forbidden: Invalid token",
+                    request,
+                    status=403,
+                    code="forbidden",
+                    task="auth",
+                )
             return await handler(request)
         finally:
             ALLOWED_ORIGINS_CONTEXT.reset(context_token)
@@ -110,7 +119,9 @@ def get_session_manager() -> ChatSessionManager:
     return _session_manager
 
 
-def add_cors_headers(response: ResponseType, request: Optional[Request] = None) -> ResponseType:
+def add_cors_headers(
+    response: ResponseType, request: Optional[Request] = None
+) -> ResponseType:
     """Add cross-origin headers when the request origin is explicitly allowed."""
     response.headers["Access-Control-Allow-Methods"] = "GET, POST, DELETE, OPTIONS"
     response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
@@ -126,7 +137,12 @@ def add_cors_headers(response: ResponseType, request: Optional[Request] = None) 
 
 
 def should_validate() -> bool:
-    return os.getenv("MATILDA_SCHEMA_VALIDATE", "").lower() in {"1", "true", "yes", "on"}
+    return os.getenv("MATILDA_SCHEMA_VALIDATE", "").lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }
 
 
 def validate_response(model: type[BaseModel], payload: Mapping[str, Any]) -> None:
@@ -175,7 +191,9 @@ def error_response(
         error={
             "message": message,
             "code": code,
-            "retryable": status >= 500 or status == 429 if retryable is None else retryable,
+            "retryable": (
+                status >= 500 or status == 429 if retryable is None else retryable
+            ),
         },
     )
     validate_response(ErrorEnvelope, response_payload)
@@ -220,17 +238,27 @@ async def parse_json_request(
     try:
         data = await request.json()
     except web.HTTPRequestEntityTooLarge:
-        return None, error_response("Request body too large", request, status=413, code="request_too_large", task=task)
+        return None, error_response(
+            "Request body too large",
+            request,
+            status=413,
+            code="request_too_large",
+            task=task,
+        )
     except (json.JSONDecodeError, UnicodeDecodeError, ValueError):
         return None, error_response("Invalid JSON", request, task=task)
 
     if not isinstance(data, dict):
-        return None, error_response("Request body must be a JSON object", request, task=task)
+        return None, error_response(
+            "Request body must be a JSON object", request, task=task
+        )
 
     try:
         return schema.model_validate(data), None
     except PydanticValidationError as error:
-        return None, error_response(validation_error_message(error), request, code="invalid_request", task=task)
+        return None, error_response(
+            validation_error_message(error), request, code="invalid_request", task=task
+        )
 
 
 async def handle_options(request: Request) -> Response:
@@ -245,20 +273,30 @@ async def handle_health(request: Request) -> Response:
 
 async def handle_ask(request: Request) -> Response:
     """Handle a validated AI request with optional conversation history."""
-    request_data, validation_error = await parse_json_request(request, AskRequest, "ask")
+    request_data, validation_error = await parse_json_request(
+        request, AskRequest, "ask"
+    )
     if validation_error is not None:
         return validation_error
     assert request_data is not None
 
-    agent_name = request.headers.get("X-Agent-Name") or request_data.agent_name or "assistant"
+    agent_name = (
+        request.headers.get("X-Agent-Name") or request_data.agent_name or "assistant"
+    )
     try:
         agent_name = AGENT_NAME_ADAPTER.validate_python(agent_name)
     except PydanticValidationError:
-        return error_response("Invalid X-Agent-Name header", request, code="invalid_request", task="ask")
+        return error_response(
+            "Invalid X-Agent-Name header", request, code="invalid_request", task="ask"
+        )
 
     messages = request_data.messages or []
     system = request_data.system
-    memory_enabled = request_data.memory_enabled if "memory_enabled" in request_data.model_fields_set else True
+    memory_enabled = (
+        request_data.memory_enabled
+        if "memory_enabled" in request_data.model_fields_set
+        else True
+    )
 
     try:
         if system is None and messages:
@@ -342,7 +380,9 @@ async def write_sse_event(
 
 async def handle_stream(request: Request) -> StreamResponse:
     """Stream a validated AI request as server-sent events."""
-    request_data, validation_error = await parse_json_request(request, StreamRequest, "stream")
+    request_data, validation_error = await parse_json_request(
+        request, StreamRequest, "stream"
+    )
     if validation_error is not None:
         return validation_error
     assert request_data is not None
@@ -387,7 +427,11 @@ async def handle_stream(request: Request) -> StreamResponse:
         error_payload = stream_payload(
             request_id,
             request_data.model,
-            error={"message": message, "code": code, "retryable": status >= 500 or status == 429},
+            error={
+                "message": message,
+                "code": code,
+                "retryable": status >= 500 or status == 429,
+            },
         )
         with suppress(ConnectionResetError, RuntimeError):
             await write_sse_event(response, error_payload, ErrorEnvelope)
@@ -402,7 +446,9 @@ async def handle_list_sessions(request: Request) -> Response:
     try:
         manager = get_session_manager()
         sessions = manager.list_sessions()
-        return ok_response("sessions", sessions, request, schema_model=SessionListEnvelope)
+        return ok_response(
+            "sessions", sessions, request, schema_model=SessionListEnvelope
+        )
     except Exception as error:
         logger.exception("Error listing sessions")
         return execution_error_response(error, request, "sessions")
@@ -420,10 +466,16 @@ async def handle_get_session(request: Request) -> Response:
 
         if session is None:
             return error_response(
-                f"Session '{session_id}' not found", request, status=404, code="not_found", task="session"
+                f"Session '{session_id}' not found",
+                request,
+                status=404,
+                code="not_found",
+                task="session",
             )
 
-        return ok_response("session", session.to_dict(), request, schema_model=SessionDetailEnvelope)
+        return ok_response(
+            "session", session.to_dict(), request, schema_model=SessionDetailEnvelope
+        )
     except Exception as error:
         logger.exception("Error loading session %s", session_id)
         return execution_error_response(error, request, "session")
@@ -440,9 +492,18 @@ async def handle_delete_session(request: Request) -> Response:
         deleted = manager.delete_session(session_id)
 
         if deleted:
-            return ok_response("delete_session", {"id": session_id}, request, schema_model=DeleteSessionEnvelope)
+            return ok_response(
+                "delete_session",
+                {"id": session_id},
+                request,
+                schema_model=DeleteSessionEnvelope,
+            )
         return error_response(
-            f"Session '{session_id}' not found", request, status=404, code="not_found", task="delete_session"
+            f"Session '{session_id}' not found",
+            request,
+            status=404,
+            code="not_found",
+            task="delete_session",
         )
     except Exception as error:
         logger.exception("Error deleting session %s", session_id)
@@ -460,7 +521,12 @@ async def handle_reload(request: Request) -> Response:
         set_config(new_config)
 
         logger.info("Configuration reloaded via API")
-        return ok_response("reload", {"message": "Configuration reloaded"}, request, schema_model=ReloadEnvelope)
+        return ok_response(
+            "reload",
+            {"message": "Configuration reloaded"},
+            request,
+            schema_model=ReloadEnvelope,
+        )
     except Exception as error:
         logger.exception("Error reloading configuration")
         return execution_error_response(error, request, "reload")
@@ -492,7 +558,9 @@ def create_app(
     active_token = get_or_create_token() if api_token is None else api_token.strip()
     if not active_token or any(character.isspace() for character in active_token):
         raise ValueError("API token must be non-empty and contain no whitespace")
-    active_origins = tuple(get_allowed_origins() if allowed_origins is None else allowed_origins)
+    active_origins = tuple(
+        get_allowed_origins() if allowed_origins is None else allowed_origins
+    )
     app = web.Application(
         middlewares=[security_middleware(active_token, active_origins)],
         client_max_size=1024**2,
@@ -518,10 +586,14 @@ def create_app(
 def run_server(host: str = "127.0.0.1", port: int = 8772) -> None:
     """Run the HTTP server."""
     app = create_app()
-    transport = resolve_transport("MATILDA_BRAIN_TRANSPORT", "MATILDA_BRAIN_ENDPOINT", host, port)
+    transport = resolve_transport(
+        "MATILDA_BRAIN_TRANSPORT", "MATILDA_BRAIN_ENDPOINT", host, port
+    )
 
     address = (
-        transport.endpoint if transport.transport in {"unix", "pipe"} else f"http://{transport.host}:{transport.port}"
+        transport.endpoint
+        if transport.transport in {"unix", "pipe"}
+        else f"http://{transport.host}:{transport.port}"
     )
     print(f"Starting Brain server on {address}")
     print()
@@ -564,7 +636,9 @@ def main() -> None:
     """CLI entry point."""
     parser = argparse.ArgumentParser(description="Matilda Brain HTTP Server")
     parser.add_argument("--host", default="127.0.0.1", help="Host to bind to")
-    parser.add_argument("--port", "-p", type=int, default=8772, help="Port to listen on")
+    parser.add_argument(
+        "--port", "-p", type=int, default=8772, help="Port to listen on"
+    )
     args = parser.parse_args()
 
     run_server(host=args.host, port=args.port)
