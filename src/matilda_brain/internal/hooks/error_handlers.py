@@ -202,7 +202,7 @@ def handle_error(
         context: Context of the error ("ask" or "chat")
         exit_on_error: Whether to exit with status code 1
     """
-    debug = debug or any(os.getenv(name, "").lower() == "true" for name in ("BRAIN_DEBUG", "TTT_DEBUG"))
+    debug = debug or os.getenv("BRAIN_DEBUG", "").lower() == "true"
 
     if json_mode:
         display_error_json(error, api_params)

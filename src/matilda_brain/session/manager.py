@@ -76,39 +76,19 @@ class ChatSessionManager:
 
     def __init__(self, sessions_dir: Optional[Path] = None):
         """Initialize the session manager."""
-        if sessions_dir is None:
-            self.sessions_dir = Path.home() / ".matilda" / "brain" / "sessions"
-            self._legacy_sessions_dir: Optional[Path] = Path.home() / ".ttt" / "sessions"
-        else:
-            self.sessions_dir = Path(sessions_dir)
-            self._legacy_sessions_dir = None
+        self.sessions_dir = (
+            Path(sessions_dir) if sessions_dir is not None else Path.home() / ".matilda" / "brain" / "sessions"
+        )
 
         self.sessions_dir.mkdir(parents=True, exist_ok=True)
 
-    def _storage_dirs(self) -> tuple[Path, ...]:
-        if self._legacy_sessions_dir is None:
-            return (self.sessions_dir,)
-        return (self.sessions_dir, self._legacy_sessions_dir)
-
     def _session_files(self) -> List[Path]:
-        """Return canonical and legacy session files, preferring canonical duplicates."""
-        files: List[Path] = []
-        seen_ids: set[str] = set()
-        for directory in self._storage_dirs():
-            if not directory.is_dir():
-                continue
-            for session_file in directory.glob("*.json"):
-                if session_file.stem not in seen_ids:
-                    files.append(session_file)
-                    seen_ids.add(session_file.stem)
-        return files
+        """Return stored session files."""
+        return list(self.sessions_dir.glob("*.json"))
 
     def _find_session_file(self, session_id: str) -> Optional[Path]:
-        for directory in self._storage_dirs():
-            session_file = directory / f"{session_id}.json"
-            if session_file.exists():
-                return session_file
-        return None
+        session_file = self.sessions_dir / f"{session_id}.json"
+        return session_file if session_file.exists() else None
 
     def create_session(
         self,
@@ -250,13 +230,11 @@ class ChatSessionManager:
         except ValueError:
             return False
 
-        deleted = False
-        for directory in self._storage_dirs():
-            session_file = directory / f"{session_id}.json"
-            if session_file.exists():
-                session_file.unlink()
-                deleted = True
-        return deleted
+        session_file = self.sessions_dir / f"{session_id}.json"
+        if not session_file.exists():
+            return False
+        session_file.unlink()
+        return True
 
     def display_sessions_table(self) -> None:
         """Display all sessions in a nice table format."""

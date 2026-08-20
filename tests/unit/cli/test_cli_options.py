@@ -2,16 +2,13 @@
 
 from unittest.mock import patch
 
-import pytest
-
 from matilda_brain.cli import cli
 from tests.cli.conftest import IntegrationTestBase
 
 
 class TestDebugMode(IntegrationTestBase):
-    @pytest.mark.parametrize("variable", ["BRAIN_DEBUG", "TTT_DEBUG"])
-    def test_debug_environment_variables_remain_supported(self, variable, monkeypatch):
-        monkeypatch.setenv(variable, "true")
+    def test_debug_environment_variable_is_supported(self, monkeypatch):
+        monkeypatch.setenv("BRAIN_DEBUG", "true")
 
         result = self.runner.invoke(cli, ["list", "models"])
 

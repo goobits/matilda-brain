@@ -2,7 +2,6 @@
 
 import json
 import os
-import warnings
 from datetime import datetime
 from pathlib import Path
 from types import TracebackType
@@ -34,7 +33,7 @@ class PersistentChatSession:
     This enhanced session supports:
     - Saving and loading conversation history
     - Metadata tracking (timestamps, model usage, costs)
-    - Multiple persistence formats (JSON, pickle)
+    - JSON persistence
     - Session resumption
     - Tool persistence and execution
     - Git-backed long-term memory via matilda-memory
@@ -370,24 +369,12 @@ Assistant: {response}"""
 
         Args:
             path: File path to save to
-            format: Save format - only "json" is supported (pickle removed for security)
+            format: Save format; only "json" is supported
 
         Returns:
             Path where the session was saved
         """
         path = Path(path)
-
-        # Warn if pickle format requested (deprecated for security)
-        if format == "pickle":
-            warnings.warn(
-                "Pickle format is deprecated due to security concerns. Using JSON instead.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-            format = "json"
-            # Change extension if needed
-            if path.suffix in [".pkl", ".pickle"]:
-                path = path.with_suffix(".json")
 
         if format != "json":
             raise InvalidParameterError("format", format, "Only 'json' format is supported")
@@ -412,7 +399,7 @@ Assistant: {response}"""
             "model": self.model,
             "backend": backend_name,
             "tools": self._serialize_tools() if self.tools else None,
-            "messages": self.history,  # Use 'messages' for compatibility
+            "messages": self.history,
             "metadata": self.metadata,
             "kwargs": self.kwargs,
         }
@@ -440,35 +427,20 @@ Assistant: {response}"""
 
         Args:
             path: File path to load from
-            format: Load format - "json" preferred, "pickle" deprecated but supported for migration
+            format: Load format; only "json" is supported
 
         Returns:
             Loaded PersistentChatSession instance
         """
         path = Path(path)
 
-        # Auto-detect format
-        if format is None:
-            if path.suffix == ".json":
-                format = "json"
-            elif path.suffix in [".pkl", ".pickle"]:
-                format = "pickle"
-            else:
-                # Try JSON first
-                format = "json"
+        format = format or "json"
+        if format != "json":
+            raise SessionLoadError(str(path), "Only JSON session files are supported")
 
         try:
-            if format == "json":
-                with open(path) as f:
-                    session_data = json.load(f)
-            else:
-                # Pickle support removed for security
-                if path.suffix in [".pkl", ".pickle"] or format == "pickle":
-                    raise SessionLoadError(str(path), "Pickle format is no longer supported for security reasons.")
-
-                # Default to JSON
-                with open(path) as f:
-                    session_data = json.load(f)
+            with open(path) as f:
+                session_data = json.load(f)
         except FileNotFoundError:
             raise SessionLoadError(str(path), "File not found") from None
         except json.JSONDecodeError as e:
@@ -496,8 +468,7 @@ Assistant: {response}"""
         )
 
         # Restore history and metadata
-        # Support both 'messages' and 'history' for compatibility
-        session.history = session_data.get("messages", session_data.get("history", []))
+        session.history = session_data.get("messages", [])
         session.metadata.update(session_data.get("metadata", {}))
 
         logger.info(f"Loaded session from {path} ({len(session.history)} messages)")

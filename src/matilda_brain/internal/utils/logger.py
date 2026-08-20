@@ -15,7 +15,7 @@ def _env_flag(*names: str) -> bool:
     return any(os.environ.get(name, "").lower() == "true" for name in names)
 
 
-_json_mode = _env_flag("BRAIN_JSON_MODE", "TTT_JSON_MODE")
+_json_mode = _env_flag("BRAIN_JSON_MODE")
 
 if not _json_mode:
     # Only install rich traceback handler if not in JSON mode
@@ -66,7 +66,7 @@ def get_logger(name: Optional[str] = None) -> logging.Logger:
     logger = logging.getLogger(name)
 
     # Configure logger for JSON mode if not already configured
-    if _env_flag("BRAIN_JSON_MODE", "TTT_JSON_MODE") and not logger.handlers:
+    if _env_flag("BRAIN_JSON_MODE") and not logger.handlers:
         # In JSON mode, use a null handler to suppress all output
         logger.addHandler(logging.NullHandler())
         logger.propagate = False

@@ -50,7 +50,7 @@ def test_goobits_config_has_unique_keys_and_matches_package_metadata():
     assert goobits["package_name"] == project["project"]["name"]
     assert goobits["cli"]["version"] == project["project"]["version"]
     assert goobits["command_name"] in project["project"]["scripts"]
-    assert project["project"]["scripts"]["ttt"] == project["project"]["scripts"]["brain"]
+    assert set(project["project"]["scripts"]) == {"brain"}
 
 
 def test_generated_cli_and_all_server_entry_points_default_to_loopback():
@@ -137,7 +137,6 @@ def test_built_wheel_is_importable_and_contains_runtime_contracts(tmp_path):
         entry_points_path = next(name for name in names if name.endswith(".dist-info/entry_points.txt"))
         entry_points = wheel.read(entry_points_path).decode()
         assert "brain = matilda_brain.cli:main" in entry_points
-        assert "ttt = matilda_brain.cli:main" in entry_points
 
     install_dir = tmp_path / "installed"
     subprocess.run(

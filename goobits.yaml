@@ -31,7 +31,7 @@ installation:
 shell_integration:
   enabled: false
   alias: "brain"
-  aliases: ["ttt"]  # Legacy command; pyproject.toml keeps the package entry point
+  aliases: []
 
 validation:
   check_api_keys: false

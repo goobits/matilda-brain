@@ -220,7 +220,7 @@ class ConfigManager:
         return config
 
     def _warn_once(self, message: str) -> None:
-        json_mode = any(os.environ.get(name, "").lower() == "true" for name in ("BRAIN_JSON_MODE", "TTT_JSON_MODE"))
+        json_mode = os.environ.get("BRAIN_JSON_MODE", "").lower() == "true"
         if _suppress_warnings or json_mode or "--json" in sys.argv or _is_pipe_mode():
             return
         if self.user_config_path not in _warned_paths:

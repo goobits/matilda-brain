@@ -2,8 +2,8 @@ version: "2.0"
 provider: docker
 os: auto
 project:
-  hostname: dev.ttt.local
-  name: ttt
+  hostname: dev.brain.local
+  name: brain
   workspace_path: /workspace
 vm:
   box: '@vibe-box'
@@ -30,7 +30,7 @@ terminal:
   show_git_branch: true
   show_timestamp: false
   theme: dracula
-  username: ttt-dev
+  username: brain-dev
 host_sync:
   git_config: true
   ai_tools: true

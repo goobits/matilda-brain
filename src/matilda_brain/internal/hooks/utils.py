@@ -22,7 +22,7 @@ def _env_flag(*names: str) -> bool:
 
 def is_verbose_mode() -> bool:
     """Check if verbose mode is enabled via environment variables or click context."""
-    if _env_flag("BRAIN_VERBOSE", "BRAIN_DEBUG", "TTT_VERBOSE", "TTT_DEBUG"):
+    if _env_flag("BRAIN_VERBOSE", "BRAIN_DEBUG"):
         return True
 
     # Try to get debug flag from click context if available
@@ -303,7 +303,7 @@ def apply_coding_optimization(kwargs: Dict[str, Any]) -> None:
         Modifies the kwargs dictionary directly rather than returning a new one.
     """
     if "model" not in kwargs:
-        default_coding_model = os.getenv("BRAIN_CODING_MODEL") or os.getenv("TTT_CODING_MODEL") or "@coding"
+        default_coding_model = os.getenv("BRAIN_CODING_MODEL") or "@coding"
         kwargs["model"] = resolve_model_alias(default_coding_model)
 
     if "temperature" not in kwargs:

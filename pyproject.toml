@@ -24,7 +24,6 @@ publish = [ "build>=1.0,<2.0", "twine>=4.0,<8.0",]
 
 [project.scripts]
 brain = "matilda_brain.cli:main"
-ttt = "matilda_brain.cli:main"
 
 [project.urls]
 Homepage = "https://github.com/goobits/matilda-brain"
