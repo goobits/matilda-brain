@@ -72,7 +72,7 @@ The yielded `PersistentChatSession` owns conversation history, response metadata
 - `get_summary()`
 - `close()`
 
-Session files use JSON. Loading pickle sessions is intentionally rejected.
+Session files use JSON; other formats are not supported.
 
 ### `stateless`
 

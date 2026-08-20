@@ -10,7 +10,7 @@ One CLI and Python API for cloud and local language models, streaming conversati
 ./scripts/setup.sh install --dev
 ```
 
-Python 3.11-3.13 is supported. The primary command is `brain`; the legacy `ttt` command remains available for compatibility.
+Python 3.11-3.13 is supported. The command is `brain`.
 
 ## CLI
 
@@ -89,10 +89,9 @@ brain serve                         # 127.0.0.1:8772
 
 `GET /health` is public. Other endpoints require `Authorization: Bearer $MATILDA_API_TOKEN`. Cross-origin access is denied unless `ALLOWED_ORIGINS` is configured.
 
-## State migration
+## State
 
 - New CLI sessions are written to `~/.matilda/brain/sessions/`.
-- Existing `~/.ttt/sessions/` files remain readable and are removed correctly when deleted through Brain.
 - Plugins are discovered first from `~/.matilda/brain/plugins/` and `./matilda_brain_plugins/`, then from the legacy `ai` plugin locations.
 - Legacy YAML configuration is not loaded; use the shared TOML file.
 

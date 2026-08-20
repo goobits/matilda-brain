@@ -6,7 +6,7 @@ Local guidance for Matilda Brain. Monorepo-level instructions still apply.
 
 - Package: `goobits-matilda-brain`
 - Import: `matilda_brain`
-- Command: `brain` (`ttt` is a compatibility entry point)
+- Command: `brain`
 - Python: 3.11-3.13
 - Format/lint/types: Black, Ruff, mypy
 
@@ -46,7 +46,7 @@ Change `goobits.yaml` and `src/matilda_brain/app_hooks.py`, run `goobits build`,
 
 - Configuration lives in `~/.matilda/config.toml` under `[brain]`; `MATILDA_CONFIG` overrides the path.
 - Defaults < TOML < environment < `configure()` runtime overrides.
-- New sessions use `~/.matilda/brain/sessions/`; legacy `~/.ttt/sessions/` remains readable.
+- Sessions use JSON files under `~/.matilda/brain/sessions/`.
 - Tool names disabled in config must not be exposed through `--tools`.
 - Server defaults to `127.0.0.1:8772`, requires bearer auth outside health/preflight, and denies CORS unless explicitly allowed.
 - Preserve the single request pipeline for sync, async, session, stateless, server, and tool-loop paths.
